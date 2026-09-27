@@ -1,0 +1,15 @@
+{
+  "name": "@hudisoft/common",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HUDI-SOFT Shared Constants, Enums, DTOs, Africa-First Geographic Data & i18n",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

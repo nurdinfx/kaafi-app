@@ -1,0 +1,276 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────────────────────────────
+   DESIGN SYSTEM — FUDUDEEYE APP
+   Africa-First Premium Dark Marketplace
+─────────────────────────────────────────────── */
+
+:root {
+  --color-brand: #0c8fe2;
+  --color-brand-dark: #005899;
+  --color-accent: #f97316;
+  --color-surface-950: #050c15;
+  --color-surface-900: #0a1628;
+  --color-surface-800: #0f2040;
+  --color-surface-700: #162d56;
+  --color-text-primary: #f0f7ff;
+  --color-text-muted: #94b4d0;
+  --color-border: rgba(255,255,255,0.07);
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --shadow-card: 0 4px 32px rgba(0,0,0,0.45);
+  --shadow-glow: 0 0 40px rgba(12,143,226,0.15);
+}
+
+/* ── LIGHT MODE THEME (White Screen) ── */
+html.light, [data-theme="light"] {
+  --color-surface-950: #f8fafc;
+  --color-surface-900: #ffffff;
+  --color-surface-800: #f1f5f9;
+  --color-surface-700: #e2e8f0;
+  --color-text-primary: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 0 30px rgba(12, 143, 226, 0.1);
+}
+
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light .glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .glass-card h1,
+html.light .glass-card h2,
+html.light .glass-card h3,
+html.light .glass-card h4,
+html.light .glass-card .text-white {
+  color: #0f172a !important;
+}
+
+html.light header {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light header .text-white {
+  color: #0f172a !important;
+}
+
+html.light .hero-bg {
+  background: radial-gradient(ellipse at top left, rgba(12, 143, 226, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom right, rgba(249, 115, 22, 0.05) 0%, transparent 50%),
+              linear-gradient(135deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 70%, #e2e8f0 100%) !important;
+}
+
+html.light .hero-bg h1,
+html.light .hero-bg h2,
+html.light .hero-bg .text-white {
+  color: #0f172a !important;
+}
+
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-300 {
+  color: #64748b !important;
+}
+
+html.light footer {
+  background: #f1f5f9 !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+html.light footer .text-white {
+  color: #0f172a !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-surface-950);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── GLASS CARD ── */
+@layer components {
+  .glass-card {
+    @apply bg-surface-800/60 backdrop-blur-md border border-white/5 rounded-2xl shadow-lg;
+    background: linear-gradient(135deg, rgba(15,32,64,0.7) 0%, rgba(22,45,86,0.5) 100%);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+  .glass-card-hover:hover {
+    border-color: rgba(12,143,226,0.3);
+    box-shadow: 0 8px 40px rgba(12,143,226,0.15);
+    transform: translateY(-2px);
+  }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #0c8fe2, #005899);
+    box-shadow: 0 4px 16px rgba(12,143,226,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(12,143,226,0.45);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-accent {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    box-shadow: 0 4px 16px rgba(249,115,22,0.3);
+  }
+  .btn-accent:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(249,115,22,0.45);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-brand-300 border border-brand-700/50 transition-all duration-200;
+  }
+  .btn-ghost:hover {
+    @apply bg-brand-800/30 border-brand-500/50 text-white;
+  }
+
+  /* ── INPUTS ── */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-surface-800 border border-white/10 text-white placeholder-surface-600 outline-none transition-all duration-200;
+    color: var(--color-text-primary);
+  }
+  .input-field:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgba(12,143,226,0.15);
+  }
+
+  /* ── BADGES ── */
+  .badge-verified {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+    background: rgba(16,185,129,0.15);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+  .badge-category {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+    background: rgba(12,143,226,0.12);
+    color: #7cc8fb;
+    border: 1px solid rgba(12,143,226,0.2);
+  }
+
+  /* ── LISTING CARD ── */
+  .listing-card {
+    @apply glass-card-hover overflow-hidden cursor-pointer;
+  }
+
+  /* ── PRICE TAG ── */
+  .price-tag {
+    @apply font-bold text-white;
+    font-family: 'Outfit', sans-serif;
+  }
+  .price-tag-accent {
+    @apply price-tag;
+    background: linear-gradient(135deg, #f97316, #fb923c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── SECTION HEADING ── */
+  .section-heading {
+    @apply font-display font-bold tracking-tight;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  /* ── SHIMMER SKELETON ── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(22,45,86,0.6) 25%,
+      rgba(12,143,226,0.08) 50%,
+      rgba(22,45,86,0.6) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface-900); }
+::-webkit-scrollbar-thumb { background: var(--color-surface-700); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-brand); }
+
+/* ── ANIMATED BACKGROUND ── */
+.hero-bg {
+  background: radial-gradient(ellipse at top left, rgba(12,143,226,0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom right, rgba(249,115,22,0.08) 0%, transparent 50%),
+              linear-gradient(135deg, #050c15 0%, #0a1628 40%, #0f2040 70%, #162d56 100%);
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(12, 143, 226, 0.25), 0 0 30px rgba(14, 165, 233, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(12, 143, 226, 0.5), 0 0 50px rgba(14, 165, 233, 0.25);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+

@@ -1,0 +1,38 @@
+{
+  "name": "hudi-soft-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HUDI-SOFT MARKETPLACE (Fududeeye App) - Africa-First Multi-Category Marketplace & Social Commerce Platform",
+  "scripts": {
+    "dev:api": "npm --workspace=services/api run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "dev:mobile": "cd apps/mobile && flutter run",
+    "dev": "npm --workspace=services/api run dev",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm --workspace=services/api run test",
+    "test:e2e": "npm --workspace=services/api run test:e2e",
+    "db:generate": "npm --workspace=services/api run db:generate",
+    "db:push": "npm --workspace=services/api run db:push",
+    "db:seed": "npm --workspace=services/api run db:seed"
+  },
+  "workspaces": [
+    "services/*",
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "marketplace",
+    "africa-first",
+    "somalia",
+    "garoowe",
+    "ecommerce",
+    "social-commerce",
+    "b2b",
+    "fududeeye"
+  ],
+  "author": "Hudi-Soft Technologies",
+  "license": "UNLICENSED"
+}

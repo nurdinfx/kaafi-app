@@ -1,0 +1,22 @@
+{
+  "name": "@hudisoft/core-auth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HUDI-SOFT Authentication Engine - Password Hashing, JWT Tokens, Africa-First OTP & RBAC Guards",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "dependencies": {
+    "@hudisoft/common": "*",
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.9",
+    "typescript": "^5.8.2"
+  }
+}

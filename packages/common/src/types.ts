@@ -1,0 +1,101 @@
+export enum RoleType {
+  CUSTOMER = 'CUSTOMER',
+  INDIVIDUAL_SELLER = 'INDIVIDUAL_SELLER',
+  BUSINESS_SELLER = 'BUSINESS_SELLER',
+  CREATOR = 'CREATOR',
+  SERVICE_PROVIDER = 'SERVICE_PROVIDER',
+  WHOLESALE_BUYER = 'WHOLESALE_BUYER',
+  WHOLESALE_SELLER = 'WHOLESALE_SELLER',
+  DRIVER = 'DRIVER',
+  MERCHANT_STAFF = 'MERCHANT_STAFF',
+  PROPERTY_AGENT = 'PROPERTY_AGENT',
+  VEHICLE_DEALER = 'VEHICLE_DEALER',
+  MODERATOR = 'MODERATOR',
+  SUPPORT_AGENT = 'SUPPORT_AGENT',
+  FINANCE_ADMIN = 'FINANCE_ADMIN',
+  OPERATIONS_ADMIN = 'OPERATIONS_ADMIN',
+  MARKETING_ADMIN = 'MARKETING_ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+
+export enum VerticalType {
+  PRODUCT = 'PRODUCT',
+  VEHICLE = 'VEHICLE',
+  REAL_ESTATE = 'REAL_ESTATE',
+  LAND = 'LAND',
+  SERVICE = 'SERVICE',
+  WHOLESALE = 'WHOLESALE',
+}
+
+export enum ListingCondition {
+  NEW = 'NEW',
+  LIKE_NEW = 'LIKE_NEW',
+  USED_GOOD = 'USED_GOOD',
+  USED_FAIR = 'USED_FAIR',
+}
+
+export enum ListingStatus {
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  PENDING_REVIEW = 'PENDING_REVIEW',
+  SUSPENDED = 'SUSPENDED',
+  SOLD = 'SOLD',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum OfferStatus {
+  PENDING = 'PENDING',
+  COUNTERED = 'COUNTERED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum TransactionStatus {
+  PENDING_PAYMENT = 'PENDING_PAYMENT',
+  PAID = 'PAID',
+  PREPARING = 'PREPARING',
+  READY_FOR_PICKUP = 'READY_FOR_PICKUP',
+  IN_TRANSIT = 'IN_TRANSIT',
+  DELIVERED = 'DELIVERED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  DISPUTED = 'DISPUTED',
+}
+
+export enum PaymentProvider {
+  EVC_PLUS = 'EVC_PLUS',
+  ZAAD = 'ZAAD',
+  SAHAL = 'SAHAL',
+  WALLET = 'WALLET',
+  CASH_ON_DELIVERY = 'CASH_ON_DELIVERY',
+  CARD = 'CARD',
+}
+
+export enum LedgerType {
+  CREDIT = 'CREDIT',
+  DEBIT = 'DEBIT',
+  COMMISSION = 'COMMISSION',
+  PAYOUT = 'PAYOUT',
+  REFUND = 'REFUND',
+  ADJUSTMENT = 'ADJUSTMENT',
+}
+
+export enum FulfillmentType {
+  SELF_PICKUP = 'SELF_PICKUP',
+  MERCHANT_DELIVERY = 'MERCHANT_DELIVERY',
+  DRIVER_DELIVERY = 'DRIVER_DELIVERY',
+  DIGITAL = 'DIGITAL',
+}
+
+export interface LandmarkLocation {
+  country: string;
+  region: string;
+  city: string;
+  district?: string;
+  neighborhood?: string;
+  landmark?: string;
+  latitude?: number;
+  longitude?: number;
+}

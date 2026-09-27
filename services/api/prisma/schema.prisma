@@ -1,0 +1,837 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ----------------------------------------------------
+// USER IDENTITY & RBAC
+// ----------------------------------------------------
+model User {
+  id                    String              @id @default(uuid())
+  phoneNumber           String              @unique
+  email                 String?             @unique
+  passwordHash          String
+  fullName              String
+  avatarUrl             String?
+  bio                   String?
+  country               String              @default("Somalia")
+  city                  String              @default("Garoowe")
+  verificationStatus    String              @default("UNVERIFIED") // UNVERIFIED, PENDING, VERIFIED, REJECTED
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  // Relationships
+  roles                 UserRole[]
+  sellerProfile         SellerProfile?
+  businessProfile       BusinessProfile?
+  driverProfile         DriverProfile?
+  wallet                Wallet?
+  listings              Listing[]
+  buyerRequests         BuyerRequest[]
+  sentOffers            Offer[]             @relation("BuyerOffers")
+  receivedOffers        Offer[]             @relation("SellerOffers")
+  buyerTransactions     MarketplaceTransaction[] @relation("BuyerTransactions")
+  socialPosts           SocialPost[]
+  postComments          PostComment[]
+  postLikes             PostLike[]
+  followers             UserFollow[]        @relation("TargetUserFollowers")
+  following             UserFollow[]        @relation("UserFollowing")
+  sentMessages          ChatMessage[]       @relation("UserSentMessages")
+  conversations         ChatParticipant[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  reviewsGiven          Review[]            @relation("ReviewsGiven")
+  disputesCreated       Dispute[]           @relation("DisputesCreated")
+  disputesResolved      Dispute[]           @relation("DisputesResolved")
+  verificationRequests  VerificationRequest[]
+  wholesaleRFQs         WholesaleRFQ[]      @relation("BuyerRFQs")
+  wholesaleQuotes       WholesaleQuote[]    @relation("SupplierQuotes")
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique // CUSTOMER, INDIVIDUAL_SELLER, BUSINESS_SELLER, CREATOR, SERVICE_PROVIDER, WHOLESALE_BUYER, WHOLESALE_SELLER, DRIVER, MERCHANT_STAFF, MODERATOR, FINANCE_ADMIN, SUPER_ADMIN
+  description String?
+  userRoles   UserRole[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+// ----------------------------------------------------
+// SELLER & BUSINESS ENTITIES
+// ----------------------------------------------------
+model SellerProfile {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sellerType        String       @default("INDIVIDUAL") // INDIVIDUAL, BUSINESS
+  displayName       String
+  bio               String?
+  idDocumentUrl     String?
+  isVerified        Boolean      @default(false)
+  rating            Float        @default(0.0)
+  totalReviews      Int          @default(0)
+  completedSales    Int          @default(0)
+  city              String       @default("Garoowe")
+  landmarkAddress   String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model BusinessProfile {
+  id                String             @id @default(uuid())
+  ownerId           String             @unique
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  businessName      String
+  slug              String             @unique
+  tagline           String?
+  description       String?
+  logoUrl           String?
+  coverImageUrl     String?
+  phone             String
+  whatsappNumber    String?
+  city              String             @default("Garoowe")
+  landmarkAddress   String?
+  openingHours      String?            // JSON or text: "Sat-Thu: 8:00 AM - 9:00 PM"
+  isVerified        Boolean            @default(false)
+  licenseNumber     String?
+  rating            Float              @default(0.0)
+  totalReviews      Int                @default(0)
+  followersCount    Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  branches          BusinessBranch[]
+  employees         BusinessEmployee[]
+  listings          Listing[]
+}
+
+model BusinessBranch {
+  id              String          @id @default(uuid())
+  businessId      String
+  business        BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  branchName      String          // e.g. "Garoowe Central", "Bosaso Main"
+  city            String          @default("Garoowe")
+  neighborhood    String?
+  landmark        String?
+  phone           String?
+  latitude        Float?
+  longitude       Float?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  listings        Listing[]
+  stockMovements  StockMovement[]
+}
+
+model BusinessEmployee {
+  id              String          @id @default(uuid())
+  businessId      String
+  business        BusinessProfile @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId          String
+  roleTitle       String          // e.g. "Manager", "Cashier", "Order Dispatcher", "Customer Support"
+  permissions     String          // JSON array of strings e.g. ["orders.read", "orders.update", "inventory.manage"]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([businessId, userId])
+}
+
+// ----------------------------------------------------
+// DYNAMIC CATEGORIES & ATTRIBUTES
+// ----------------------------------------------------
+model Category {
+  id              String              @id @default(uuid())
+  name            String
+  slug            String              @unique
+  description     String?
+  icon            String?
+  imageUrl        String?
+  verticalType    String              @default("PRODUCT") // PRODUCT, VEHICLE, REAL_ESTATE, LAND, SERVICE, WHOLESALE, FOOD
+  parentId        String?
+  parent          Category?           @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories   Category[]          @relation("CategoryHierarchy")
+  displayOrder    Int                 @default(0)
+  isActive        Boolean             @default(true)
+  commissionRate  Float               @default(5.0) // Configurable % per category
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  attributes      CategoryAttribute[]
+  listings        Listing[]
+  buyerRequests   BuyerRequest[]
+}
+
+model CategoryAttribute {
+  id            String                  @id @default(uuid())
+  categoryId    String
+  category      Category                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name          String                  // e.g. "Brand", "Model", "Year", "Transmission", "Bedrooms", "Condition"
+  key           String                  // e.g. "brand", "model", "year", "transmission"
+  type          String                  @default("TEXT") // TEXT, NUMBER, SELECT, BOOLEAN
+  isRequired    Boolean                 @default(false)
+  options       String?                 // Comma-separated or JSON string for SELECT types
+  createdAt     DateTime                @default(now())
+  values        ListingAttributeValue[]
+
+  @@unique([categoryId, key])
+}
+
+// ----------------------------------------------------
+// MULTI-VERTICAL LISTINGS
+// ----------------------------------------------------
+model Listing {
+  id                    String                  @id @default(uuid())
+  sellerId              String
+  seller                User                    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  businessId            String?
+  business              BusinessProfile?        @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  branchId              String?
+  branch                BusinessBranch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  categoryId            String
+  category              Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  verticalType          String                  @default("PRODUCT") // PRODUCT, VEHICLE, REAL_ESTATE, LAND, SERVICE, WHOLESALE
+  title                 String
+  slug                  String                  @unique
+  description           String
+  price                 Float
+  currency              String                  @default("USD") // USD, SOS
+  isNegotiable          Boolean                 @default(true)
+  condition             String                  @default("NEW") // NEW, LIKE_NEW, USED_GOOD, USED_FAIR
+  inventoryCount        Int                     @default(1)
+  lowStockThreshold     Int                     @default(2)
+  reservedInventory     Int                     @default(0)
+  sku                   String?
+  
+  // B2B Wholesale settings
+  isWholesaleAvailable  Boolean                 @default(false)
+  minWholesaleQty       Int?
+  wholesalePrice        Float?
+
+  // Africa-First Landmark Location
+  country               String                  @default("Somalia")
+  region                String                  @default("Puntland")
+  city                  String                  @default("Garoowe")
+  district              String?
+  neighborhood          String?
+  landmark              String?                 // e.g. "Near Xarunta Gobolka"
+  latitude              Float?
+  longitude             Float?
+
+  status                String                  @default("ACTIVE") // DRAFT, ACTIVE, PAUSED, SOLD, ARCHIVED
+  verificationStatus    String                  @default("UNVERIFIED") // UNVERIFIED, VERIFIED
+  viewsCount            Int                     @default(0)
+  favoritesCount        Int                     @default(0)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  media                 ListingMedia[]
+  attributeValues       ListingAttributeValue[]
+  variants              ProductVariant[]
+  stockMovements        StockMovement[]
+  vehicleDetails        VehicleDetail?
+  propertyDetails       PropertyDetail?
+  serviceDetails        ServiceDetail?
+  offers                Offer[]
+  transactionItems      TransactionItem[]
+  reviews               Review[]
+  linkedSocialPosts     LinkedListing[]
+}
+
+model ListingMedia {
+  id          String   @id @default(uuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  mediaType   String   @default("IMAGE") // IMAGE, VIDEO
+  url         String
+  thumbnailUrl String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model ListingAttributeValue {
+  id          String            @id @default(uuid())
+  listingId   String
+  listing     Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  attributeId String
+  attribute   CategoryAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  value       String
+  createdAt   DateTime          @default(now())
+
+  @@unique([listingId, attributeId])
+}
+
+// Specialized Vertical Extension Tables
+model VehicleDetail {
+  id              String   @id @default(uuid())
+  listingId       String   @unique
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  make            String   // Toyota, Nissan, Hyundai
+  model           String   // Land Cruiser Prado, Hilux, Vitz
+  year            Int
+  mileageKm       Int?
+  transmission    String   // AUTOMATIC, MANUAL
+  fuelType        String   // PETROL, DIESEL, HYBRID
+  engineSize      String?  // 2.7L, 3.0L
+  color           String?
+  vin             String?
+  plateNumber     String?
+  inspectionPassed Boolean @default(false)
+}
+
+model PropertyDetail {
+  id              String   @id @default(uuid())
+  listingId       String   @unique
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  propertyType    String   // HOUSE, APARTMENT, COMMERCIAL, LAND, WAREHOUSE
+  transactionType String   // SALE, RENT
+  bedrooms        Int?
+  bathrooms       Int?
+  areaSqMeters    Float?
+  furnished       Boolean  @default(false)
+  hasParking      Boolean  @default(false)
+  landTitleStatus String?  // TITLE_DEED_AVAILABLE, NOTARIZED, IN_PROCESS
+}
+
+model ServiceDetail {
+  id              String   @id @default(uuid())
+  listingId       String   @unique
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  serviceType     String   // MECHANIC, PLUMBER, ELECTRICIAN, CLEANING, MOVING, TAILOR
+  pricingModel    String   @default("FIXED") // FIXED, HOURLY, QUOTE_BASED
+  yearsExperience Int?
+  serviceArea     String?  // Garoowe and surrounding districts
+  availability    String?  // MON_SAT_8AM_6PM
+}
+
+// ----------------------------------------------------
+// REQUEST WHAT YOU NEED & OFFERS
+// ----------------------------------------------------
+model BuyerRequest {
+  id            String       @id @default(uuid())
+  buyerId       String
+  buyer         User         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  title         String       // e.g. "Looking for Toyota Prado 2018-2021"
+  description   String
+  targetBudget  Float?
+  currency      String       @default("USD")
+  quantity      Int          @default(1)
+  city          String       @default("Garoowe")
+  landmark      String?
+  urgency       String       @default("NORMAL") // URGENT, NORMAL, FLEXIBLE
+  status        String       @default("OPEN") // OPEN, MATCHED, FULFILLED, CLOSED
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  offers        Offer[]
+}
+
+model Offer {
+  id            String         @id @default(uuid())
+  listingId     String?
+  listing       Listing?       @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  requestId     String?
+  buyerRequest  BuyerRequest?  @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  buyerId       String
+  buyer         User           @relation("BuyerOffers", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId      String
+  seller        User           @relation("SellerOffers", fields: [sellerId], references: [id], onDelete: Cascade)
+  offeredPrice  Float
+  currency      String         @default("USD")
+  quantity      Int            @default(1)
+  status        String         @default("PENDING") // PENDING, COUNTERED, ACCEPTED, REJECTED, EXPIRED
+  counterPrice  Float?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  history       OfferHistory[]
+  transactions  MarketplaceTransaction[]
+}
+
+model OfferHistory {
+  id            String   @id @default(uuid())
+  offerId       String
+  offer         Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  actorId       String
+  action        String   // OFFERED, COUNTERED, ACCEPTED, REJECTED
+  price         Float
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// B2B WHOLESALE RFQ
+// ----------------------------------------------------
+model WholesaleRFQ {
+  id            String           @id @default(uuid())
+  buyerId       String
+  buyer         User             @relation("BuyerRFQs", fields: [buyerId], references: [id], onDelete: Cascade)
+  title         String           // e.g. "RFQ: 500 Cartons Sunflower Oil"
+  description   String
+  requiredQty   Int
+  unitOfMeasure String           // CARTONS, BAGS, PIECES, TONS
+  targetPrice   Float?
+  currency      String           @default("USD")
+  deliveryCity  String           @default("Garoowe")
+  deadline      DateTime?
+  status        String           @default("OPEN") // OPEN, RESPONSES_RECEIVED, AWARDED, CLOSED
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  quotes        WholesaleQuote[]
+}
+
+model WholesaleQuote {
+  id            String        @id @default(uuid())
+  rfqId         String
+  rfq           WholesaleRFQ  @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId    String
+  supplier      User          @relation("SupplierQuotes", fields: [supplierId], references: [id], onDelete: Cascade)
+  unitPrice     Float
+  currency      String        @default("USD")
+  moq           Int           @default(1)
+  deliveryDays  Int           @default(3)
+  validUntil    DateTime?
+  notes         String?
+  status        String        @default("SUBMITTED") // SUBMITTED, ACCEPTED, REJECTED
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// ----------------------------------------------------
+// TRANSACTIONS & ORDER STATE MACHINE
+// ----------------------------------------------------
+model MarketplaceTransaction {
+  id                  String                    @id @default(uuid())
+  transactionNumber   String                    @unique // e.g. "TX-2026-0001"
+  buyerId             String
+  buyer               User                      @relation("BuyerTransactions", fields: [buyerId], references: [id], onDelete: Restrict)
+  transactionType     String                    @default("DIRECT_PURCHASE") // DIRECT_PURCHASE, NEGOTIATION, SERVICE_BOOKING, WHOLESALE
+  offerId             String?
+  offer               Offer?                    @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  
+  subtotalAmount      Float
+  deliveryFee         Float                     @default(0.0)
+  commissionAmount    Float                     @default(0.0)
+  commissionRateUsed  Float                     @default(5.0) // Stored at purchase time!
+  totalAmount         Float
+  currency            String                    @default("USD")
+
+  // Delivery details
+  fulfillmentType     String                    @default("CUSTOMER_PICKUP") // CUSTOMER_PICKUP, SELLER_DELIVERY, DRIVER_DELIVERY
+  deliveryCity        String                    @default("Garoowe")
+  deliveryDistrict    String?
+  deliveryLandmark    String?
+  recipientPhone      String?
+
+  status              String                    @default("DRAFT") // DRAFT, PENDING_PAYMENT, PAYMENT_CONFIRMED, PLACED, ACCEPTED, PREPARING, READY, ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, COMPLETED, CANCELLED, REFUNDED, DISPUTED
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  items               TransactionItem[]
+  statusHistory       TransactionStatusHistory[]
+  payments            Payment[]
+  deliveryJob         DeliveryJob?
+  disputes            Dispute[]
+  review              Review?
+  escrowHold          EscrowHold?
+}
+
+model TransactionItem {
+  id            String                 @id @default(uuid())
+  transactionId String
+  transaction   MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  listingId     String
+  listing       Listing                @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  sellerId      String
+  quantity      Int                    @default(1)
+  unitPrice     Float
+  totalPrice    Float
+  currency      String                 @default("USD")
+}
+
+model TransactionStatusHistory {
+  id            String                 @id @default(uuid())
+  transactionId String
+  transaction   MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  fromStatus    String?
+  toStatus      String
+  notes         String?
+  changedBy     String?                // User ID or SYSTEM
+  createdAt     DateTime               @default(now())
+}
+
+// ----------------------------------------------------
+// AFRICA-FIRST PAYMENTS & WALLET ENGINE
+// ----------------------------------------------------
+model Payment {
+  id                  String                 @id @default(uuid())
+  transactionId       String
+  transaction         MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  provider            String                 // EVC_PLUS, ZAAD, SAHAL, CASH, WALLET, CARD
+  amount              Float
+  currency            String                 @default("USD")
+  payerPhone          String?
+  providerReference   String?
+  idempotencyKey      String                 @unique
+  status              String                 @default("INITIATED") // INITIATED, PENDING, CONFIRMED, FAILED, EXPIRED, REFUNDED
+  rawWebhookPayload   String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  attempts            PaymentAttempt[]
+}
+
+model PaymentAttempt {
+  id          String   @id @default(uuid())
+  paymentId   String
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  attemptNumber Int   @default(1)
+  status      String
+  responseCode String?
+  message     String?
+  createdAt   DateTime @default(now())
+}
+
+model PaymentWebhook {
+  id            String   @id @default(uuid())
+  provider      String
+  webhookEventId String  @unique // Idempotency check
+  payload       String
+  processed     Boolean  @default(false)
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Wallet {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Float          @default(0.0)
+  pendingBalance  Float          @default(0.0)
+  currency        String         @default("USD")
+  updatedAt       DateTime       @updatedAt
+
+  ledgerEntries   LedgerEntry[]
+  payoutRequests  PayoutRequest[]
+}
+
+model LedgerEntry {
+  id            String   @id @default(uuid())
+  walletId      String
+  wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  transactionId String?
+  type          String   // CREDIT, DEBIT, COMMISSION, PAYOUT, REFUND, ADJUSTMENT
+  amount        Float
+  balanceAfter  Float
+  reference     String   @unique
+  description   String
+  createdAt     DateTime @default(now())
+}
+
+model PayoutRequest {
+  id              String   @id @default(uuid())
+  walletId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount          Float
+  currency        String   @default("USD")
+  destinationType String   // EVC_PLUS, ZAAD, SAHAL, BANK
+  phoneNumber     String?
+  accountNumber   String?
+  status          String   @default("REQUESTED") // REQUESTED, PROCESSING, COMPLETED, FAILED, CANCELLED
+  adminNotes      String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// LOGISTICS & DRIVERS
+// ----------------------------------------------------
+model DriverProfile {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleType     String        // MOTORCYCLE, CAR, VAN, TRUCK
+  licenseNumber   String
+  isOnline        Boolean       @default(false)
+  currentLat      Float?
+  currentLng      Float?
+  rating          Float         @default(5.0)
+  completedDeliveries Int       @default(0)
+  isVerified      Boolean       @default(false)
+  city            String        @default("Garoowe")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  deliveryJobs    DeliveryJob[]
+}
+
+model DeliveryJob {
+  id              String                 @id @default(uuid())
+  transactionId   String                 @unique
+  transaction     MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  driverId        String?
+  driver          DriverProfile?         @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  pickupLandmark  String
+  pickupCity      String                 @default("Garoowe")
+  dropoffLandmark String
+  dropoffCity     String                 @default("Garoowe")
+  fee             Float                  @default(2.0)
+  deliveryPin     String                 // Secret PIN buyer gives driver for Proof of Delivery
+  status          String                 @default("SEARCHING_DRIVER") // SEARCHING_DRIVER, ACCEPTED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  proofPhotoUrl   String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+}
+
+// ----------------------------------------------------
+// TRUST, REVIEWS & DISPUTES
+// ----------------------------------------------------
+model Review {
+  id            String                  @id @default(uuid())
+  transactionId String?                 @unique
+  transaction   MarketplaceTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  listingId     String
+  listing       Listing                 @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reviewerId    String
+  reviewer      User                    @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  rating        Int                     // 1 to 5
+  comment       String
+  response      String?
+  createdAt     DateTime                @default(now())
+}
+
+model Dispute {
+  id                String                 @id @default(uuid())
+  transactionId     String
+  transaction       MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  raisedById        String
+  raisedBy          User                   @relation("DisputesCreated", fields: [raisedById], references: [id], onDelete: Cascade)
+  reason            String                 // DAMAGED, WRONG_ITEM, NOT_RECEIVED, SERVICE_INCOMPLETE, OTHER
+  details           String
+  evidenceUrl       String?
+  status            String                 @default("OPEN") // OPEN, UNDER_REVIEW, SELLER_RESPONSE_REQUIRED, BUYER_RESPONSE_REQUIRED, RESOLVED_BUYER, RESOLVED_SELLER, PARTIAL_RESOLUTION, CLOSED
+  sellerResponse    String?
+  sellerEvidenceUrl String?
+  refundAmount      Float?
+  resolution        String?                // REFUND_FULL, REFUND_PARTIAL, RELEASE_FUNDS_TO_SELLER, REJECTED
+  resolvedById      String?
+  resolvedBy        User?                  @relation("DisputesResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+}
+
+model VerificationRequest {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType      String   // SELLER, BUSINESS, VEHICLE, PROPERTY
+  targetId        String?
+  documentType    String   // NATIONAL_ID, PASSPORT, BUSINESS_LICENSE, TITLE_DEED
+  documentUrl     String
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?
+  reviewedAt      DateTime?
+  createdAt       DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// REALTIME CHAT & NOTIFICATIONS
+// ----------------------------------------------------
+model ChatConversation {
+  id            String            @id @default(uuid())
+  listingId     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  participants  ChatParticipant[]
+  messages      ChatMessage[]
+}
+
+model ChatParticipant {
+  id              String           @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt        DateTime         @default(now())
+
+  @@unique([conversationId, userId])
+}
+
+model ChatMessage {
+  id              String           @id @default(uuid())
+  conversationId  String
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String
+  sender          User             @relation("UserSentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content         String
+  attachmentUrl   String?
+  offerAttachment String?          // JSON payload of structured offer if negotiation message
+  isRead          Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // TRANSACTION, OFFER, MESSAGE, SOCIAL, SYSTEM, DELIVERY
+  title       String
+  message     String
+  linkUrl     String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// SOCIAL COMMERCE & DISCOVERY
+// ----------------------------------------------------
+model SocialPost {
+  id            String          @id @default(uuid())
+  authorId      String
+  author        User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  caption       String
+  mediaType     String          @default("IMAGE") // IMAGE, SHORT_VIDEO
+  mediaUrl      String
+  thumbnailUrl  String?
+  viewsCount    Int             @default(0)
+  likesCount    Int             @default(0)
+  commentsCount Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  linkedListings LinkedListing[]
+  comments       PostComment[]
+  likes          PostLike[]
+}
+
+model LinkedListing {
+  id          String     @id @default(uuid())
+  postId      String
+  post        SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tagLabel    String?    // e.g. "Toyota Prado 2020 - $18,500"
+}
+
+model PostLike {
+  id        String     @id @default(uuid())
+  postId    String
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String     @id @default(uuid())
+  postId    String
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime   @default(now())
+}
+
+model UserFollow {
+  id            String   @id @default(uuid())
+  followerId    String
+  follower      User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  targetUserId  String
+  targetUser    User     @relation("TargetUserFollowers", fields: [targetUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, targetUserId])
+}
+
+// ----------------------------------------------------
+// APPEND-ONLY AUDIT LOGS
+// ----------------------------------------------------
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // LOGIN, PRICE_CHANGE, ORDER_STATE_CHANGE, WALLET_ADJUSTMENT, ADMIN_ACTION
+  entityType  String   // USER, LISTING, TRANSACTION, WALLET, CATEGORY
+  entityId    String
+  ipAddress   String?
+  details     String?  // JSON context
+  createdAt   DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// PRODUCT VARIANTS & SKU INVENTORY
+// ----------------------------------------------------
+model ProductVariant {
+  id              String   @id @default(uuid())
+  listingId       String
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  name            String   // e.g. "Size 42 / Black", "256GB / Space Gray"
+  sku             String?
+  priceModifier   Float    @default(0.0) // Difference from base listing price
+  inventoryCount  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// AUDITABLE INVENTORY & STOCK MOVEMENTS
+// ----------------------------------------------------
+model StockMovement {
+  id              String          @id @default(uuid())
+  listingId       String
+  listing         Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  branchId        String?
+  branch          BusinessBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  movementType    String          // RESTOCK, SALE_DEDUCTION, REFUND_RESTORE, DAMAGE_WRITE_OFF, BRANCH_TRANSFER, AUDIT_ADJUSTMENT
+  quantityChange  Int             // Positive (addition) or negative (deduction)
+  quantityBefore  Int
+  quantityAfter   Int
+  reference       String?         // e.g. "TX-2026-0001", "PO-104", "TRANSFER-002"
+  notes           String?
+  performedBy     String?         // User ID
+  createdAt       DateTime        @default(now())
+}
+
+// ----------------------------------------------------
+// ESCROW & PROTECTED TRANSACTIONS (High-Value Vertical)
+// ----------------------------------------------------
+model EscrowHold {
+  id                  String                 @id @default(uuid())
+  transactionId       String                 @unique
+  transaction         MarketplaceTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  amount              Float
+  currency            String                 @default("USD")
+  status              String                 @default("HELD") // HELD, RELEASED, REFUNDED, DISPUTE_HOLD
+  inspectionDays      Int                    @default(3)
+  inspectionDeadline  DateTime?
+  releasedAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+}
+
