@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Fududeeye App wuxuu toos ugu xiran yahay database-ka website-ka adoo adeegsanaya API-ga hoose:',
+                'Kaafi-App wuxuu toos ugu xiran yahay database-ka website-ka adoo adeegsanaya API-ga hoose:',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -64,9 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: () async {
                 await _api.resetBaseUrl();
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 Navigator.of(ctx).pop();
                 widget.appState.refreshData();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Waa dib loo celiyay URL-kii asalka ahaa.')),
                 );
@@ -76,9 +77,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 await _api.setBaseUrl(controller.text);
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 Navigator.of(ctx).pop();
                 widget.appState.refreshData();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('URL-ka cusub: ${controller.text}')),
                 );
@@ -196,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Kiishka Fududeeye (Wallet)',
+                        'Kiishka Kaafi-App (Wallet)',
                         style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                       Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),

@@ -75,15 +75,15 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                         : () async {
                             setModalState(() => isSubmitting = true);
                             await Future.delayed(const Duration(milliseconds: 900));
-                            if (ctx.mounted) {
-                              Navigator.of(ctx).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  backgroundColor: AppTheme.success,
-                                  content: Text('Qiimahaaga si guul leh ayaa loogu diray macmiilka!'),
-                                ),
-                              );
-                            }
+                            if (!ctx.mounted) return;
+                            Navigator.of(ctx).pop();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: AppTheme.success,
+                                content: Text('Qiimahaaga si guul leh ayaa loogu diray macmiilka!'),
+                              ),
+                            );
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.brand,

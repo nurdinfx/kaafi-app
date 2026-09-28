@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Fududeeye App — Suuqa Garoowe & Somalia | Multi-Category Marketplace',
+  title: 'Kaafi-App — Suuqa Garoowe & Somalia | Multi-Category Marketplace',
   description:
     'Somalia\'s leading multi-category marketplace. Buy & sell vehicles, real estate, land, electronics, services, and more. Africa-first platform launched in Garoowe, Puntland.',
   keywords: [
+    'Kaafi-App',
     'Garoowe marketplace',
     'Somalia marketplace',
     'Puntland business',
@@ -13,10 +14,9 @@ export const metadata: Metadata = {
     'real estate Garoowe',
     'electronics Somalia',
     'fududeeye',
-    'hudi-soft',
   ],
   openGraph: {
-    title: 'Fududeeye App — Multi-Category Marketplace | Garoowe, Somalia',
+    title: 'Kaafi-App — Multi-Category Marketplace | Garoowe, Somalia',
     description: 'Buy & sell anything — Vehicles, Real Estate, Electronics, Services & more across Puntland and Somalia.',
     type: 'website',
     locale: 'so_SO',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Fududeeye App — Garoowe Marketplace',
+    title: 'Kaafi-App — Garoowe Marketplace',
   },
   robots: { index: true, follow: true },
 };

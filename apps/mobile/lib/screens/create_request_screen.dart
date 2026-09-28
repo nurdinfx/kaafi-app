@@ -20,7 +20,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
 
   String _urgency = 'NORMAL';
   String _selectedCity = 'Garoowe';
-  String _currency = 'USD';
+  final String _currency = 'USD';
   bool _isSubmitting = false;
 
   @override

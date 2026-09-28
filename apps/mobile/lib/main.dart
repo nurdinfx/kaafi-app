@@ -19,28 +19,32 @@ void main() async {
   final appState = AppState();
   await appState.init();
 
-  runApp(FududeeyeApp(appState: appState));
+  runApp(KaafiApp(appState: appState));
 }
 
-class FududeeyeApp extends StatelessWidget {
-  final AppState appState;
+class KaafiApp extends StatelessWidget {
+  final AppState? appState;
 
-  const FududeeyeApp({super.key, required this.appState});
+  const KaafiApp({super.key, this.appState});
 
   @override
   Widget build(BuildContext context) {
+    final state = appState ?? AppState();
     return ListenableBuilder(
-      listenable: appState,
+      listenable: state,
       builder: (context, _) {
         return MaterialApp(
-          title: 'Fududeeye',
+          title: 'Kaafi-App',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          home: MainShell(appState: appState),
+          themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: MainShell(appState: state),
         );
       },
     );
   }
 }
+
+// Backward-compatible alias
+typedef FududeeyeApp = KaafiApp;

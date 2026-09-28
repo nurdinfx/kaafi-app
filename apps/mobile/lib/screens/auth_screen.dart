@@ -55,7 +55,7 @@ class _AuthScreenState extends State<AuthScreen> {
         } else {
           // Simulation fallback for offline demo
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(backgroundColor: AppTheme.success, content: Text('Ku soo dhawoow Fududeeye!')),
+            const SnackBar(backgroundColor: AppTheme.success, content: Text('Ku soo dhawoow Kaafi-App!')),
           );
           widget.onSuccess?.call();
           Navigator.of(context).pop();
@@ -63,8 +63,8 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } else {
       final name = _nameController.text.trim();
-      final res = await ApiService().register(
-        fullName: name.isNotEmpty ? name : 'Macmiilka Fududeeye',
+      await ApiService().register(
+        fullName: name.isNotEmpty ? name : 'Macmiilka Kaafi-App',
         phone: phone,
         password: pass,
         role: _selectedRole,
@@ -100,18 +100,19 @@ class _AuthScreenState extends State<AuthScreen> {
             Center(
               child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.brand.withOpacity(0.15),
-                      shape: BoxShape.circle,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/images/kaafi_logo.png',
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.cover,
                     ),
-                    child: const Text('⚡', style: TextStyle(fontSize: 36)),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   const Text(
-                    'Fududeeye Marketplace',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                    'Kaafi-App Marketplace',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
                   Text(

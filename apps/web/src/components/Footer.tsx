@@ -7,14 +7,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-black text-white"
-                style={{ background: 'linear-gradient(135deg, #0c8fe2, #005899)' }}>
-                F
-              </div>
+            <div className="flex items-center gap-2.5 mb-4">
+              <img
+                src="/kaafi_logo.png"
+                alt="Kaafi-App"
+                className="w-10 h-10 rounded-xl object-cover shadow-md"
+              />
               <div>
-                <div className="font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>Fududeeye</div>
-                <div className="text-xs" style={{ color: '#94b4d0' }}>Garoowe, Somalia</div>
+                <div className="font-bold text-white text-lg leading-none" style={{ fontFamily: 'Outfit, sans-serif' }}>Kaafi-App</div>
+                <div className="text-xs mt-1" style={{ color: '#94b4d0' }}>Garoowe, Somalia</div>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: '#94b4d0' }}>
@@ -43,7 +44,7 @@ export default function Footer() {
 
           {/* Sellers */}
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm">Sell on Fududeeye</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm">Sell on Kaafi-App</h3>
             <ul className="space-y-2 text-sm" style={{ color: '#94b4d0' }}>
               <li><a href="/listings/create" className="hover:text-blue-300 transition-colors">Post a Listing</a></li>
               <li><a href="/stores/create" className="hover:text-blue-300 transition-colors">Create Business Store</a></li>

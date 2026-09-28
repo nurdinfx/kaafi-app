@@ -102,7 +102,7 @@ export default function MobilePreviewPage() {
                 /* Dynamic Island Controls */
                 <div className="w-full h-full flex flex-col justify-between py-1 text-white">
                   <div className="flex items-center justify-between text-xs font-semibold px-1">
-                    <span className="text-blue-400 font-bold">Fududeeye OS</span>
+                    <span className="text-blue-400 font-bold">Kaafi-App OS</span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={(e) => {
@@ -193,7 +193,7 @@ export default function MobilePreviewPage() {
             style={{
               paddingBottom: '20px',
             }}
-            title="Fududeeye App"
+            title="Kaafi-App"
           />
 
           {/* ────────────────────────────────────────────────────────

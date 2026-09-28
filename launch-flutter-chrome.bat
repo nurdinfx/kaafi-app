@@ -4,7 +4,7 @@ echo ===================================================
 echo  Starting Fududeeye Mobile Flutter on Chrome...
 echo ===================================================
 
-set FLUTTER_BIN=C:\Users\nuurd\OneDrive\Documents\flutter\bin\flutter.bat
+set FLUTTER_BIN=C:\src\flutter\bin\flutter.bat
 
 cd apps\mobile
 if exist "%FLUTTER_BIN%" (

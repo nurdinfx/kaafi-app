@@ -111,12 +111,13 @@ export default function LoginPage() {
 
       <div className="max-w-md mx-auto px-4 py-16">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-black text-white mx-auto mb-3"
-            style={{ background: 'linear-gradient(135deg, #0c8fe2, #005899)' }}>
-            F
-          </div>
+          <img
+            src="/kaafi_logo.png"
+            alt="Kaafi-App"
+            className="w-16 h-16 rounded-2xl object-cover shadow-lg mx-auto mb-3"
+          />
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Welcome to Fududeeye
+            Welcome to Kaafi-App
           </h1>
           <p className="text-xs mt-1" style={{ color: '#94b4d0' }}>
             Somalia&apos;s digital marketplace platform

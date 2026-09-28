@@ -139,7 +139,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2"
                  style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
-              🛡️ Fududeeye Super-Admin Control Center
+              🛡️ Kaafi-App Super-Admin Control Center
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Xarunta Maamulka Sare (Admin Dashboard)

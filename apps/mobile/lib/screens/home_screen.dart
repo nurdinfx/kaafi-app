@@ -29,15 +29,15 @@ class HomeScreen extends StatelessWidget {
         titleSpacing: 16,
         title: Row(
           children: [
-            // Fududeeye Icon Logo
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.brand.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.brand.withOpacity(0.5)),
+            // Kaafi-App Icon Logo
+            ClipRRect(
+              borderRadius: BorderRadius.circular(9),
+              child: Image.asset(
+                'assets/images/kaafi_logo.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
               ),
-              child: const Text('⚡', style: TextStyle(fontSize: 16)),
             ),
             const SizedBox(width: 8),
             const Column(
@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Fududeeye',
+                  'Kaafi-App',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,

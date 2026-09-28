@@ -88,21 +88,20 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-black text-white"
-                style={{ background: 'linear-gradient(135deg, #0c8fe2, #005899)' }}
-              >
-                F
-              </div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/kaafi_logo.png"
+                alt="Kaafi-App"
+                className="w-10 h-10 rounded-xl object-cover shadow-md"
+              />
               <div className="hidden sm:block">
                 <div
                   className="font-display font-bold text-white text-lg leading-none"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  Fududeeye
+                  Kaafi-App
                 </div>
-                <div className="text-xs text-blue-400 leading-none">Garoowe, Somalia</div>
+                <div className="text-xs text-blue-400 leading-none mt-1">Garoowe, Somalia</div>
               </div>
             </div>
           </Link>

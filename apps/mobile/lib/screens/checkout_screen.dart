@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../models/listing_model.dart';
 import '../theme/app_theme.dart';
 
@@ -18,7 +19,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _fulfillmentType = 'DRIVER_DELIVERY';
   final _phoneController = TextEditingController(text: '+252 90 ');
   final _districtController = TextEditingController(text: '1-da Luulyo');
-  final _landmarkController = TextEditingController(text: 'Dhabarka dambe ee Masjidka');
+  final _landmarkController = TextEditingController(
+    text: 'Dhabarka dambe ee Masjidka',
+  );
   bool _isProcessing = false;
 
   @override
@@ -39,7 +42,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -50,7 +55,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   color: AppTheme.success.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 54),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.success,
+                  size: 54,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -61,7 +70,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(
                 'Lacagta waxaa lagu hayaa Escrow Ammaan ah. Iibiyaha ayaa lagu wargaliyay inuu kuugu keeno ${_districtController.text.trim()}, ${widget.listing.city}.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -71,8 +84,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.brand,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text('Gartay (OK)'),
               ),
@@ -98,9 +116,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-      appBar: AppBar(
-        title: const Text('Dalbo & Bixi (Checkout & Escrow)'),
-      ),
+      appBar: AppBar(title: const Text('Dalbo & Bixi (Checkout & Escrow)')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -112,7 +128,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkCard : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
+                border: Border.all(
+                  color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
+                ),
               ),
               child: Row(
                 children: [
@@ -123,7 +141,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       width: 70,
                       height: 70,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         width: 70,
                         height: 70,
                         color: Colors.grey,
@@ -143,7 +161,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                            color: isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -152,7 +172,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: isDark ? AppTheme.brandLight : AppTheme.brandDark,
+                            color: isDark
+                                ? AppTheme.brandLight
+                                : AppTheme.brandDark,
                           ),
                         ),
                       ],
@@ -167,20 +189,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Tirada aad rabto (Quantity):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text(
+                  'Tirada aad rabto (Quantity):',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
                 Container(
                   decoration: BoxDecoration(
                     color: isDark ? AppTheme.darkCard : AppTheme.lightSurface,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
+                    border: Border.all(
+                      color: isDark
+                          ? AppTheme.darkBorder
+                          : AppTheme.lightBorder,
+                    ),
                   ),
                   child: Row(
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove, size: 16),
-                        onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        onPressed: _quantity > 1
+                            ? () => setState(() => _quantity--)
+                            : null,
                       ),
-                      Text('$_quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(
+                        '$_quantity',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.add, size: 16),
                         onPressed: () => setState(() => _quantity++),
@@ -193,7 +230,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 20),
 
             // Delivery Options
-            const Text('Habka Keenista (Fulfillment):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const Text(
+              'Habka Keenista (Fulfillment):',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -202,7 +242,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     title: 'Gaari Keenis (\$3)',
                     subtitle: 'Driver Delivery',
                     selected: _fulfillmentType == 'DRIVER_DELIVERY',
-                    onTap: () => setState(() => _fulfillmentType = 'DRIVER_DELIVERY'),
+                    onTap: () =>
+                        setState(() => _fulfillmentType = 'DRIVER_DELIVERY'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -211,7 +252,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     title: 'Adiga oo Qaata (\$0)',
                     subtitle: 'Customer Pickup',
                     selected: _fulfillmentType == 'CUSTOMER_PICKUP',
-                    onTap: () => setState(() => _fulfillmentType = 'CUSTOMER_PICKUP'),
+                    onTap: () =>
+                        setState(() => _fulfillmentType = 'CUSTOMER_PICKUP'),
                   ),
                 ),
               ],
@@ -219,27 +261,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 20),
 
             // Delivery Address Fields
-            const Text('Goobta Keenista (Delivery Address):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const Text(
+              'Goobta Keenista (Delivery Address):',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _districtController,
-              decoration: const InputDecoration(labelText: 'Xaafadda (District)', hintText: 'Tusaale: 1-da Luulyo, Waberi, Hodan'),
+              decoration: const InputDecoration(
+                labelText: 'Xaafadda (District)',
+                hintText: 'Tusaale: 1-da Luulyo, Waberi, Hodan',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _landmarkController,
-              decoration: const InputDecoration(labelText: 'Calaamad U dhow (Landmark)', hintText: 'Dhabarka Masjidka ama Isbitaalka'),
+              decoration: const InputDecoration(
+                labelText: 'Calaamad U dhow (Landmark)',
+                hintText: 'Dhabarka Masjidka ama Isbitaalka',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telefoonkaaga Lacag-bixinta & Xiriirka'),
+              decoration: const InputDecoration(
+                labelText: 'Telefoonkaaga Lacag-bixinta & Xiriirka',
+              ),
             ),
             const SizedBox(height: 20),
 
             // Payment Provider Selection (Somali Mobile Money)
-            const Text('Habka Lacag-Bixinta (Mobile Money):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const Text(
+              'Habka Lacag-Bixinta (Mobile Money):',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -269,10 +325,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('100% Escrow Protection', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        Text(
+                          '100% Escrow Protection',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                         SizedBox(height: 2),
                         Text(
-                          'Lacagtaadu waxay ku jiri doontaa Fududeeye Escrow ilaa aad ka hesho oo aad ka xaqiijiso alaabta.',
+                          'Lacagtaadu waxay ku jiri doontaa Kaafi-App Escrow ilaa aad ka hesho oo aad ka xaqiijiso alaabta.',
                           style: TextStyle(fontSize: 11, height: 1.3),
                         ),
                       ],
@@ -289,15 +351,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkCard : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
+                border: Border.all(
+                  color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
+                ),
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Qiimaha Alaabta ($_quantity x)', currencyFormatter.format(subtotal)),
+                  _buildSummaryRow(
+                    'Qiimaha Alaabta ($_quantity x)',
+                    currencyFormatter.format(subtotal),
+                  ),
                   const SizedBox(height: 6),
-                  _buildSummaryRow('Keenista (Delivery)', currencyFormatter.format(deliveryFee)),
+                  _buildSummaryRow(
+                    'Keenista (Delivery)',
+                    currencyFormatter.format(deliveryFee),
+                  ),
                   const Divider(height: 20),
-                  _buildSummaryRow('Wadarta Guud (Total)', currencyFormatter.format(total), isBold: true),
+                  _buildSummaryRow(
+                    'Wadarta Guud (Total)',
+                    currencyFormatter.format(total),
+                    isBold: true,
+                  ),
                 ],
               ),
             ),
@@ -311,13 +385,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.brand,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: _isProcessing
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : Text(
                         'Bixi ${currencyFormatter.format(total)} oo Dalbo Hadda',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ),
@@ -347,14 +433,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               : (isDark ? AppTheme.darkCard : AppTheme.lightSurface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppTheme.brand : (isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
+            color: selected
+                ? AppTheme.brand
+                : (isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Column(
           children: [
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: selected ? AppTheme.brandLight : null)),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: selected ? AppTheme.brandLight : null,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -380,8 +478,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: isBold ? 14 : 12.5, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-        Text(val, style: TextStyle(fontSize: isBold ? 16 : 13, fontWeight: isBold ? FontWeight.w900 : FontWeight.w600, color: isBold ? AppTheme.brandLight : null)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isBold ? 14 : 12.5,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        Text(
+          val,
+          style: TextStyle(
+            fontSize: isBold ? 16 : 13,
+            fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
+            color: isBold ? AppTheme.brandLight : null,
+          ),
+        ),
       ],
     );
   }
