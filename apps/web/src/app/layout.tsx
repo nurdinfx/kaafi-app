@@ -1,36 +1,38 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import AppProviders from '../components/AppProviders';
 
 export const metadata: Metadata = {
-  title: 'Kaafi-App — Suuqa Garoowe & Somalia | Multi-Category Marketplace',
+  title: 'Kaafi-App Online — Suuqa Casriga ah ee Soomaaliya',
+  icons: {
+    icon: [
+      { url: '/kaafi_logo.png' },
+      { url: '/favicon.ico' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
+    shortcut: '/kaafi_logo.png',
+    apple: '/kaafi_logo.png',
+  },
   description:
-    'Somalia\'s leading multi-category marketplace. Buy & sell vehicles, real estate, land, electronics, services, and more. Africa-first platform launched in Garoowe, Puntland.',
+    'Kaafi-App Online — Suuqa ugu weyn ee Soomaaliya ee elektaroonigga, dharka, dahabka, iyo meheradaha ganacsiga. Ka dukaameyso ama fur store-kaaga online sida Shopify.',
   keywords: [
-    'Kaafi-App',
-    'Garoowe marketplace',
-    'Somalia marketplace',
-    'Puntland business',
-    'vehicles for sale Somalia',
-    'real estate Garoowe',
-    'electronics Somalia',
-    'fududeeye',
+    'kaafi-app',
+    'kaafi online',
+    'suuqa bakaaraha online',
+    'dukaameysi somalia',
+    'garoowe marketplace',
   ],
   openGraph: {
-    title: 'Kaafi-App — Multi-Category Marketplace | Garoowe, Somalia',
-    description: 'Buy & sell anything — Vehicles, Real Estate, Electronics, Services & more across Puntland and Somalia.',
+    title: 'Kaafi-App Online — Suuqa Weyn ee Soomaaliya',
+    description: 'Ku dukaameyso si fudud, meel kasta. Dharka dumarka, qalabka telefoonada, saacadaha raaxada, iyo meheradaha Shopify-style.',
     type: 'website',
     locale: 'so_SO',
-    alternateLocale: ['en_US', 'ar_SA'],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Kaafi-App — Garoowe Marketplace',
   },
   robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0c8fe2',
+  themeColor: '#ea580c',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -40,35 +42,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="so" dir="ltr" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap"
           rel="stylesheet"
         />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const t = localStorage.getItem('fududeeye_theme');
-                if (t === 'light') {
-                  document.documentElement.classList.add('light');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                } else {
-                  document.documentElement.classList.remove('light');
-                  document.documentElement.setAttribute('data-theme', 'dark');
-                }
-              } catch(e) {}
-            `,
-          }}
-        />
       </head>
-      <body className="antialiased min-h-screen transition-colors duration-200">
-        {children}
+      <body className="antialiased min-h-screen bg-slate-100 text-slate-800">
+        <AppProviders>
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

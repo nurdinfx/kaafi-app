@@ -14,10 +14,10 @@ export function formatPrice(price: number, currency: string = 'USD'): string {
 
 export function getConditionLabel(condition: string): string {
   const map: Record<string, string> = {
-    NEW: 'New',
-    LIKE_NEW: 'Like New',
-    USED_GOOD: 'Used - Good',
-    USED_FAIR: 'Used - Fair',
+    NEW: 'New (Cusub)',
+    LIKE_NEW: 'Like New (Sida Cusub)',
+    USED_GOOD: 'Used - Good (Wanaagsan)',
+    USED_FAIR: 'Used - Fair (Caadi)',
   };
   return map[condition] || condition;
 }
@@ -56,17 +56,44 @@ export function getLandmarkDisplay(listing: Listing): string {
   return parts.join(', ');
 }
 
-export function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
+// ── REAL DYNAMIC DATE FORMATTERS (No hardcoded mock dates) ──
+export function timeAgo(date?: string | Date): string {
+  if (!date) return 'Hadda (Maanta)';
+  const parsed = new Date(date).getTime();
+  if (isNaN(parsed)) return 'Hadda';
+  
+  const diff = Date.now() - parsed;
+  if (diff < 0) return 'Hadda';
+
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 2) return 'Hadda (Hadda uun)';
+  if (mins < 60) return `${mins} daqiiqo ka hor`;
+
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs} saac ka hor`;
+
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  if (days === 1) return 'Shalay';
+  if (days < 7) return `${days} maalmood ka hor`;
+
+  return new Date(date).toLocaleDateString('so-SO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export function formatRealDate(date?: string | Date): string {
+  const d = date ? new Date(date) : new Date();
+  if (isNaN(d.getTime())) return new Date().toLocaleDateString('so-SO');
+  return d.toLocaleDateString('so-SO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 export function buildWhatsAppLink(phone: string, listing: Listing): string {
-  const msg = `Salaan! I'm interested in your listing: "${listing.title}" — $${listing.price}`;
+  const msg = `Salaan! Waxaan xiiseynayaa alaabtaada: "${listing.title}" — $${listing.price}`;
   return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -269,8 +269,109 @@ body {
   animation: float 4s ease-in-out infinite;
 }
 
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-kenburns {
+  animation: kenburns 12s ease-in-out infinite;
+}
+
+.animate-arch-glow {
+  animation: archGlow 4s ease-in-out infinite;
+}
+
+@keyframes kenburns {
+  0% { transform: scale(1) translateY(0px); }
+  50% { transform: scale(1.06) translateY(-8px); }
+  100% { transform: scale(1) translateY(0px); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(0.8deg); }
+}
+
+@keyframes archGlow {
+  0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 15px rgba(251, 146, 60, 0.35)); }
+  50% { opacity: 0.95; filter: drop-shadow(0 0 35px rgba(251, 146, 60, 0.7)); }
+}
+
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
 }
 
+/* ── MISSING ANIMATIONS ── */
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.55s ease-out both;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out both;
+}
+
+/* ── MARQUEE / TICKER ── */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+  white-space: nowrap;
+  display: flex;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ── HIDE SCROLLBAR ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── GLASS MORPHISM CARD ── */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ── ORANGE GLOW ── */
+.orange-glow {
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.3), 0 0 60px rgba(249, 115, 22, 0.1);
+}
+
+/* ── PRODUCT CARD HOVER ── */
+.product-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.product-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ── TEXT GRADIENT ORANGE ── */
+.text-gradient-orange {
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

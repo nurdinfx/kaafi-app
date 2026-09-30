@@ -47,8 +47,8 @@ export default function Footer() {
             <h3 className="font-semibold text-white mb-4 text-sm">Sell on Kaafi-App</h3>
             <ul className="space-y-2 text-sm" style={{ color: '#94b4d0' }}>
               <li><a href="/listings/create" className="hover:text-blue-300 transition-colors">Post a Listing</a></li>
-              <li><a href="/stores/create" className="hover:text-blue-300 transition-colors">Create Business Store</a></li>
-              <li><a href="/seller" className="hover:text-blue-300 transition-colors">Seller Dashboard</a></li>
+              <li><a href="/seller/store-builder" className="hover:text-orange-400 transition-colors font-medium">🏪 Create Business Store (Shopify Builder)</a></li>
+              <li><a href="/seller/store-builder" className="hover:text-blue-300 transition-colors">Seller Dashboard</a></li>
               <li><a href="/requests" className="hover:text-blue-300 transition-colors">View Buyer Requests</a></li>
             </ul>
           </div>

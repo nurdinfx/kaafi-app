@@ -152,9 +152,38 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Top Announcement Ticker Bar (matches website marquee)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6.5),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFEA580C), Color(0xFFC2410C)],
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Text('⚡ ', style: TextStyle(fontSize: 12)),
+                    Expanded(
+                      child: Text(
+                        'Kaafi-App: Qiimo Dhimis 60% • Keenis Dagdag Ah • Meheradaha Xaqiijisan',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               // Search Input Trigger
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                 child: InkWell(
                   onTap: () => onTabChange(1), // Go to Explore/Search Tab
                   borderRadius: BorderRadius.circular(14),
