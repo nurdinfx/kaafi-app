@@ -21,9 +21,9 @@ interface HeroSlide {
 const HERO_SLIDES: HeroSlide[] = [
   {
     id: 'fashion',
-    brandTag: 'Kaafi-',
-    brandAccent: 'App',
-    mainTitle: 'Kaafi-App\nOnline',
+    brandTag: 'Dukaami',
+    brandAccent: 'Online',
+    mainTitle: 'DukaamiOnline\nFashion',
     subtitle: 'Dharka Dumarka ee Ugu Quruuxda Badan',
     pills: [
       { icon: '👑', title: 'Qaabab', subtitle: 'Qurux Badan' },
@@ -39,9 +39,9 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     id: 'tech',
-    brandTag: 'Kaafi-',
-    brandAccent: 'App',
-    mainTitle: 'Kaafi-App\nTech Hub',
+    brandTag: 'Dukaami',
+    brandAccent: 'Online',
+    mainTitle: 'DukaamiOnline\nTech Hub',
     subtitle: 'Kaamirooyinka CCTV, Moobillada & Qalabka Casriga ah',
     pills: [
       { icon: '⚡', title: 'HD Quality', subtitle: 'Xallin Sare' },
@@ -57,9 +57,9 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     id: 'watches',
-    brandTag: 'Kaafi-',
-    brandAccent: 'App',
-    mainTitle: 'Kaafi-App\nLuxury',
+    brandTag: 'Dukaami',
+    brandAccent: 'Online',
+    mainTitle: 'DukaamiOnline\nLuxury',
     subtitle: 'Saacadaha Automatic-ka ah & Dahabka Raaxada',
     pills: [
       { icon: '⭐', title: 'Brand Asal', subtitle: 'Tayo Heer Sare' },
@@ -192,8 +192,8 @@ export default function HeroSection() {
 
             {/* Brand logo + name */}
             <div key={slide.id + '-brand'} className="inline-flex items-center justify-center gap-2.5 mb-1 animate-slide-up">
-              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg border-2 border-white/30">
-                <img src="/kaafi_logo.png" alt="Kaafi-App" className="w-full h-full object-cover" />
+              <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg border-2 border-white/30 bg-white">
+                <img src="/dukaami_icon.png" alt="DukaamiOnline" className="w-full h-full object-contain p-0.5" />
               </div>
               <div className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white flex items-center">
                 <span>{slide.brandTag}</span>
@@ -352,7 +352,7 @@ export default function HeroSection() {
               </div>
               <div className="text-left">
                 <span className="text-[11px] text-white/60 block leading-tight">Booqo Website-ka</span>
-                <strong className="text-white font-bold text-xs tracking-tight">kaafi-app.com</strong>
+                <strong className="text-white font-bold text-xs tracking-tight">dukaamionline.com</strong>
               </div>
             </div>
 
@@ -372,7 +372,7 @@ export default function HeroSection() {
               </div>
               <div className="text-left">
                 <span className="text-[11px] text-white/60 block leading-tight">Soo Degso App-ka</span>
-                <strong className="text-white font-bold text-xs tracking-tight">kaafi-app.com/download-app</strong>
+                <strong className="text-white font-bold text-xs tracking-tight">dukaamionline.com/download-app</strong>
               </div>
             </div>
 

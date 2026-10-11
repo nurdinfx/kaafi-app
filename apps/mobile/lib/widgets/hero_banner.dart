@@ -169,7 +169,7 @@ class _HeroBannerState extends State<HeroBanner> with SingleTickerProviderStateM
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Kaafi-App Brand Pill with Logo
+                      // DukaamiOnline Brand Pill with Logo
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
@@ -194,9 +194,8 @@ class _HeroBannerState extends State<HeroBanner> with SingleTickerProviderStateM
                               text: const TextSpan(
                                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
                                 children: [
-                                  TextSpan(text: 'Kaafi-', style: TextStyle(color: Colors.white)),
-                                  TextSpan(text: 'App ', style: TextStyle(color: Color(0xFFF97316))),
-                                  TextSpan(text: 'ONLINE', style: TextStyle(color: Colors.white70, fontSize: 8.5)),
+                                  TextSpan(text: 'Dukaami', style: TextStyle(color: Colors.white)),
+                                  TextSpan(text: 'Online', style: TextStyle(color: Color(0xFFF97316))),
                                 ],
                               ),
                             ),

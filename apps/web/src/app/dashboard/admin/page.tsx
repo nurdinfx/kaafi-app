@@ -28,24 +28,7 @@ export default function AdminDashboardPage() {
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('hudisoft_token');
-    const storedUser = localStorage.getItem('hudisoft_user');
-
-    if (!savedToken) {
-      router.push('/auth/login');
-      return;
-    }
-
-    setToken(savedToken);
-    let parsedUser: any = null;
-    if (storedUser) {
-      try {
-        parsedUser = JSON.parse(storedUser);
-        setCurrentUser(parsedUser);
-      } catch {}
-    }
-
-    loadDashboard(savedToken);
+    router.replace('/admin');
   }, [router]);
 
   const loadDashboard = async (authToken: string) => {
@@ -139,7 +122,7 @@ export default function AdminDashboardPage() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2"
                  style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
-              🛡️ Kaafi-App Super-Admin Control Center
+              🛡️ DukaamiOnline Super-Admin Control Center
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Xarunta Maamulka Sare (Admin Dashboard)

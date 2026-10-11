@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Kaafi-App wuxuu toos ugu xiran yahay database-ka website-ka adoo adeegsanaya API-ga hoose:',
+                'DukaamiOnline wuxuu toos ugu xiran yahay database-ka website-ka adoo adeegsanaya API-ga hoose:',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -198,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Kiishka Kaafi-App (Wallet)',
+                        'Kiishka DukaamiOnline (Wallet)',
                         style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                       Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),

@@ -180,7 +180,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { identifier, password } = req.body; // identifier can be phone or email
+    const identifier = req.body.identifier || req.body.phoneNumber || req.body.email;
+    const password = req.body.password;
 
     if (!identifier || !password) {
       throw new AppError('Phone/email and password are required.', 400, ErrorCode.VALIDATION_ERROR);

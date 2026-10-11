@@ -19,13 +19,13 @@ void main() async {
   final appState = AppState();
   await appState.init();
 
-  runApp(KaafiApp(appState: appState));
+  runApp(DukaamiOnlineApp(appState: appState));
 }
 
-class KaafiApp extends StatelessWidget {
+class DukaamiOnlineApp extends StatelessWidget {
   final AppState? appState;
 
-  const KaafiApp({super.key, this.appState});
+  const DukaamiOnlineApp({super.key, this.appState});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class KaafiApp extends StatelessWidget {
       listenable: state,
       builder: (context, _) {
         return MaterialApp(
-          title: 'Kaafi-App',
+          title: 'DukaamiOnline',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -46,5 +46,6 @@ class KaafiApp extends StatelessWidget {
   }
 }
 
-// Backward-compatible alias
-typedef FududeeyeApp = KaafiApp;
+// Backward-compatible aliases
+typedef KaafiApp = DukaamiOnlineApp;
+typedef FududeeyeApp = DukaamiOnlineApp;

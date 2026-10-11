@@ -29,7 +29,7 @@ class HomeScreen extends StatelessWidget {
         titleSpacing: 16,
         title: Row(
           children: [
-            // Kaafi-App Icon Logo
+            // DukaamiOnline Icon Logo
             ClipRRect(
               borderRadius: BorderRadius.circular(9),
               child: Image.asset(
@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Kaafi-App',
+                  'DukaamiOnline',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -166,7 +166,7 @@ class HomeScreen extends StatelessWidget {
                     Text('⚡ ', style: TextStyle(fontSize: 12)),
                     Expanded(
                       child: Text(
-                        'Kaafi-App: Qiimo Dhimis 60% • Keenis Dagdag Ah • Meheradaha Xaqiijisan',
+                        'DukaamiOnline: Qiimo Dhimis 60% • Keenis Dagdag Ah • Meheradaha Xaqiijisan',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

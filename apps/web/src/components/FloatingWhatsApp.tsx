@@ -10,7 +10,7 @@ export default function FloatingWhatsApp() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = message.trim() || 'Asc! Waxaan rabaa inaan wax ka weydiiyo adeegyada iyo alaabta Kaafi-App Online.';
+    const text = message.trim() || 'Asc! Waxaan rabaa inaan wax ka weydiiyo adeegyada iyo alaabta DukaamiOnline.';
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     setIsOpen(false);
@@ -28,7 +28,7 @@ export default function FloatingWhatsApp() {
                 💬
               </div>
               <div>
-                <h4 className="font-bold text-sm leading-tight">Kaafi-App WhatsApp Support</h4>
+                <h4 className="font-bold text-sm leading-tight">DukaamiOnline WhatsApp Support</h4>
                 <p className="text-[11px] text-emerald-100">Khadka tooska ah • Jawaab degdeg ah</p>
               </div>
             </div>
@@ -43,7 +43,7 @@ export default function FloatingWhatsApp() {
           {/* Body */}
           <div className="p-4 bg-emerald-50/50 space-y-3">
             <div className="bg-white p-3 rounded-xl rounded-tl-none shadow-xs text-xs text-slate-700 border border-slate-100">
-              Asc! Ku soo dhowow xarunta macaamiisha ee Kaafi-App Online. Maxaan maanta kugu caawinnaa?
+              Asc! Ku soo dhowow xarunta macaamiisha ee DukaamiOnline. Maxaan maanta kugu caawinnaa?
             </div>
 
             <form onSubmit={handleSendMessage} className="space-y-2">

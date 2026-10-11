@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// Load environment variables (from services/api/.env and root .env)
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export const CONFIG = {
   PORT: parseInt(process.env.PORT || '5000', 10),

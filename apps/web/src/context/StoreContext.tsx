@@ -64,8 +64,11 @@ interface StoreContextType {
   popularProducts: StoreProduct[];
   essentialProducts: StoreProduct[];
 }
+const INITIAL_STORES: MerchantStore[] = [];
 
-const INITIAL_STORES: MerchantStore[] = [
+// Removed legacy mock stores - starting completely fresh and clean
+/*
+const DEPRECATED_STORES: MerchantStore[] = [
   {
     id: 'store-1',
     slug: 'hilaac-fashion',
@@ -586,27 +589,28 @@ const INITIAL_STORES: MerchantStore[] = [
     ],
   },
 ];
+*/
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [stores, setStores] = useState<MerchantStore[]>(INITIAL_STORES);
+  const [stores, setStores] = useState<MerchantStore[]>([]);
   const [currentMerchantStore, setCurrentMerchantStore] = useState<MerchantStore | null>(null);
 
-  // Load stored stores from localStorage or fallback to INITIAL_STORES
+  // Load stored stores from localStorage or fallback to empty
   useEffect(() => {
     try {
-      localStorage.removeItem('fududeeye_merchant_stores'); // Clear legacy mock data
-      const saved = localStorage.getItem('kaafi_merchant_stores_v4');
+      localStorage.removeItem('fududeeye_merchant_stores');
+      localStorage.removeItem('kaafi_merchant_stores_v4');
+      const saved = localStorage.getItem('kaafi_merchant_stores_v5');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setStores(parsed);
           return;
         }
       }
-      // Save initial
-      localStorage.setItem('kaafi_merchant_stores_v4', JSON.stringify(INITIAL_STORES));
+      setStores([]);
     } catch (e) {
       console.error('Failed to load stores from localStorage', e);
     }

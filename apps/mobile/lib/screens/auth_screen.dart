@@ -55,7 +55,7 @@ class _AuthScreenState extends State<AuthScreen> {
         } else {
           // Simulation fallback for offline demo
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(backgroundColor: AppTheme.success, content: Text('Ku soo dhawoow Kaafi-App!')),
+            const SnackBar(backgroundColor: AppTheme.success, content: Text('Ku soo dhawoow DukaamiOnline!')),
           );
           widget.onSuccess?.call();
           Navigator.of(context).pop();
@@ -64,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } else {
       final name = _nameController.text.trim();
       await ApiService().register(
-        fullName: name.isNotEmpty ? name : 'Macmiilka Kaafi-App',
+        fullName: name.isNotEmpty ? name : 'Macmiilka DukaamiOnline',
         phone: phone,
         password: pass,
         role: _selectedRole,
@@ -111,7 +111,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'Kaafi-App Marketplace',
+                    'DukaamiOnline Marketplace',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),

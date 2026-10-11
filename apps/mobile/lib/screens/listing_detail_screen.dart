@@ -215,7 +215,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                               Row(
                                 children: [
                                   Text(
-                                    listing.seller?.fullName ?? 'Kaafi-App Verified Seller',
+                                    listing.seller?.fullName ?? 'DukaamiOnline Verified Seller',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -284,7 +284,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Lacag bixinta Kaafi-App waxay dhex martaa Escrow ammaan ah. Hubi alaabtaada inta aadan lacagta sii deyn.',
+                            'Lacag bixinta DukaamiOnline waxay dhex martaa Escrow ammaan ah. Hubi alaabtaada inta aadan lacagta sii deyn.',
                             style: TextStyle(fontSize: 11.5, height: 1.3),
                           ),
                         ),

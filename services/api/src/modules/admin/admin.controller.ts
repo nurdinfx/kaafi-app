@@ -269,27 +269,41 @@ export const getUsersAdmin = async (req: AuthenticatedRequest, res: Response, ne
   }
 };
 
-// Admin: Deactivate / Ban or Reactivate User
+// Admin: Deactivate / Ban or Reactivate User (supports isActive and/or verificationStatus)
 export const updateUserStatusAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = String(req.params.id);
-    const { isActive, reason } = req.body;
+    const { isActive, verificationStatus, reason } = req.body;
 
-    if (isActive === undefined) {
-      throw new AppError('isActive boolean is required.', 400, ErrorCode.VALIDATION_ERROR);
+    // At least one field must be provided
+    if (isActive === undefined && verificationStatus === undefined) {
+      throw new AppError('At least one of isActive or verificationStatus is required.', 400, ErrorCode.VALIDATION_ERROR);
     }
+
+    const updateData: any = {};
+    if (isActive !== undefined) updateData.isActive = !!isActive;
+    if (verificationStatus !== undefined) updateData.verificationStatus = String(verificationStatus);
 
     const updated = await prisma.user.update({
       where: { id },
-      data: { isActive: !!isActive },
+      data: updateData,
+      select: {
+        id: true,
+        fullName: true,
+        phoneNumber: true,
+        isActive: true,
+        verificationStatus: true,
+      },
     });
 
     await logAuditEvent({
       userId: req.user?.id,
-      action: isActive ? 'USER_REACTIVATED' : 'USER_SUSPENDED',
+      action: isActive !== undefined
+        ? (isActive ? 'USER_REACTIVATED' : 'USER_SUSPENDED')
+        : 'USER_VERIFICATION_UPDATED',
       entityType: 'USER',
       entityId: id,
-      details: { isActive, reason },
+      details: { isActive, verificationStatus, reason },
     });
 
     res.json({
@@ -302,6 +316,8 @@ export const updateUserStatusAdmin = async (req: AuthenticatedRequest, res: Resp
 };
 
 // Admin: Moderate Listing (Archive, Activate, Verify)
+
+
 export const moderateListingAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = String(req.params.id);
@@ -355,10 +371,455 @@ export const updateCategoryCommissionAdmin = async (req: AuthenticatedRequest, r
       entityId: id,
       details: { newRate: commissionRate },
     });
+    res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Control All Transactions & Orders across App & Web
+export const getTransactionsAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { page = '1', limit = '30', status, paymentProvider, search, fulfillmentType } = req.query;
+    const pageNum = parseInt(String(page), 10) || 1;
+    const limitNum = parseInt(String(limit), 10) || 30;
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: any = {};
+    if (status && status !== 'ALL') where.status = String(status);
+    if (fulfillmentType && fulfillmentType !== 'ALL') where.fulfillmentType = String(fulfillmentType);
+    if (search) {
+      where.OR = [
+        { transactionNumber: { contains: String(search) } },
+        { recipientPhone: { contains: String(search) } },
+        { deliveryCity: { contains: String(search) } },
+        { buyer: { fullName: { contains: String(search) } } },
+        { buyer: { phoneNumber: { contains: String(search) } } },
+      ];
+    }
+    if (paymentProvider && paymentProvider !== 'ALL') {
+      where.payments = { some: { provider: String(paymentProvider) } };
+    }
+
+    const [total, transactions, stats] = await Promise.all([
+      prisma.marketplaceTransaction.count({ where }),
+      prisma.marketplaceTransaction.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          buyer: {
+            select: { id: true, fullName: true, phoneNumber: true, email: true },
+          },
+          items: {
+            include: {
+              listing: {
+                select: { id: true, title: true, price: true, currency: true, media: { take: 1 } },
+              },
+            },
+          },
+          payments: {
+            take: 3,
+            orderBy: { createdAt: 'desc' },
+          },
+          escrowHold: true,
+          deliveryJob: {
+            include: {
+              driver: {
+                include: {
+                  user: { select: { fullName: true, phoneNumber: true } },
+                },
+              },
+            },
+          },
+          disputes: true,
+          statusHistory: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      }),
+      prisma.marketplaceTransaction.aggregate({
+        _sum: { totalAmount: true, commissionAmount: true },
+        _count: { id: true },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: transactions,
+      summary: {
+        totalVolume: stats._sum.totalAmount || 0,
+        totalCommission: stats._sum.commissionAmount || 0,
+        totalCount: stats._count.id || 0,
+      },
+      meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Update Transaction or Order Status & Escrow Release/Refund Controls
+export const updateTransactionStatusAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { status, notes, releaseEscrow, refundBuyer } = req.body;
+
+    const tx = await prisma.marketplaceTransaction.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        escrowHold: true,
+        buyer: { include: { wallet: true } },
+      },
+    });
+
+    if (!tx) {
+      throw new AppError('Transaction not found.', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const oldStatus = tx.status;
+    const updateData: any = {};
+    if (status) updateData.status = status;
+
+    const updated = await prisma.marketplaceTransaction.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // Record transition in TransactionStatusHistory
+    await prisma.transactionStatusHistory.create({
+      data: {
+        transactionId: id,
+        fromStatus: oldStatus,
+        toStatus: status || oldStatus,
+        notes: notes || 'Super-Admin manual status update',
+        changedBy: req.user?.id || 'SUPER_ADMIN',
+      },
+    });
+
+    // If releaseEscrow is requested, complete escrow and credit seller wallet
+    if (releaseEscrow && tx.escrowHold && tx.escrowHold.status === 'HELD') {
+      const sellerId = tx.items[0]?.sellerId;
+      if (sellerId) {
+        let sellerWallet = await prisma.wallet.findUnique({ where: { userId: sellerId } });
+        if (!sellerWallet) {
+          sellerWallet = await prisma.wallet.create({
+            data: { userId: sellerId, balance: 0, pendingBalance: 0 },
+          });
+        }
+        const netAmount = parseFloat((tx.subtotalAmount - tx.commissionAmount).toFixed(2));
+        const newBalance = parseFloat((sellerWallet.balance + netAmount).toFixed(2));
+        await prisma.wallet.update({
+          where: { id: sellerWallet.id },
+          data: { balance: newBalance },
+        });
+
+        await prisma.ledgerEntry.create({
+          data: {
+            walletId: sellerWallet.id,
+            type: 'CREDIT',
+            amount: netAmount,
+            balanceAfter: newBalance,
+            reference: `ESCROW-REL-${tx.transactionNumber}`,
+            description: `Super Admin released escrow for #${tx.transactionNumber}`,
+          },
+        });
+
+        await prisma.escrowHold.update({
+          where: { id: tx.escrowHold.id },
+          data: { status: 'RELEASED', releasedAt: new Date() },
+        });
+      }
+    }
+
+    // If refundBuyer is requested, refund total amount to buyer wallet
+    if (refundBuyer && tx.buyerId) {
+      let buyerWallet = await prisma.wallet.findUnique({ where: { userId: tx.buyerId } });
+      if (!buyerWallet) {
+        buyerWallet = await prisma.wallet.create({
+          data: { userId: tx.buyerId, balance: 0, pendingBalance: 0 },
+        });
+      }
+      const newBalance = parseFloat((buyerWallet.balance + tx.totalAmount).toFixed(2));
+      await prisma.wallet.update({
+        where: { id: buyerWallet.id },
+        data: { balance: newBalance },
+      });
+
+      await prisma.ledgerEntry.create({
+        data: {
+          walletId: buyerWallet.id,
+          type: 'REFUND',
+          amount: tx.totalAmount,
+          balanceAfter: newBalance,
+          reference: `REFUND-${tx.transactionNumber}`,
+          description: `Super Admin refunded transaction #${tx.transactionNumber}`,
+        },
+      });
+
+      if (tx.escrowHold && tx.escrowHold.status === 'HELD') {
+        await prisma.escrowHold.update({
+          where: { id: tx.escrowHold.id },
+          data: { status: 'REFUNDED', releasedAt: new Date() },
+        });
+      }
+    }
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_TRANSACTION_UPDATED',
+      entityType: 'TRANSACTION',
+      entityId: id,
+      details: { oldStatus, newStatus: status, notes, releaseEscrow, refundBuyer },
+    });
 
     res.json({
       success: true,
       data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Control All Stores & Merchants across the Platform
+export const getStoresAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { search, isVerified, city } = req.query;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { businessName: { contains: String(search) } },
+        { phone: { contains: String(search) } },
+        { owner: { fullName: { contains: String(search) } } },
+      ];
+    }
+    if (isVerified !== undefined && isVerified !== 'ALL') {
+      where.isVerified = isVerified === 'true';
+    }
+    if (city && city !== 'ALL') {
+      where.city = String(city);
+    }
+
+    const stores = await prisma.businessProfile.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            email: true,
+            isActive: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            listings: true,
+            branches: true,
+            employees: true,
+          },
+        },
+      },
+    });
+
+    const sellers = await prisma.sellerProfile.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            isActive: true,
+          },
+        },
+      },
+      take: 50,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        stores,
+        sellers,
+      },
+      meta: {
+        totalStores: stores.length,
+        totalSellers: sellers.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Toggle Store Verification, Suspend/Activate, or Moderate Store
+export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { isVerified, isActive, notes } = req.body;
+
+    const store = await prisma.businessProfile.findUnique({
+      where: { id },
+      include: { owner: true },
+    });
+
+    if (!store) {
+      throw new AppError('Store not found.', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const updated = await prisma.businessProfile.update({
+      where: { id },
+      data: {
+        ...(isVerified !== undefined ? { isVerified: !!isVerified } : {}),
+      },
+    });
+
+    // If isActive is toggled, update owner active status (affecting login & visibility)
+    if (isActive !== undefined) {
+      await prisma.user.update({
+        where: { id: store.ownerId },
+        data: { isActive: !!isActive },
+      });
+    }
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_STORE_UPDATED',
+      entityType: 'BUSINESS_STORE',
+      entityId: id,
+      details: { storeName: store.businessName, isVerified, isActive, notes },
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Real-time Live Activity Across Systems (Web & App)
+export const getLiveActivityAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const [recentTransactions, recentUsers, recentListings, recentLogs] = await Promise.all([
+      prisma.marketplaceTransaction.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          buyer: { select: { fullName: true, phoneNumber: true } },
+          payments: { take: 1, select: { provider: true, status: true, amount: true } },
+        },
+      }),
+      prisma.user.findMany({
+        take: 8,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, fullName: true, phoneNumber: true, createdAt: true, city: true },
+      }),
+      prisma.listing.findMany({
+        take: 8,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, title: true, price: true, currency: true, status: true, createdAt: true },
+      }),
+      prisma.auditLog.findMany({
+        take: 12,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { fullName: true } } },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        recentTransactions,
+        recentUsers,
+        recentListings,
+        recentLogs,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Provision / Create New Admin Staff Account for Team Members
+export const createAdminUserAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { fullName, phoneNumber, email, password, roleName = 'SUPER_ADMIN', city = 'Garoowe' } = req.body;
+
+    if (!fullName || !phoneNumber || !password) {
+      throw new AppError('Full name, phone number, and password are required.', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phoneNumber },
+          ...(email ? [{ email }] : []),
+        ],
+      },
+    });
+
+    if (existing) {
+      throw new AppError('A user with this phone or email already exists.', 409, ErrorCode.CONFLICT);
+    }
+
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const role = await prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!role) {
+      throw new AppError(`Role ${roleName} does not exist.`, 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const newUser = await prisma.user.create({
+      data: {
+        fullName,
+        phoneNumber,
+        email: email || null,
+        passwordHash,
+        city,
+        verificationStatus: 'VERIFIED',
+        isActive: true,
+        wallet: {
+          create: { balance: 0.0, currency: 'USD' },
+        },
+        roles: {
+          create: { roleId: role.id },
+        },
+      },
+      include: {
+        roles: { select: { role: { select: { name: true } } } },
+      },
+    });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_ACCOUNT_CREATED',
+      entityType: 'USER',
+      entityId: newUser.id,
+      details: { fullName, phoneNumber, roleName },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newUser,
+      message: `Admin account for ${fullName} created successfully with role ${roleName}.`,
     });
   } catch (error) {
     next(error);

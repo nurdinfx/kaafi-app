@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -37,9 +38,7 @@ class NotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBg : AppTheme.lightBg,
-      appBar: AppBar(
-        title: const Text('Ogeysiisyada (Notifications)'),
-      ),
+      appBar: AppBar(title: const Text('Ogeysiisyada (Notifications)')),
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: notifs.length,
@@ -53,20 +52,31 @@ class NotificationsScreen extends StatelessWidget {
 
           return Container(
             color: !isRead
-                ? (isDark ? AppTheme.brand.withOpacity(0.06) : AppTheme.brand.withOpacity(0.04))
+                ? (isDark
+                      ? AppTheme.brand.withOpacity(0.06)
+                      : AppTheme.brand.withOpacity(0.04))
                 : Colors.transparent,
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
               leading: CircleAvatar(
                 backgroundColor: (n['color'] as Color).withOpacity(0.15),
-                child: Icon(n['icon'] as IconData, color: n['color'] as Color, size: 20),
+                child: Icon(
+                  n['icon'] as IconData,
+                  color: n['color'] as Color,
+                  size: 20,
+                ),
               ),
               title: Text(
                 n['title'] as String,
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: !isRead ? FontWeight.bold : FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
               subtitle: Column(
@@ -77,7 +87,9 @@ class NotificationsScreen extends StatelessWidget {
                     n['body'] as String,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppTheme.darkTextMuted : AppTheme.lightTextMuted,
+                      color: isDark
+                          ? AppTheme.darkTextMuted
+                          : AppTheme.lightTextMuted,
                     ),
                   ),
                   const SizedBox(height: 4),

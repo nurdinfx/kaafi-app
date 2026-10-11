@@ -199,7 +199,7 @@ export default function HomePage() {
                 <span>Shopify-Style Merchant Platform</span>
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white font-display">
-                Meheradaha Shahaadada Leh ee Kaafi-App
+                Meheradaha Shahaadada Leh ee DukaamiOnline
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
                 Ganacsade kasta wuxuu leeyahay brand, logo, categories iyo stock u gaar ah. Waxaad ka dukaameysan kartaa meheradaha ama adigu aad furataa mid adiga kuu gaar ah!
@@ -306,7 +306,7 @@ export default function HomePage() {
           <div className="rounded-3xl bg-black/20 p-8 sm:p-12 border border-white/20 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="space-y-3 text-center md:text-left max-w-xl">
               <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">
-                🚀 Ku Iibi Kaafi-App Online
+                🚀 Ku Iibi DukaamiOnline
               </span>
               <h3 className="text-2xl sm:text-3xl font-black font-display leading-tight">
                 Ma rabtaa inaad yeelato Store Online ah sida Shopify?

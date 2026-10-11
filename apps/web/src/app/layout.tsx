@@ -3,27 +3,29 @@ import './globals.css';
 import AppProviders from '../components/AppProviders';
 
 export const metadata: Metadata = {
-  title: 'Kaafi-App Online — Suuqa Casriga ah ee Soomaaliya',
+  title: 'DukaamiOnline — Suuqa Casriga ah ee Soomaaliya',
   icons: {
     icon: [
-      { url: '/kaafi_logo.png' },
+      { url: '/dukaami_icon.png' },
       { url: '/favicon.ico' },
       { url: '/favicon.png', type: 'image/png' },
+      { url: '/kaafi_logo.png' },
     ],
-    shortcut: '/kaafi_logo.png',
-    apple: '/kaafi_logo.png',
+    shortcut: '/dukaami_icon.png',
+    apple: '/dukaami_icon.png',
   },
   description:
-    'Kaafi-App Online — Suuqa ugu weyn ee Soomaaliya ee elektaroonigga, dharka, dahabka, iyo meheradaha ganacsiga. Ka dukaameyso ama fur store-kaaga online sida Shopify.',
+    'DukaamiOnline — Suuqa ugu weyn ee Soomaaliya ee elektaroonigga, dharka, dahabka, iyo meheradaha ganacsiga. Ka dukaameyso ama fur store-kaaga online sida Shopify.',
   keywords: [
-    'kaafi-app',
-    'kaafi online',
+    'dukaamionline',
+    'dukaami online',
+    'dukaami',
     'suuqa bakaaraha online',
     'dukaameysi somalia',
     'garoowe marketplace',
   ],
   openGraph: {
-    title: 'Kaafi-App Online — Suuqa Weyn ee Soomaaliya',
+    title: 'DukaamiOnline — Suuqa Weyn ee Soomaaliya',
     description: 'Ku dukaameyso si fudud, meel kasta. Dharka dumarka, qalabka telefoonada, saacadaha raaxada, iyo meheradaha Shopify-style.',
     type: 'website',
     locale: 'so_SO',
@@ -52,10 +54,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="antialiased min-h-screen bg-slate-100 text-slate-800">
+      <body suppressHydrationWarning className="antialiased min-h-screen bg-slate-100 text-slate-800">
         <AppProviders>
           {children}
         </AppProviders>

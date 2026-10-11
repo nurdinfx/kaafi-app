@@ -9,13 +9,16 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2.5 mb-4">
               <img
-                src="/kaafi_logo.png"
-                alt="Kaafi-App"
-                className="w-10 h-10 rounded-xl object-cover shadow-md"
+                src="/dukaami_icon.png"
+                alt="DukaamiOnline"
+                className="w-10 h-10 rounded-xl object-contain shadow-md bg-white p-0.5"
               />
               <div>
-                <div className="font-bold text-white text-lg leading-none" style={{ fontFamily: 'Outfit, sans-serif' }}>Kaafi-App</div>
-                <div className="text-xs mt-1" style={{ color: '#94b4d0' }}>Garoowe, Somalia</div>
+                <div className="font-bold text-white text-lg leading-none" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                  <span className="text-white">Dukaami</span>
+                  <span className="text-[#ff6a00]">Online</span>
+                </div>
+                <div className="text-xs mt-1" style={{ color: '#94b4d0' }}>dukaamionline.com</div>
               </div>
             </div>
             <p className="text-sm leading-relaxed" style={{ color: '#94b4d0' }}>
@@ -44,7 +47,7 @@ export default function Footer() {
 
           {/* Sellers */}
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm">Sell on Kaafi-App</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm">Sell on DukaamiOnline</h3>
             <ul className="space-y-2 text-sm" style={{ color: '#94b4d0' }}>
               <li><a href="/listings/create" className="hover:text-blue-300 transition-colors">Post a Listing</a></li>
               <li><a href="/seller/store-builder" className="hover:text-orange-400 transition-colors font-medium">🏪 Create Business Store (Shopify Builder)</a></li>

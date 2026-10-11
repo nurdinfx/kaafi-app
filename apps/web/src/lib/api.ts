@@ -612,11 +612,15 @@ export const api = {
     return res.json();
   },
 
-  async loginWithPassword(phoneNumber: string, password: string) {
+  async loginWithPassword(phoneNumberOrEmail: string, password: string) {
     const res = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber, password }),
+      body: JSON.stringify({
+        identifier: phoneNumberOrEmail,
+        phoneNumber: phoneNumberOrEmail,
+        password,
+      }),
     });
     return res.json();
   },
@@ -752,6 +756,84 @@ export const api = {
     } catch {
       return { success: false, data: [] };
     }
+  },
+
+  async getAdminTransactions(token: string, params: { page?: number; limit?: number; status?: string; paymentProvider?: string; search?: string; fulfillmentType?: string } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
+      });
+      const res = await fetch(`${API_URL}/admin/transactions?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      return await res.json();
+    } catch {
+      return { success: false, data: [], summary: { totalVolume: 0, totalCommission: 0, totalCount: 0 }, meta: { total: 0, page: 1, limit: 30 } };
+    }
+  },
+
+  async updateAdminTransactionStatus(
+    id: string,
+    data: { status?: string; notes?: string; releaseEscrow?: boolean; refundBuyer?: boolean },
+    token: string
+  ) {
+    const res = await fetch(`${API_URL}/admin/transactions/${id}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async getAdminStores(token: string, params: { search?: string; isVerified?: string; city?: string } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
+      });
+      const res = await fetch(`${API_URL}/admin/stores?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      return await res.json();
+    } catch {
+      return { success: false, data: { stores: [], sellers: [] }, meta: { totalStores: 0, totalSellers: 0 } };
+    }
+  },
+
+  async updateAdminStoreStatus(id: string, data: { isVerified?: boolean; isActive?: boolean; notes?: string }, token: string) {
+    const res = await fetch(`${API_URL}/admin/stores/${id}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async getAdminLiveActivity(token: string) {
+    try {
+      const res = await fetch(`${API_URL}/admin/live-activity`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      return await res.json();
+    } catch {
+      return { success: false, data: null };
+    }
+  },
+
+  async createAdminUser(
+    data: { fullName: string; phoneNumber: string; email?: string; password?: string; roleName: string; city?: string },
+    token: string
+  ) {
+    const res = await fetch(`${API_URL}/admin/users/create-admin`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
   },
 
   // ─── Realtime In-App Chat ───────────────────────────────────────────────────

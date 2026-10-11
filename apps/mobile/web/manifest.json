@@ -1,11 +1,11 @@
 {
-    "name": "Kaafi-App",
-    "short_name": "Kaafi-App",
+    "name": "DukaamiOnline",
+    "short_name": "DukaamiOnline",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#021b68",
-    "theme_color": "#021b68",
-    "description": "Kaafi-App Marketplace",
+    "background_color": "#ffffff",
+    "theme_color": "#0052cc",
+    "description": "DukaamiOnline Marketplace",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

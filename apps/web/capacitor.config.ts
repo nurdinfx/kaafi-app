@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.fududeeye.app',
-  appName: 'Fududeeye',
+  appId: 'com.dukaamionline.app',
+  appName: 'DukaamiOnline',
   webDir: 'out',
   server: {
     // 10.0.2.2 is localhost on Android Emulator

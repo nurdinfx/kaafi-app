@@ -334,7 +334,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Lacagtaadu waxay ku jiri doontaa Kaafi-App Escrow ilaa aad ka hesho oo aad ka xaqiijiso alaabta.',
+                          'Lacagtaadu waxay ku jiri doontaa DukaamiOnline Escrow ilaa aad ka hesho oo aad ka xaqiijiso alaabta.',
                           style: TextStyle(fontSize: 11, height: 1.3),
                         ),
                       ],

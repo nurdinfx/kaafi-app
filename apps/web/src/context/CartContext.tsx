@@ -119,7 +119,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const finalTotal = Math.max(0, subtotal - discountAmount);
 
   const generateWhatsAppOrderUrl = (customerName = '', customerCity = 'Garoowe') => {
-    let text = `*DALABKA SHANTA (KAAFI-APP ONLINE)*\n\n`;
+    let text = `*DALABKA SHANTA (DUKAAMIONLINE)*\n\n`;
     text += `Asc! Waxaan rabaa inaan dalbado alaabtan soo socota:\n`;
     text += `────────────────────\n`;
 

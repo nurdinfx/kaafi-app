@@ -3,9 +3,9 @@ import 'package:fududeeye_app/main.dart';
 import 'package:fududeeye_app/providers/app_state.dart';
 
 void main() {
-  testWidgets('Kaafi-App smoke test', (WidgetTester tester) async {
+  testWidgets('DukaamiOnline smoke test', (WidgetTester tester) async {
     final appState = AppState();
-    await tester.pumpWidget(KaafiApp(appState: appState));
-    expect(find.text('Kaafi-App'), findsWidgets);
+    await tester.pumpWidget(DukaamiOnlineApp(appState: appState));
+    expect(find.text('DukaamiOnline'), findsWidgets);
   });
 }

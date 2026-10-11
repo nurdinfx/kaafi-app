@@ -112,12 +112,12 @@ export default function LoginPage() {
       <div className="max-w-md mx-auto px-4 py-16">
         <div className="text-center mb-8">
           <img
-            src="/kaafi_logo.png"
-            alt="Kaafi-App"
-            className="w-16 h-16 rounded-2xl object-cover shadow-lg mx-auto mb-3"
+            src="/dukaami_icon.png"
+            alt="DukaamiOnline"
+            className="w-16 h-16 rounded-2xl object-contain shadow-lg mx-auto mb-3 bg-white p-1"
           />
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Welcome to Kaafi-App
+            Welcome to DukaamiOnline
           </h1>
           <p className="text-xs mt-1" style={{ color: '#94b4d0' }}>
             Somalia&apos;s digital marketplace platform

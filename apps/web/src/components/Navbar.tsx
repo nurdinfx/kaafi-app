@@ -83,19 +83,19 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-6">
             
             {/* Left: Brand Logo */}
-            <Link href="/" className="flex-shrink-0 flex items-center gap-2 group">
+            <Link href="/" className="flex-shrink-0 flex items-center gap-2.5 group">
               <img
-                src="/kaafi_logo.png"
-                alt="Kaafi-App Logo"
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform"
+                src="/dukaami_icon.png"
+                alt="DukaamiOnline Logo"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain shadow-sm border border-slate-100 group-hover:scale-105 transition-transform"
               />
               <div className="flex flex-col">
                 <div className="flex items-baseline font-black tracking-tight font-display text-xl sm:text-2xl leading-none">
-                  <span className="text-slate-900">Kaafi-</span>
-                  <span className="text-orange-500">App</span>
+                  <span className="text-[#0052cc]">Dukaami</span>
+                  <span className="text-[#ff6a00]">Online</span>
                 </div>
-                <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest leading-none mt-0.5">
-                  ONLINE
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-0.5">
+                  dukaamionline.com
                 </span>
               </div>
             </Link>
@@ -188,6 +188,21 @@ export default function Navbar() {
                 )}
               </button>
 
+              {/* Admin Portal Quick Switcher (If Admin) */}
+              {(user?.roles?.includes?.('SUPER_ADMIN') ||
+                user?.roles?.includes?.('FINANCE_ADMIN') ||
+                user?.roles?.some?.((r: any) => ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'].includes(r?.role?.name || r?.name || r)) ||
+                user?.email === 'admin@hudisoft.com' ||
+                user?.phoneNumber === '+252615000000') && (
+                <Link
+                  href="/admin"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 text-orange-400 border border-orange-500/40 hover:bg-slate-900 font-bold text-xs transition-all shadow-sm"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>🛡️ Admin OS</span>
+                </Link>
+              )}
+
               {/* Gal Dropdown */}
               <div className="relative">
                 <button
@@ -207,6 +222,15 @@ export default function Navbar() {
                           <p className="font-bold text-slate-900">{user.fullName}</p>
                           <p className="text-[11px] text-slate-400">{user.email || user.phoneNumber}</p>
                         </div>
+                        {/* Admin Link inside Menu */}
+                        <Link
+                          href="/admin"
+                          onClick={() => setUserDropdown(false)}
+                          className="block px-4 py-2.5 bg-slate-900 text-orange-400 font-bold hover:bg-slate-800 border-b border-slate-800 flex items-center justify-between"
+                        >
+                          <span>🛡️ Xarunta Maamulka (Admin)</span>
+                          <span className="text-[10px] bg-orange-500/20 px-1.5 py-0.5 rounded text-orange-300 font-mono">OS</span>
+                        </Link>
                         <Link
                           href="/orders"
                           onClick={() => setUserDropdown(false)}
