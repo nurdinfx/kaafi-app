@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hero_banner.dart';
-import '../widgets/category_chip.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/shein_category_widget.dart';
 import 'create_listing_screen.dart';
 import 'create_request_screen.dart';
 import 'notifications_screen.dart';
@@ -233,67 +233,10 @@ class HomeScreen extends StatelessWidget {
                 onBrowseRequests: () => onTabChange(2), // Switch to Requests Tab
               ),
 
-              // Category Carousel
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Text(
-                  'Qaybaha Suuqa (Categories)',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(
-                height: 44,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: appState.categories.length + 1,
-                  itemBuilder: (context, idx) {
-                    if (idx == 0) {
-                      final isSelected = appState.selectedCategorySlug == null;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: InkWell(
-                          onTap: () => appState.setCategorySlug(null),
-                          borderRadius: BorderRadius.circular(24),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.brand : (isDark ? AppTheme.darkCard : AppTheme.lightSurface),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: isSelected ? AppTheme.brandLight : (isDark ? AppTheme.darkBorder : AppTheme.lightBorder),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Text('⚡', style: TextStyle(fontSize: 14)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Dhamaan',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? Colors.white : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    final cat = appState.categories[idx - 1];
-                    final isSelected = appState.selectedCategorySlug == cat.slug;
-                    return CategoryChip(
-                      category: cat,
-                      isSelected: isSelected,
-                      onTap: () {
-                        appState.setCategorySlug(isSelected ? null : cat.slug);
-                        onTabChange(1); // open browse tab filtered
-                      },
-                    );
-                  },
-                ),
+              // Shein-Style Category Bar + Circular Avatars
+              SheinTopCategoryBar(
+                appState: appState,
+                onTabChange: onTabChange,
               ),
 
               const SizedBox(height: 14),

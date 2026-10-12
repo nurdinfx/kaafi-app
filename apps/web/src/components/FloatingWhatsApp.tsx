@@ -6,7 +6,7 @@ export default function FloatingWhatsApp() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
 
-  const phoneNumber = '252615000000'; // Somali customer service number
+  const phoneNumber = '252904530260'; // Customer service number
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();

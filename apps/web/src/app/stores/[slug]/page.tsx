@@ -55,7 +55,7 @@ export default function StorefrontPage({ params }: Props) {
 
   const handleWhatsAppChat = () => {
     const text = `Asc ${store.businessName}! Waxaan wax ka daawanayaa store-kaaga Fududeeye Online, waxaana doonayaa inaan wax ka weydiiyo alaabtaada.`;
-    const cleanNumber = store.whatsappNumber.replace(/\D/g, '') || '252615000000';
+    const cleanNumber = store.whatsappNumber.replace(/\D/g, '') || '252904530260';
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`, '_blank');
   };
 

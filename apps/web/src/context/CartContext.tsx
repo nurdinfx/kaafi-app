@@ -143,8 +143,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     text += `*Habka Lacag Bixinta:* EVC Plus / eDahab / Sahal / Zaad\n\n`;
     text += `Fadlan ii xaqiiji dalabkayga iyo xilliga la ii keenayo. Mahadsanidiin!`;
 
-    // Standard WhatsApp merchant support number for Somalia
-    const waNumber = '252615000000';
+    // Standard WhatsApp merchant support number
+    const waNumber = '252904530260';
     return `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`;
   };
 

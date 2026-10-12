@@ -27,7 +27,7 @@ export default function StoreBuilderPage() {
   const [themeColor, setThemeColor] = useState(currentStore?.themeColor || '#ea580c');
   const [city, setCity] = useState(currentStore?.city || 'Garoowe');
   const [district, setDistrict] = useState(currentStore?.district || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(currentStore?.whatsappNumber || '+252615000000');
+  const [whatsappNumber, setWhatsappNumber] = useState(currentStore?.whatsappNumber || '+252904530260');
   const [phone, setPhone] = useState(currentStore?.phone || '+252907000000');
 
   // Category state
@@ -424,7 +424,7 @@ export default function StoreBuilderPage() {
                       type="text"
                       value={whatsappNumber}
                       onChange={(e) => setWhatsappNumber(e.target.value)}
-                      placeholder="+252615000000"
+                      placeholder="+252904530260"
                       className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
                     />
                   </div>

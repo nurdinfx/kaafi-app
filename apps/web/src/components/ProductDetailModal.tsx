@@ -45,7 +45,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
 
   const handleWhatsAppDirect = () => {
     const text = `Asc ${product.storeName}! Waxaan rabaa inaan si toos ah u iibsado alaabtan:\n*${product.title}*\nQiimaha: $${product.price}\nSKU: ${product.sku}\nCadadka: ${quantity} xabbo\nMidabka: ${selectedColor}\nFadlan iiga soo jawaaba!`;
-    const waUrl = `https://wa.me/252615000000?text=${encodeURIComponent(text)}`;
+    const waUrl = `https://wa.me/252904530260?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank');
   };
 

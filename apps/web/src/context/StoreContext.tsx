@@ -645,7 +645,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       themeColor: storeData.themeColor || '#ea580c',
       city: storeData.city || 'Garoowe',
       district: storeData.district || 'Suuqa Dhexe',
-      whatsappNumber: storeData.whatsappNumber || '+252615000000',
+      whatsappNumber: storeData.whatsappNumber || '+252904530260',
       phone: storeData.phone || '+252907000000',
       isVerified: true,
       rating: 5.0,

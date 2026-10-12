@@ -10,16 +10,20 @@ import ProductDetailModal from '../components/ProductDetailModal';
 import Footer from '../components/Footer';
 import { useStore, StoreProduct } from '../context/StoreContext';
 
-/* ─── Inline category grid for homepage (replaces backend call) ─── */
+/* ─── Shein Style Circular Categories for Homepage ─── */
 const HOME_CATEGORIES = [
-  { label: 'Dharka Dumarka', icon: '👗', slug: 'fashion', color: '#f97316' },
-  { label: 'Taleefannada', icon: '📱', slug: 'electronics', color: '#0ea5e9' },
-  { label: 'Saacadaha', icon: '⌚', slug: 'wholesale', color: '#d97706' },
-  { label: 'Guriga', icon: '🏠', slug: 'real-estate', color: '#10b981' },
-  { label: 'Gaadiidka', icon: '🚗', slug: 'vehicles', color: '#6366f1' },
-  { label: 'Caafimaad', icon: '💊', slug: 'health-beauty', color: '#ec4899' },
-  { label: 'Alaab Xoolo', icon: '🌾', slug: 'wholesale', color: '#84cc16' },
-  { label: 'Dhismaha', icon: '🏗️', slug: 'real-estate', color: '#64748b' },
+  { label: 'View All', isViewAll: true, slug: 'fashion' },
+  { label: 'Dumarka', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Tops & Dirac', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Curve & Plus', image: 'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Caruurta & Toys', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=160&h=160&fit=crop&q=80', slug: 'kids' },
+  { label: 'Ragga', image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Telefoonnada', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02543?w=160&h=160&fit=crop&q=80', slug: 'electronics' },
+  { label: 'Kabo & Bags', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Qurxinta & Oud', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=160&h=160&fit=crop&q=80', slug: 'health-beauty' },
+  { label: 'Guriga & Jikada', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=160&h=160&fit=crop&q=80', slug: 'real-estate' },
+  { label: 'Dahab & Saacado', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=160&h=160&fit=crop&q=80', slug: 'wholesale' },
+  { label: 'Gaadiidka', image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=160&h=160&fit=crop&q=80', slug: 'vehicles' },
 ];
 
 export default function HomePage() {
@@ -48,20 +52,33 @@ export default function HomePage() {
               Dhammaan Qaybaha →
             </Link>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-            {HOME_CATEGORIES.map((cat) => (
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
+            {HOME_CATEGORIES.map((cat, idx) => (
               <Link
-                key={cat.slug + cat.label}
+                key={cat.label + idx}
                 href={`/listings?categorySlug=${cat.slug}`}
-                className="group flex flex-col items-center gap-1.5 p-3 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-orange-50 hover:border-orange-200 transition-all duration-200 text-center hover:-translate-y-0.5"
+                className="group flex flex-col items-center gap-2 text-center"
               >
-                <div
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-sm transition-transform group-hover:scale-110"
-                  style={{ background: `${cat.color}20`, border: `1.5px solid ${cat.color}30` }}
-                >
-                  {cat.icon}
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shadow-xs transition-all duration-200 group-hover:scale-108 group-hover:border-orange-500 group-hover:shadow-md">
+                  {cat.isViewAll ? (
+                    <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-700 group-hover:text-orange-600 group-hover:bg-orange-50 transition-colors">
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="4" y="4" width="6" height="6" rx="1" />
+                        <rect x="14" y="4" width="6" height="6" rx="1" />
+                        <rect x="4" y="14" width="6" height="6" rx="1" />
+                        <rect x="14" y="14" width="6" height="6" rx="1" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <img
+                      src={cat.image}
+                      alt={cat.label}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  )}
                 </div>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-700 group-hover:text-orange-700 leading-tight transition-colors">
+                <span className="text-[11px] font-semibold text-slate-700 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2 max-w-[72px]">
                   {cat.label}
                 </span>
               </Link>

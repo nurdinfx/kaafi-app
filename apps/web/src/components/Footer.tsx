@@ -60,7 +60,7 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-white mb-4 text-sm">Support & Company</h3>
             <ul className="space-y-2 text-sm" style={{ color: '#94b4d0' }}>
-              <li><a href="https://wa.me/252611000000" className="hover:text-blue-300 transition-colors">💬 WhatsApp Support</a></li>
+              <li><a href="https://wa.me/252904530260" className="hover:text-blue-300 transition-colors">💬 WhatsApp Support</a></li>
               <li><a href="/about" className="hover:text-blue-300 transition-colors">About Hudi-Soft</a></li>
               <li><a href="/trust" className="hover:text-blue-300 transition-colors">Trust & Safety</a></li>
               <li><a href="/terms" className="hover:text-blue-300 transition-colors">Terms of Service</a></li>
@@ -75,12 +75,8 @@ export default function Footer() {
           <p className="text-xs" style={{ color: '#94b4d0' }}>
             © {year} Hudi-Soft Technologies. Garoowe, Puntland, Somalia.
           </p>
-          <div className="flex items-center gap-4 text-xs" style={{ color: '#94b4d0' }}>
-            <span>🇸🇴 Somalia · Puntland · Garoowe</span>
-            <span>|</span>
-            <span>💵 USD · SOS</span>
-            <span>|</span>
-            <span>📱 EVC Plus · ZAAD · SAHAL</span>
+          <div className="flex items-center gap-4 text-xs font-medium" style={{ color: '#94b4d0' }}>
+            <span>hada dalbo oo hada hel</span>
           </div>
         </div>
       </div>

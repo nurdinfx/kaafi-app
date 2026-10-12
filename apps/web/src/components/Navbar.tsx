@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import VisualSearchModal from './VisualSearchModal';
+import SheinCategoryNav from './SheinCategoryNav';
 
 const CATEGORIES_ORANGE_BAR = [
   { label: 'Taleefannada & Qalab Dheeraad ah', slug: 'electronics' },
@@ -289,34 +290,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ROW 2: Vibrant Orange Category Bar (Matching Screenshot Exactly) */}
-        <div className="bg-[#ea580c] text-white text-xs font-bold py-2 sm:py-2.5 px-4 overflow-x-auto scrollbar-hide shadow-inner">
-          <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
-            
-            {/* Horizontal Categories */}
-            <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto scrollbar-hide whitespace-nowrap">
-              {CATEGORIES_ORANGE_BAR.map((cat) => (
-                <Link
-                  key={cat.label}
-                  href={`/listings?categorySlug=${cat.slug}`}
-                  className="hover:text-amber-200 transition-colors text-[11px] sm:text-xs tracking-tight whitespace-nowrap"
-                >
-                  {cat.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Pill on the Right: Dhammaan Qaybaha → */}
-            <Link
-              href="/listings"
-              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-white text-xs font-bold border border-white/40 hover:bg-white/10 transition-colors whitespace-nowrap flex-shrink-0"
-            >
-              <span>Dhammaan Qaybaha</span>
-              <span>→</span>
-            </Link>
-
-          </div>
-        </div>
+        {/* ROW 2: Shein Categories Bar & Mega Menu */}
+        <SheinCategoryNav />
 
         {/* Mobile dropdown */}
         {mobileMenuOpen && (
