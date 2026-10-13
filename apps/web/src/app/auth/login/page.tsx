@@ -33,7 +33,7 @@ export default function LoginPage() {
         setOtpSent(true);
         setSuccessMsg(`OTP sent to ${phone}! (Development code: ${res.data?.devCode || '123456'})`);
       } else {
-        setError(res.message || 'Failed to send OTP.');
+        setError(res.message || res.error?.message || 'Failed to send OTP.');
       }
     } catch {
       setError('Network error connecting to API.');
@@ -54,7 +54,7 @@ export default function LoginPage() {
         localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
         router.push('/');
       } else {
-        setError(res.message || 'Invalid verification code.');
+        setError(res.message || res.error?.message || 'Invalid verification code.');
       }
     } catch {
       setError('Verification failed. Check your network.');
@@ -75,7 +75,7 @@ export default function LoginPage() {
         localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
         router.push('/');
       } else {
-        setError(res.message || 'Invalid phone or password.');
+        setError(res.message || res.error?.message || 'Invalid phone or password.');
       }
     } catch {
       setError('Login failed. Check your network.');
@@ -96,7 +96,7 @@ export default function LoginPage() {
         localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
         router.push('/');
       } else {
-        setError(res.message || 'Registration failed.');
+        setError(res.message || res.error?.message || 'Lambarkaan horey ayaa loogu diiwaangashaday (An account with this phone or email already exists).');
       }
     } catch {
       setError('Registration failed. Check your network.');

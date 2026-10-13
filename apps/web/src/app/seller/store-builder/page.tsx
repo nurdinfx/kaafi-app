@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import { useStore, MerchantStore, StoreProduct } from '../../../context/StoreContext';
+import { api } from '../../../lib/api';
 
 export default function StoreBuilderPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function StoreBuilderPage() {
 
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingCategoryWait, setAddingCategoryWait] = useState(false);
 
   // Add product modal state
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -112,12 +114,23 @@ export default function StoreBuilderPage() {
     }
   };
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim() || !currentStore) return;
-    addStoreCategory(currentStore.slug, newCategoryName.trim());
+    const catName = newCategoryName.trim();
+    setAddingCategoryWait(true);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_token') : null;
+    if (token) {
+      try {
+        await api.createCategory({ name: catName, verticalType: 'PRODUCT' }, token);
+      } catch {}
+    }
+
+    addStoreCategory(currentStore.slug, catName);
     setNewCategoryName('');
-    showToast(`✓ Qaybta "${newCategoryName.trim()}" waa lagu daray!`);
+    setAddingCategoryWait(false);
+    showToast(`⏳ Qaybta "${catName}" waa lagu daray (Waxay ku jirtaa sugitaan / WAIT)!`);
   };
 
   const handleAddProduct = (e: React.FormEvent) => {
@@ -599,9 +612,17 @@ export default function StoreBuilderPage() {
                 />
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-md"
+                  disabled={addingCategoryWait || !newCategoryName.trim()}
+                  className="px-6 py-3 rounded-xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-md flex items-center gap-2"
                 >
-                  + Ku Dar Qayb
+                  {addingCategoryWait ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Fadlan sug... (WAIT)...</span>
+                    </>
+                  ) : (
+                    <span>+ Ku Dar Qayb (WAIT / Sugitaan)</span>
+                  )}
                 </button>
               </form>
 
@@ -619,7 +640,12 @@ export default function StoreBuilderPage() {
                           {idx + 1}
                         </span>
                         <div>
-                          <h4 className="font-bold text-slate-800 text-sm">{cat}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-slate-800 text-sm">{cat}</h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                              ⏳ WAIT / Sugitaan
+                            </span>
+                          </div>
                           <span className="text-xs text-slate-400">{count} alaab ah ayaa ku jira</span>
                         </div>
                       </div>

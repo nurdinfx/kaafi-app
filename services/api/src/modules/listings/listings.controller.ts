@@ -223,9 +223,16 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
       throw new AppError('Title, description, price, and categoryId are required.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    // Verify category exists with attributes
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
+    // Verify category exists with attributes (support ID, slug, or normalized slug)
+    const normalizedCatQuery = categoryId.replace(/^cat-/, '');
+    const category = await prisma.category.findFirst({
+      where: {
+        OR: [
+          { id: categoryId },
+          { slug: categoryId },
+          { slug: normalizedCatQuery },
+        ],
+      },
       include: { attributes: true },
     });
 
@@ -243,13 +250,18 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
       }
     }
 
-    // Generate unique slug
+    // Generate guaranteed unique slug
     const baseSlug = title
       .toLowerCase()
+      .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const slug = `${baseSlug}-${randomSuffix}`;
+      .replace(/^-+|-+$/g, '') || 'item';
+    
+    let slug = `${baseSlug}-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
+    let counter = 1;
+    while (await prisma.listing.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}-${counter++}`;
+    }
 
     // Create listing in database atomically
     const listing = await prisma.listing.create({
@@ -257,7 +269,7 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
         sellerId: req.user.id,
         businessId: businessId || null,
         branchId: branchId || null,
-        categoryId,
+        categoryId: category.id,
         verticalType: category.verticalType,
         title,
         slug,

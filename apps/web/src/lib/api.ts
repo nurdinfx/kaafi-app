@@ -25,6 +25,8 @@ export interface Category {
   description?: string;
   commissionRate?: number;
   displayOrder?: number;
+  status?: string; // ACTIVE, WAIT, PENDING
+  isActive?: boolean;
 }
 
 export interface Listing {
@@ -280,6 +282,31 @@ export const api = {
       return json.success ? json.data : null;
     } catch {
       return null;
+    }
+  },
+
+  async createCategory(data: any, token: string) {
+    try {
+      const res = await fetch(`${API_URL}/categories`, {
+        method: 'POST',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, message: 'Khalad baa dhacay marka server-ka lala xiriirayay.' };
+    }
+  },
+
+  async approveCategory(categoryId: string, token: string) {
+    try {
+      const res = await fetch(`${API_URL}/categories/${categoryId}/approve`, {
+        method: 'PATCH',
+        headers: authHeaders(token),
+      });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, message: 'Approval failed.' };
     }
   },
 

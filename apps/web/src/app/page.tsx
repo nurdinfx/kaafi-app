@@ -1,34 +1,55 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import TrustBadges from '../components/TrustBadges';
 import ProductCard from '../components/ProductCard';
 import ProductDetailModal from '../components/ProductDetailModal';
+import ListingCard from '../components/ListingCard';
 import Footer from '../components/Footer';
 import { useStore, StoreProduct } from '../context/StoreContext';
+import { api, Listing, Category } from '../lib/api';
 
-/* ─── Shein Style Circular Categories for Homepage ─── */
+/* ─── Real Circular Categories for Homepage Matching Database ─── */
 const HOME_CATEGORIES = [
-  { label: 'View All', isViewAll: true, slug: 'fashion' },
-  { label: 'Dumarka', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
-  { label: 'Tops & Dirac', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
-  { label: 'Curve & Plus', image: 'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
-  { label: 'Caruurta & Toys', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=160&h=160&fit=crop&q=80', slug: 'kids' },
-  { label: 'Ragga', image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
-  { label: 'Telefoonnada', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02543?w=160&h=160&fit=crop&q=80', slug: 'electronics' },
-  { label: 'Kabo & Bags', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
-  { label: 'Qurxinta & Oud', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=160&h=160&fit=crop&q=80', slug: 'health-beauty' },
-  { label: 'Guriga & Jikada', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=160&h=160&fit=crop&q=80', slug: 'real-estate' },
-  { label: 'Dahab & Saacado', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=160&h=160&fit=crop&q=80', slug: 'wholesale' },
-  { label: 'Gaadiidka', image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=160&h=160&fit=crop&q=80', slug: 'vehicles' },
+  { label: 'Dhammaan (All)', isViewAll: true, slug: '' },
+  { label: 'Dumarka & Fashion', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=160&h=160&fit=crop&q=80', slug: 'fashion' },
+  { label: 'Telefoonnada & Tech', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02543?w=160&h=160&fit=crop&q=80', slug: 'electronics' },
+  { label: 'Gaadiidka & Baabuurta', image: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=160&h=160&fit=crop&q=80', slug: 'vehicles' },
+  { label: 'Guryaha & Villas', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=160&h=160&fit=crop&q=80', slug: 'real-estate' },
+  { label: 'Dhul & Boosas', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=160&h=160&fit=crop&q=80', slug: 'land' },
+  { label: 'Qurxinta & Cuud', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=160&h=160&fit=crop&q=80', slug: 'health-beauty' },
+  { label: 'Caruurta & Ciyaarta', image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=160&h=160&fit=crop&q=80', slug: 'kids' },
+  { label: 'Qalabka Guriga', image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=160&h=160&fit=crop&q=80', slug: 'home-living' },
+  { label: 'Ganacsiga Jumlada', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=160&h=160&fit=crop&q=80', slug: 'wholesale' },
+  { label: 'Adeegyada Guud', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=160&h=160&fit=crop&q=80', slug: 'services' },
 ];
 
 export default function HomePage() {
   const { stores, popularProducts, essentialProducts } = useStore();
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
+  const [liveListings, setLiveListings] = useState<Listing[]>([]);
+  const [liveCategories, setLiveCategories] = useState<Category[]>([]);
+  const [loadingListings, setLoadingListings] = useState(true);
+
+  useEffect(() => {
+    // Fetch live categories from backend database
+    api.getCategories().then((cats) => {
+      if (cats && cats.length > 0) setLiveCategories(cats);
+    });
+
+    // Fetch real market listings from backend database
+    api.getListings({ limit: 12 }).then((res) => {
+      if (res && res.data) {
+        setLiveListings(res.data);
+      }
+      setLoadingListings(false);
+    }).catch(() => {
+      setLoadingListings(false);
+    });
+  }, []);
 
   return (
     <main className="min-h-screen bg-slate-100/70 text-slate-800">
@@ -129,6 +150,51 @@ export default function HomePage() {
               Daawo Dhammaan Alaabta →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* ── SECTION: Xayeysiisyada Tooska Ah (Live Real Market Listings) ── */}
+      <section id="live-listings" className="py-10 sm:py-14 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Toos uga Socda Suuqa (Live Real Market)</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white font-display">
+                Xayeysiisyada <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Ugu Dambeeyay</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Alaab, gaadiid, guryo & adeegyo hadda la soo dhigay oo leh taariikh dhab ah (Real Dates & Real Categories).
+              </p>
+            </div>
+            <Link
+              href="/listings"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 shadow-md transition-all self-start sm:self-auto"
+            >
+              <span>Dhammaan Xayeysiisyada ({liveListings.length})</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          {loadingListings ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-64 rounded-2xl bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          ) : liveListings.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {liveListings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-400 text-sm">
+              Weli wax xayeysiis ah lama soo gelin. Noqo qofka ugu horreeya ee dhiga!
+            </div>
+          )}
         </div>
       </section>
 

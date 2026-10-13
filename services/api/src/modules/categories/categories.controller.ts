@@ -7,14 +7,20 @@ import { logAuditEvent } from '../../middleware/audit';
 // List categories with optional hierarchy & vertical filter
 export const getCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { verticalType, parentOnly } = req.query;
+    const { verticalType, parentOnly, includePending, status } = req.query;
 
-    const where: any = { isActive: true };
+    const where: any = {};
     if (verticalType) {
       where.verticalType = String(verticalType).toUpperCase();
     }
     if (parentOnly === 'true') {
       where.parentId = null;
+    }
+    if (status) {
+      where.status = String(status).toUpperCase();
+    } else if (includePending !== 'true') {
+      // By default show active categories
+      where.status = 'ACTIVE';
     }
 
     const categories = await prisma.category.findMany({
@@ -22,7 +28,6 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
       orderBy: { displayOrder: 'asc' },
       include: {
         subcategories: {
-          where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
         },
         attributes: true,
@@ -43,8 +48,11 @@ export const getCategoryBySlug = async (req: Request, res: Response, next: NextF
   try {
     const slug = String(req.params.slug);
 
-    const category = await prisma.category.findUnique({
-      where: { slug },
+    // Look up by slug or ID
+    const category = await prisma.category.findFirst({
+      where: {
+        OR: [{ slug }, { id: slug }],
+      },
       include: {
         subcategories: true,
         attributes: true,
@@ -52,7 +60,7 @@ export const getCategoryBySlug = async (req: Request, res: Response, next: NextF
     });
 
     if (!category) {
-      throw new AppError(`Category with slug '${slug}' not found.`, 404, ErrorCode.NOT_FOUND);
+      throw new AppError(`Category '${slug}' not found.`, 404, ErrorCode.NOT_FOUND);
     }
 
     res.json({
@@ -64,26 +72,57 @@ export const getCategoryBySlug = async (req: Request, res: Response, next: NextF
   }
 };
 
-// Admin: Create Category
+// User or Admin: Create Category
+// When normal users or sellers add a category, it gets status: "WAIT" (Pending Approval).
+// When admins add a category, it gets status: "ACTIVE".
 export const createCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, slug, description, icon, imageUrl, verticalType, parentId, displayOrder, commissionRate } = req.body;
 
-    if (!name || !slug) {
-      throw new AppError('Category name and slug are required.', 400, ErrorCode.VALIDATION_ERROR);
+    if (!name || !name.trim()) {
+      throw new AppError('Category name is required.', 400, ErrorCode.VALIDATION_ERROR);
     }
+
+    const trimmedName = name.trim();
+
+    // Auto-generate safe slug
+    let candidateSlug = (slug || trimmedName)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `category-${Date.now()}`;
+
+    // Ensure unique slug to NEVER crash with 409 Conflict
+    let finalSlug = candidateSlug;
+    let counter = 1;
+    while (await prisma.category.findUnique({ where: { slug: finalSlug } })) {
+      finalSlug = `${candidateSlug}-${counter}`;
+      counter++;
+    }
+
+    // Check if requester has admin role
+    const userRoles = req.user?.roles || [];
+    const isAdmin = userRoles.some((r: string) =>
+      ['SUPER_ADMIN', 'FINANCE_ADMIN', 'OPERATIONS_ADMIN', 'MODERATOR'].includes(r)
+    );
+
+    // Categories added by users MUST wait (status: WAIT), while admin adds directly ACTIVE
+    const initialStatus = isAdmin ? 'ACTIVE' : 'WAIT';
+    const initialActive = isAdmin;
 
     const category = await prisma.category.create({
       data: {
-        name,
-        slug,
-        description,
-        icon,
-        imageUrl,
+        name: trimmedName,
+        slug: finalSlug,
+        description: description || null,
+        icon: icon || '📂',
+        imageUrl: imageUrl || null,
         verticalType: verticalType || 'PRODUCT',
         parentId: parentId || null,
         displayOrder: displayOrder || 0,
-        commissionRate: commissionRate !== undefined ? commissionRate : 5.0,
+        commissionRate: commissionRate !== undefined ? Number(commissionRate) : 5.0,
+        status: initialStatus,
+        isActive: initialActive,
       },
     });
 
@@ -92,11 +131,45 @@ export const createCategory = async (req: AuthenticatedRequest, res: Response, n
       action: 'CATEGORY_CREATED',
       entityType: 'CATEGORY',
       entityId: category.id,
-      details: { name: category.name, verticalType: category.verticalType },
+      details: { name: category.name, verticalType: category.verticalType, status: initialStatus },
     });
 
     res.status(201).json({
       success: true,
+      message: initialStatus === 'WAIT'
+        ? 'Qaybta waa lagu daray waxayna ku jirtaa sugitaan (Status: WAIT / Pending Admin Approval).'
+        : 'Category created successfully.',
+      data: category,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Approve a pending (WAIT) category
+export const approveCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const categoryId = String(req.params.categoryId);
+
+    const category = await prisma.category.update({
+      where: { id: categoryId },
+      data: {
+        status: 'ACTIVE',
+        isActive: true,
+      },
+    });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'CATEGORY_APPROVED',
+      entityType: 'CATEGORY',
+      entityId: category.id,
+      details: { name: category.name },
+    });
+
+    res.json({
+      success: true,
+      message: `Category "${category.name}" has been approved and activated.`,
       data: category,
     });
   } catch (error) {

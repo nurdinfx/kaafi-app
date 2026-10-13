@@ -11,21 +11,32 @@ const GAROOWE_DISTRICTS = [
 ];
 
 // Fallback initial categories so it is NEVER empty even during network loading
+// Real Initial Categories matching the database canonical seed
 const INITIAL_CATEGORIES: Category[] = [
-  { id: 'cat-vehicles', name: 'Vehicles & Automotive', slug: 'vehicles', verticalType: 'VEHICLE', icon: '🚗', description: 'Cars, 4WDs, trucks & motorcycles', commissionRate: 3.5 },
-  { id: 'cat-real-estate', name: 'Real Estate & Houses', slug: 'real-estate', verticalType: 'REAL_ESTATE', icon: '🏢', description: 'Houses, apartments & shops', commissionRate: 2.5 },
-  { id: 'cat-land', name: 'Land & Plots', slug: 'land', verticalType: 'LAND', icon: '📐', description: 'Residential & commercial plots', commissionRate: 2.0 },
-  { id: 'cat-electronics', name: 'Electronics & Phones', slug: 'electronics', verticalType: 'PRODUCT', icon: '📱', description: 'Smartphones, laptops & gadgets', commissionRate: 5.0 },
-  { id: 'cat-services', name: 'Local Services & Trades', slug: 'services', verticalType: 'SERVICE', icon: '🛠️', description: 'Mechanics, repairs & technicians', commissionRate: 5.0 },
-  { id: 'cat-wholesale', name: 'B2B Wholesale & Bulk', slug: 'wholesale', verticalType: 'WHOLESALE', icon: '🏭', description: 'Bulk cartons & wholesale goods', commissionRate: 3.0 },
-  { id: 'cat-fashion', name: 'Fashion & Apparel', slug: 'fashion', verticalType: 'PRODUCT', icon: '👗', description: 'Somali attire, clothes & shoes', commissionRate: 5.0 },
-  { id: 'cat-food', name: 'Food & Groceries', slug: 'food', verticalType: 'PRODUCT', icon: '🥬', description: 'Fresh foods & beverages', commissionRate: 2.0 },
+  { id: 'cat-fashion', name: 'Dharka Dumarka & Fashion', slug: 'fashion', verticalType: 'PRODUCT', icon: '👗', description: 'Diracyo, abayado, iyo dharka casriga ah', commissionRate: 5.0, status: 'ACTIVE' },
+  { id: 'cat-electronics', name: 'Telefoonnada & Electronics', slug: 'electronics', verticalType: 'PRODUCT', icon: '📱', description: 'Smartphones, laptops & qalabka casriga', commissionRate: 4.5, status: 'ACTIVE' },
+  { id: 'cat-vehicles', name: 'Gaadiidka & Baabuurta', slug: 'vehicles', verticalType: 'VEHICLE', icon: '🚗', description: 'Baabuurta, Prado, Hilux, & gaadiidka xamuulka', commissionRate: 3.5, status: 'ACTIVE' },
+  { id: 'cat-real-estate', name: 'Guryaha & Dhulka (Real Estate)', slug: 'real-estate', verticalType: 'REAL_ESTATE', icon: '🏢', description: 'Guryo kiro iyo iib ah, villas & dukaamo', commissionRate: 2.5, status: 'ACTIVE' },
+  { id: 'cat-land', name: 'Dhul & Boosas (Land & Plots)', slug: 'land', verticalType: 'LAND', icon: '📐', description: 'Boosas deegaan & ganacsi Garoowe & Nugaal', commissionRate: 2.0, status: 'ACTIVE' },
+  { id: 'cat-home-living', name: 'Qalabka Guriga & Jikada', slug: 'home-living', verticalType: 'PRODUCT', icon: '🏠', description: 'Fadhiga, jikada, & qalabka korontada guriga', commissionRate: 5.0, status: 'ACTIVE' },
+  { id: 'cat-health-beauty', name: 'Caafimaadka & Qurxinta (Beauty & Oud)', slug: 'health-beauty', verticalType: 'PRODUCT', icon: '✨', description: 'Uunsi, cuud, cadar & qurxinta', commissionRate: 5.0, status: 'ACTIVE' },
+  { id: 'cat-kids', name: 'Caruurta & Alaabta Ciyaarta (Kids)', slug: 'kids', verticalType: 'PRODUCT', icon: '🧸', description: 'Dharka & alaabta caruurta', commissionRate: 5.0, status: 'ACTIVE' },
+  { id: 'cat-services', name: 'Adeegyada & Xirfadaha (Services)', slug: 'services', verticalType: 'SERVICE', icon: '🛠️', description: 'Makanikada, dhismaha, farsamada & korontada', commissionRate: 5.0, status: 'ACTIVE' },
+  { id: 'cat-wholesale', name: 'Ganacsiga Jumlada (B2B Wholesale)', slug: 'wholesale', verticalType: 'WHOLESALE', icon: '🏭', description: 'Kartoomo jumlad ah & alaab dhoof ah', commissionRate: 3.0, status: 'ACTIVE' },
 ];
 
 export default function CreateListingPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [selectedCat, setSelectedCat] = useState<Category | null>(INITIAL_CATEGORIES[0]);
+
+  // Modal / Form state for user adding a category (Status: WAIT / Pending)
+  const [showAddCatModal, setShowAddCatModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('📦');
+  const [newCatVertical, setNewCatVertical] = useState('PRODUCT');
+  const [addingCat, setAddingCat] = useState(false);
+  const [catSuccessMsg, setCatSuccessMsg] = useState('');
 
   // Core fields
   const [title, setTitle] = useState('');
@@ -49,7 +60,7 @@ export default function CreateListingPage() {
   const [mileageKm, setMileageKm] = useState('');
 
   const [propType, setPropType] = useState('APARTMENT');
-  const [transactionType, setTransactionType] = useState('FOR_RENT');
+  const [transactionType, setTransactionType] = useState('RENT');
   const [bedrooms, setBedrooms] = useState('2');
   const [bathrooms, setBathrooms] = useState('1');
   const [areaSqMeters, setAreaSqMeters] = useState('');
@@ -79,6 +90,44 @@ export default function CreateListingPage() {
         // Fallback already initialized in state
       });
   }, []);
+
+  const handleAddNewCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+
+    setAddingCat(true);
+    setCatSuccessMsg('');
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_token') : null;
+    if (!token) {
+      alert('Fadlan marka hore gal akoonkaaga (Login) si aad qayb cusub ugu darto.');
+      setAddingCat(false);
+      return;
+    }
+
+    try {
+      const res = await api.createCategory({
+        name: newCatName.trim(),
+        icon: newCatIcon || '📦',
+        verticalType: newCatVertical,
+      }, token);
+
+      if (res.success && res.data) {
+        const addedCat = res.data;
+        setCategories((prev) => [addedCat, ...prev]);
+        setSelectedCat(addedCat);
+        setCatSuccessMsg(res.message || 'Qaybta waa lagu daray waxayna ku jirtaa sugitaan (Status: WAIT / Pending Approval).');
+        setNewCatName('');
+        setShowAddCatModal(false);
+      } else {
+        alert(res.message || res.error?.message || 'Qaybta lama dari karin.');
+      }
+    } catch {
+      alert('Khalad baa dhacay marka qaybta la dirayay.');
+    } finally {
+      setAddingCat(false);
+    }
+  };
 
   const handleDeviceFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -154,8 +203,9 @@ export default function CreateListingPage() {
       media: mediaList.map((url, i) => ({ url, mediaType: 'IMAGE', sortOrder: i })),
     };
 
+    // Backend expects vehicleData / propertyData / serviceData
     if (selectedCat.verticalType === 'VEHICLE') {
-      payload.vehicleDetails = {
+      payload.vehicleData = {
         make: vehicleMake,
         model: vehicleModel,
         year: parseInt(vehicleYear, 10),
@@ -163,17 +213,17 @@ export default function CreateListingPage() {
         fuelType,
         mileageKm: mileageKm ? parseInt(mileageKm, 10) : undefined,
       };
-    } else if (selectedCat.verticalType === 'REAL_ESTATE') {
-      payload.propertyDetails = {
+    } else if (selectedCat.verticalType === 'REAL_ESTATE' || selectedCat.verticalType === 'LAND') {
+      payload.propertyData = {
         propertyType: propType,
-        transactionType,
+        transactionType: transactionType === 'FOR_RENT' ? 'RENT' : transactionType === 'FOR_SALE' ? 'SALE' : transactionType,
         bedrooms: bedrooms ? parseInt(bedrooms, 10) : undefined,
         bathrooms: bathrooms ? parseInt(bathrooms, 10) : undefined,
         areaSqMeters: areaSqMeters ? parseFloat(areaSqMeters) : undefined,
         furnished: false,
       };
     } else if (selectedCat.verticalType === 'SERVICE') {
-      payload.serviceDetails = {
+      payload.serviceData = {
         serviceType: serviceType || title,
         pricingModel,
         serviceArea: city,
@@ -258,8 +308,11 @@ export default function CreateListingPage() {
           {/* ────────────────────────────────────────────────────────
               STEP 1: CATEGORY SELECTION (Rich Grid & Animations)
              ──────────────────────────────────────────────────────── */}
+          {/* ────────────────────────────────────────────────────────
+              STEP 1: CATEGORY SELECTION
+             ──────────────────────────────────────────────────────── */}
           <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#0e1c33]/90 to-[#091222]/95 backdrop-blur-xl border border-blue-500/20 shadow-[0_10px_35px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
                   <span className="w-7 h-7 rounded-xl bg-blue-600/30 text-blue-400 border border-blue-400/40 flex items-center justify-center text-xs font-bold">1</span>
@@ -267,16 +320,102 @@ export default function CreateListingPage() {
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">Dooro nooca alaabta ama adeegga aad xayeysiinayso:</p>
               </div>
-              {selectedCat && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
-                  {selectedCat.name}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedCat && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                    {selectedCat.name}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowAddCatModal(true)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                >
+                  <span>+</span>
+                  <span>Ku Dar Qayb (Add Category)</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {catSuccessMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs flex items-center gap-2">
+                <span>⏳</span>
+                <span>{catSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Modal for adding user category with WAIT / Pending Approval status */}
+            {showAddCatModal && (
+              <div className="mb-6 p-5 rounded-2xl bg-slate-900/90 border border-orange-500/40 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>✨</span>
+                    <span>Ku Dar Qayb Cusub (Status: WAIT / Sugitaan)</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCatModal(false)}
+                    className="text-slate-400 hover:text-white text-xs font-bold"
+                  >
+                    ✕ Xir
+                  </button>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Marka aad qayb cusub ku darto, waxay si toos ah u galaysaa xaalad sugitaan ah <strong>(Status: WAIT / Pending Approval)</strong> illaa maamulku ka hubiyo.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">Magaca Qaybta (Category Name) *</label>
+                    <input
+                      type="text"
+                      value={newCatName}
+                      onChange={(e) => setNewCatName(e.target.value)}
+                      placeholder="e.g. Dahab & Saacado, Kabaha & Boorsooyinka..."
+                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">Astaanta (Emoji Icon)</label>
+                    <input
+                      type="text"
+                      value={newCatIcon}
+                      onChange={(e) => setNewCatIcon(e.target.value)}
+                      placeholder="📦"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCatModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700"
+                  >
+                    Jooji (Cancel)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={addingCat || !newCatName.trim()}
+                    onClick={handleAddNewCategory}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                  >
+                    {addingCat ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Fadlan sug... (WAIT)...</span>
+                      </>
+                    ) : (
+                      <span>+ Ku Dar (Geli Sugitaan / WAIT)</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
               {categories.map((c) => {
                 const isSelected = selectedCat?.id === c.id || selectedCat?.slug === c.slug;
+                const isPendingWait = c.status === 'WAIT';
                 return (
                   <button
                     type="button"
@@ -295,8 +434,15 @@ export default function CreateListingPage() {
                       </span>
                     )}
 
+                    {/* Pending WAIT badge */}
+                    {isPendingWait && (
+                      <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md text-[9px] font-black bg-amber-500/30 text-amber-300 border border-amber-400/40">
+                        ⏳ WAIT
+                      </span>
+                    )}
+
                     <span className="text-3xl mb-2 transition-transform group-hover:scale-125 duration-200">
-                      {c.icon}
+                      {c.icon || '📦'}
                     </span>
                     <span className="text-xs font-bold leading-snug line-clamp-1">
                       {c.name}
@@ -501,8 +647,8 @@ export default function CreateListingPage() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Iib mise Kiro?</label>
                   <select value={transactionType} onChange={(e) => setTransactionType(e.target.value)} className="w-full px-3.5 py-3 rounded-xl bg-blue-950/60 border border-white/10 text-white text-sm outline-none">
-                    <option value="FOR_RENT">For Rent (Kiro)</option>
-                    <option value="FOR_SALE">For Sale (Iib)</option>
+                    <option value="RENT">For Rent (Kiro)</option>
+                    <option value="SALE">For Sale (Iib)</option>
                   </select>
                 </div>
                 <div>
