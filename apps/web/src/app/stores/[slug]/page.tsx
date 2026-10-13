@@ -7,6 +7,7 @@ import Footer from '../../../components/Footer';
 import ProductCard from '../../../components/ProductCard';
 import ProductDetailModal from '../../../components/ProductDetailModal';
 import { useStore, StoreProduct } from '../../../context/StoreContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -16,6 +17,7 @@ export default function StorefrontPage({ params }: Props) {
   const resolvedParams = use(params);
   const { slug } = resolvedParams;
   const { getStoreBySlug } = useStore();
+  const { t, isRTL, dir } = useLanguage();
 
   const store = getStoreBySlug(slug);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -109,7 +111,7 @@ export default function StorefrontPage({ params }: Props) {
                 className="px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 transition-transform hover:-translate-y-0.5 flex items-center gap-2"
               >
                 <span>💬</span>
-                <span>Kula Hadal Chat-ka (Private Chat)</span>
+                <span>{t('btn_chat_seller', 'Kula Hadal Chat-ka (Private Chat)')}</span>
               </Link>
 
               <Link
@@ -117,7 +119,7 @@ export default function StorefrontPage({ params }: Props) {
                 className="px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 transition-colors flex items-center gap-1.5"
               >
                 <span>⚙️</span>
-                <span>Maamul Store-ka</span>
+                <span>{t('nav_my_store', 'Maamul Store-ka')}</span>
               </Link>
             </div>
           </div>

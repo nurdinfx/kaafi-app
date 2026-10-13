@@ -6,25 +6,43 @@ import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import { useStore, MerchantStore, StoreProduct } from '../../../context/StoreContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { api } from '../../../lib/api';
 
 export default function StoreBuilderPage() {
   const router = useRouter();
-  const { stores, createStore, updateStore, addProductToStore, deleteStoreProduct, updateStoreProduct, addStoreCategory, deleteStoreCategory } = useStore();
+  const {
+    stores,
+    createStore,
+    updateStore,
+    addProductToStore,
+    deleteStoreProduct,
+    updateStoreProduct,
+    addStoreCategory,
+    deleteStoreCategory,
+  } = useStore();
+
+  const { t, isRTL, dir } = useLanguage();
 
   // Active store selected for editing (defaults to first or create new)
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>(stores[0]?.slug || 'new');
   const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'stock'>('brand');
 
-  const currentStore = stores.find((s) => s.slug === selectedStoreSlug);
+  const currentStore = stores.find((s) => s.slug === selectedStoreSlug) || stores[0];
 
   // Brand form state
   const [businessName, setBusinessName] = useState(currentStore?.businessName || '');
   const [slug, setSlug] = useState(currentStore?.slug || '');
   const [tagline, setTagline] = useState(currentStore?.tagline || '');
   const [bio, setBio] = useState(currentStore?.bio || '');
-  const [logoUrl, setLogoUrl] = useState(currentStore?.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop');
-  const [bannerUrl, setBannerUrl] = useState(currentStore?.bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop');
+  const [logoUrl, setLogoUrl] = useState(
+    currentStore?.logoUrl ||
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'
+  );
+  const [bannerUrl, setBannerUrl] = useState(
+    currentStore?.bannerUrl ||
+      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'
+  );
   const [themeColor, setThemeColor] = useState(currentStore?.themeColor || '#ea580c');
   const [city, setCity] = useState(currentStore?.city || 'Garoowe');
   const [district, setDistrict] = useState(currentStore?.district || '');
@@ -33,18 +51,23 @@ export default function StoreBuilderPage() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingCategoryWait, setAddingCategoryWait] = useState(false);
 
-  // Add product modal state
+  // Add product modal state (SHEIN style with multi-colors & sizes)
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [prodTitle, setProdTitle] = useState('');
-  const [prodCategory, setProdCategory] = useState(currentStore?.categories[0] || 'Guud');
+  const [prodCategory, setProdCategory] = useState(currentStore?.categories[0] || 'Women Clothing');
   const [prodPrice, setProdPrice] = useState('');
   const [prodComparePrice, setProdComparePrice] = useState('');
-  const [prodStock, setProdStock] = useState('25');
-  const [prodSku, setProdSku] = useState(`SKU-${Date.now().toString().slice(-6)}`);
-  const [prodImage, setProdImage] = useState('https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800');
+  const [prodStock, setProdStock] = useState('50');
+  const [prodSku, setProdSku] = useState(`SZ-${Date.now().toString().slice(-6)}`);
+  const [prodImage, setProdImage] = useState(
+    'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'
+  );
+  const [prodExtraImages, setProdExtraImages] = useState(
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900, https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900'
+  );
   const [prodDescription, setProdDescription] = useState('');
-  const [prodColors, setProdColors] = useState('Black, White, Blue');
-  const [prodSizes, setProdSizes] = useState('M, L, XL');
+  const [prodColors, setProdColors] = useState('White, Black, Almond Tan, Sage Olive');
+  const [prodSizes, setProdSizes] = useState('4 (XXS), 6 (XS), 8 (S), 10 (M), 12/14 (L), 16 (XL), 18 (XXL)');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -85,11 +108,11 @@ export default function StoreBuilderPage() {
   const handleSaveBrand = (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessName.trim()) {
-      alert('Fadlan geli magaca ganacsiga!');
+      alert(t('sb_label_store_name', 'Fadlan geli magaca ganacsiga!'));
       return;
     }
 
-    if (currentStore) {
+    if (currentStore && selectedStoreSlug !== 'new') {
       updateStore(currentStore.slug, {
         businessName: businessName.trim(),
         tagline: tagline.trim(),
@@ -100,7 +123,7 @@ export default function StoreBuilderPage() {
         city,
         district: district.trim(),
       });
-      showToast('✓ Xogta meheraddaada si guul leh ayaa loo keydiyay!');
+      showToast(t('sb_toast_saved', '✓ Xogta meheraddaada si guul leh ayaa loo keydiyay!'));
     } else {
       const generatedSlug = (slug || businessName.toLowerCase().replace(/\s+/g, '-')).replace(/[^a-z0-9-]/g, '');
       const newStore = createStore({
@@ -115,7 +138,7 @@ export default function StoreBuilderPage() {
         district: district.trim(),
       });
       setSelectedStoreSlug(newStore.slug);
-      showToast('🎉 Hambalyo! Meheraddaada cusub waa la sameeyay!');
+      showToast(t('sb_toast_created', '🎉 Hambalyo! Meheraddaada cusub waa la sameeyay!'));
     }
   };
 
@@ -135,31 +158,51 @@ export default function StoreBuilderPage() {
     addStoreCategory(currentStore.slug, catName);
     setNewCategoryName('');
     setAddingCategoryWait(false);
-    showToast(`⏳ Qaybta "${catName}" waa lagu daray (Waxay ku jirtaa sugitaan / WAIT)!`);
+    showToast(`⏳ ${catName} — ${t('sb_cat_waiting_badge', 'WAIT / Sugitaan')}`);
   };
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentStore || !prodTitle.trim() || !prodPrice) {
-      alert('Fadlan buuxi magaca alaabta iyo qiimaha!');
+      alert(t('sb_modal_prod_title', 'Fadlan buuxi magaca alaabta iyo qiimaha!'));
       return;
     }
 
     const priceNum = parseFloat(prodPrice);
     const compareNum = prodComparePrice ? parseFloat(prodComparePrice) : undefined;
-    const stockNum = parseInt(prodStock) || 10;
+    const stockNum = parseInt(prodStock) || 20;
+
+    const extraImagesList = prodExtraImages
+      .split(',')
+      .map((i) => i.trim())
+      .filter(Boolean);
+
+    const allImages = [prodImage, ...extraImagesList].filter(Boolean);
+    const colorsList = prodColors
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean);
+    const sizesList = prodSizes
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     addProductToStore(currentStore.slug, {
       title: prodTitle.trim(),
-      category: prodCategory || 'Guud',
+      category: prodCategory || 'Women Clothing',
       price: priceNum,
       compareAtPrice: compareNum,
       stockQuantity: stockNum,
-      sku: prodSku || `SKU-${Date.now().toString().slice(-6)}`,
-      images: [prodImage || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'],
-      description: prodDescription || 'Alaab tayo sare leh oo diyaar u ah gaarsiin degdeg ah.',
-      colors: prodColors.split(',').map((c) => c.trim()).filter(Boolean),
-      sizes: prodSizes.split(',').map((s) => s.trim()).filter(Boolean),
+      sku: prodSku || `SZ-${Date.now().toString().slice(-6)}`,
+      images: allImages.length > 0 ? allImages : ['https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'],
+      description: prodDescription || 'SHEIN style high-quality garment tailored for premium comfort and style.',
+      colors: colorsList.length > 0 ? colorsList : ['White', 'Black'],
+      colorVariants: colorsList.map((col, idx) => ({
+        name: col,
+        isHot: idx === 0,
+        image: allImages[idx] || allImages[0],
+      })),
+      sizes: sizesList.length > 0 ? sizesList : ['XS', 'S', 'M', 'L', 'XL'],
       condition: 'NEW',
       isPopular: true,
     });
@@ -169,50 +212,50 @@ export default function StoreBuilderPage() {
     setProdTitle('');
     setProdPrice('');
     setProdComparePrice('');
-    setProdStock('25');
-    setProdSku(`SKU-${Date.now().toString().slice(-6)}`);
-    showToast('✓ Alaabta cusub si guul leh ayaa loogu daray Stock-gaaga!');
+    setProdStock('50');
+    setProdSku(`SZ-${Date.now().toString().slice(-6)}`);
+    showToast(t('sb_toast_prod_added', '✓ Alaabta cusub si guul leh ayaa loogu daray Stock-gaaga!'));
   };
 
   const logoPresets = [
     'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
     'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=200&h=200&fit=crop',
     'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=200&h=200&fit=crop',
     'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&h=200&fit=crop',
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
   ];
 
   const bannerPresets = [
-    { title: 'Fashion & Style', url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop' },
-    { title: 'Tech & Gadgets', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=500&fit=crop' },
-    { title: 'Luxury & Watches', url: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1600&h=500&fit=crop' },
-    { title: 'General Store', url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop' },
+    { title: 'SHEIN Fashion & Trends', url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop' },
+    { title: 'Tech Hub & Gadgets', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=500&fit=crop' },
+    { title: 'Luxury Watches & Gold', url: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1600&h=500&fit=crop' },
+    { title: 'Modern Boutique Store', url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop' },
   ];
 
   const popularCities = ['Garoowe', 'Muqdisho', 'Hargeisa', 'Bosaso', 'Kismaayo', 'Baydhabo'];
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 antialiased">
+    <main dir={dir} className={`min-h-screen bg-slate-900 text-slate-100 antialiased ${isRTL ? 'font-arabic text-right' : 'text-left'}`}>
       <Navbar />
 
-      {/* Top Hero Banner */}
+      {/* ── TOP HERO BANNER (TRANSLATED) ── */}
       <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 py-8 sm:py-10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.15),rgba(255,255,255,0))]" />
-        
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20 backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                <span>Dukaami Online • Store Creator</span>
+                <span>{t('sb_badge_creator')}</span>
                 <span className="text-slate-500">|</span>
-                <span className="text-emerald-400 flex items-center gap-1">🔒 100% Private In-App Chat</span>
+                <span className="text-emerald-400 flex items-center gap-1">{t('sb_badge_private_chat')}</span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-white">
-                Dhis & Qurxi Meheraddaada Ganacsi
+                {t('sb_title')}
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-                Sameyso meherad casri ah oo u gaar ah astaantaada. Macaamiishu waxay toos kuugula xiriirayaan kaliya Chat-ka sugan ee app-ka si xogtaada lambarrada loogu dhowro si buuxda.
+                {t('sb_desc')}
               </p>
             </div>
 
@@ -225,7 +268,7 @@ export default function StoreBuilderPage() {
                   className="px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-xl shadow-orange-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2 border border-orange-400/30"
                 >
                   <span>👁️</span>
-                  <span>Eeg Storefront-ka Tooska ah</span>
+                  <span>{t('sb_btn_view_storefront')}</span>
                   <span className="text-orange-200">↗</span>
                 </Link>
               </div>
@@ -234,19 +277,19 @@ export default function StoreBuilderPage() {
         </div>
       </div>
 
-      {/* Store Switcher Bar */}
+      {/* ── STORE SWITCHER BAR (TRANSLATED) ── */}
       <div className="bg-slate-950/70 border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-30 py-3 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🏪</span> Meheraddaada:
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+              <span>🏪</span> {t('sb_label_your_stores')}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto">
               {stores.map((s) => (
                 <button
                   key={s.slug}
                   onClick={() => handleSelectStore(s.slug)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border whitespace-nowrap cursor-pointer ${
                     selectedStoreSlug === s.slug
                       ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-400 shadow-md shadow-orange-500/20 scale-[1.02]'
                       : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
@@ -259,23 +302,21 @@ export default function StoreBuilderPage() {
 
               <button
                 onClick={handleStartNewStore}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border border-dashed transition-all flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border border-dashed transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   selectedStoreSlug === 'new'
                     ? 'border-orange-500 text-orange-400 bg-orange-500/10'
                     : 'border-slate-700 text-slate-400 hover:border-orange-500/50 hover:text-orange-300 bg-slate-900/50'
                 }`}
               >
-                <span className="text-orange-400 font-black">+</span>
-                <span>Fur Meherad Cusub</span>
+                <span>{t('sb_btn_new_store')}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Workspace */}
+      {/* ── MAIN WORKSPACE ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
         {/* Toast Feedback */}
         {toastMessage && (
           <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-2xl shadow-emerald-500/20 flex items-center justify-between border border-emerald-400/30 animate-fade-in">
@@ -283,34 +324,36 @@ export default function StoreBuilderPage() {
               <span className="text-lg">✨</span>
               <span>{toastMessage}</span>
             </div>
-            <button onClick={() => setToastMessage(null)} className="text-white/80 hover:text-white p-1">✕</button>
+            <button onClick={() => setToastMessage(null)} className="text-white/80 hover:text-white p-1">
+              ✕
+            </button>
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-slate-800 mb-8 space-x-4 sm:space-x-8 text-sm font-bold">
+        {/* ── TAB NAVIGATION (TRANSLATED) ── */}
+        <div className="flex border-b border-slate-800 mb-8 space-x-4 sm:space-x-8 text-sm font-bold overflow-x-auto">
           <button
             onClick={() => setActiveTab('brand')}
-            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'brand'
                 ? 'border-orange-500 text-orange-400 text-sm font-black'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>🎨</span>
-            <span>Astaanta, Logo-ga & Cover-ka</span>
+            <span>{t('sb_tab_branding')}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('categories')}
-            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'categories'
                 ? 'border-orange-500 text-orange-400 text-sm font-black'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>📂</span>
-            <span>Qaybaha Store-ka (Categories)</span>
+            <span>{t('sb_tab_categories')}</span>
             {currentStore && (
               <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
                 {currentStore.categories.length}
@@ -320,14 +363,14 @@ export default function StoreBuilderPage() {
 
           <button
             onClick={() => setActiveTab('stock')}
-            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
               activeTab === 'stock'
                 ? 'border-orange-500 text-orange-400 text-sm font-black'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>📦</span>
-            <span>Maamulka Alaabta (Inventory)</span>
+            <span>{t('sb_tab_inventory')}</span>
             {currentStore && (
               <span className="text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full font-black border border-orange-500/30">
                 {currentStore.products.length}
@@ -336,13 +379,11 @@ export default function StoreBuilderPage() {
           </button>
         </div>
 
-        {/* TAB 1: Brand, Logo & Cover Banner */}
+        {/* ── TAB 1: BRAND, LOGO & COVER BANNER ── */}
         {activeTab === 'brand' && (
           <form onSubmit={handleSaveBrand} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
             {/* Left 7 Columns: Form Input Cards */}
             <div className="lg:col-span-7 space-y-6">
-              
               {/* Store Details Card */}
               <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 backdrop-blur-xl space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
@@ -350,23 +391,23 @@ export default function StoreBuilderPage() {
                     <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
                       🏢
                     </span>
-                    <span>Macluumaadka Guud ee Meheradda</span>
+                    <span>{t('sb_section_general_info')}</span>
                   </h3>
                   <span className="text-[11px] font-semibold text-slate-400">
-                    Waxaa loo soo bandhigayaa macaamiisha
+                    {t('sb_section_general_desc')}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      Magaca Store-ka (Business Name)*
+                      {t('sb_label_store_name')}
                     </label>
                     <input
                       type="text"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      placeholder="e.g. Hilaac Fashion Store"
+                      placeholder={t('sb_placeholder_store_name')}
                       required
                       className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
@@ -374,7 +415,7 @@ export default function StoreBuilderPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      URL Handle / Slug (Link-ga Tooska ah)*
+                      {t('sb_label_store_slug')}
                     </label>
                     <div className="flex items-center rounded-2xl border border-slate-700 bg-slate-900/90 overflow-hidden focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
                       <span className="text-xs text-orange-400/80 pl-3 font-mono font-medium">/stores/</span>
@@ -391,26 +432,26 @@ export default function StoreBuilderPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Halkudhegga Meheradda (Slogan / Tagline)
+                    {t('sb_label_tagline')}
                   </label>
                   <input
                     type="text"
                     value={tagline}
                     onChange={(e) => setTagline(e.target.value)}
-                    placeholder="e.g. Dharka Dumarka & Raga ee Ugu Tayada Sarreeya Dalka"
+                    placeholder={t('sb_placeholder_tagline')}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Faahfaahinta Meheradda (Bio / About)
+                    {t('sb_label_bio')}
                   </label>
                   <textarea
                     rows={3}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ka sheekee badeecooyinka aad iibiso, tayadaada, dammaanadda, iyo goobta aad ku taal..."
+                    placeholder={t('sb_placeholder_bio')}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                 </div>
@@ -419,7 +460,7 @@ export default function StoreBuilderPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      Magaalada (City)
+                      {t('sb_label_city')}
                     </label>
                     <select
                       value={city}
@@ -436,13 +477,13 @@ export default function StoreBuilderPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      Degmada ama Suuqa (District / Market)
+                      {t('sb_label_district')}
                     </label>
                     <input
                       type="text"
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="e.g. Suuqa Bakaaraha, Suuqa Sare"
+                      placeholder={t('sb_placeholder_district')}
                       className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                   </div>
@@ -452,10 +493,10 @@ export default function StoreBuilderPage() {
                 <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 border border-emerald-500/30 text-xs text-slate-200 space-y-1.5">
                   <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                     <span className="text-base">🛡️</span>
-                    <span>Xogtaada Waa Qarsoodi (No Phone Numbers Required)</span>
+                    <span>{t('sb_privacy_box_title')}</span>
                   </div>
                   <p className="text-slate-300 leading-relaxed text-[11px]">
-                    Lambaradaada taleefanka lama weydiinayo lamana muujinayo dukaanka dhexdiisa. Macaamiisha iyo adiga waxaad si toos ah oo aamin ah ugu wada hadli doontaan kaliya <strong>Chat-ka Gaarka ah ee App-ka (Private Chat)</strong> si looga fogaado khaladaadka iyo xiriirrada dibadda, lana sugo badbaadada heshiisyadaada.
+                    {t('sb_privacy_box_desc')}
                   </p>
                 </div>
               </div>
@@ -467,17 +508,17 @@ export default function StoreBuilderPage() {
                     <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
                       🖼️
                     </span>
-                    <span>Logo & Hero Cover Banner</span>
+                    <span>{t('sb_section_media')}</span>
                   </h3>
                   <span className="text-[11px] font-semibold text-slate-400">
-                    Muuqaalka Astaantaada
+                    {t('sb_section_media_sub')}
                   </span>
                 </div>
 
                 {/* Logo input & presets */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-300">
-                    Sawirka Logo-ga (URL ama Xulo Mid Diyaar ah)
+                    {t('sb_label_logo_url')}
                   </label>
                   <input
                     type="url"
@@ -487,14 +528,14 @@ export default function StoreBuilderPage() {
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                   <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <span className="text-xs text-slate-400 font-medium">Tusaalooyinka Logo-ga:</span>
+                    <span className="text-xs text-slate-400 font-medium">{t('sb_logo_presets')}</span>
                     <div className="flex items-center gap-2">
                       {logoPresets.map((lp, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => setLogoUrl(lp)}
-                          className={`w-9 h-9 rounded-2xl overflow-hidden border-2 transition-all hover:scale-110 ${
+                          className={`w-9 h-9 rounded-2xl overflow-hidden border-2 transition-all hover:scale-110 cursor-pointer ${
                             logoUrl === lp
                               ? 'border-orange-500 scale-110 ring-2 ring-orange-500/50 shadow-md shadow-orange-500/30'
                               : 'border-slate-700 opacity-70 hover:opacity-100'
@@ -510,7 +551,7 @@ export default function StoreBuilderPage() {
                 {/* Banner input & presets */}
                 <div className="space-y-3">
                   <label className="block text-xs font-bold text-slate-300">
-                    Sawirka Cover Banner (Dusha Sare ee Storefront-ka)
+                    {t('sb_label_banner_url')}
                   </label>
                   <input
                     type="url"
@@ -519,16 +560,16 @@ export default function StoreBuilderPage() {
                     placeholder="https://images.unsplash.com/..."
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
-                  
+
                   <div className="pt-1">
-                    <div className="text-xs text-slate-400 font-medium mb-2">Xulo Banner Qosol Leh:</div>
+                    <div className="text-xs text-slate-400 font-medium mb-2">{t('sb_banner_presets')}</div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       {bannerPresets.map((bp, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => setBannerUrl(bp.url)}
-                          className={`relative h-14 rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] text-left group ${
+                          className={`relative h-14 rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] text-left group cursor-pointer ${
                             bannerUrl === bp.url
                               ? 'border-orange-500 ring-2 ring-orange-500/40 shadow-lg'
                               : 'border-slate-800 opacity-75 hover:opacity-100'
@@ -553,21 +594,20 @@ export default function StoreBuilderPage() {
                 className="w-full py-4 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-2xl shadow-orange-500/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 border border-orange-400/30 cursor-pointer"
               >
                 <span className="text-lg">💾</span>
-                <span>Keydi & Daabac Meheraddaada (Save Storefront)</span>
+                <span>{t('sb_btn_save_store')}</span>
               </button>
             </div>
 
-            {/* Right 5 Columns: Sticky Live Card Preview */}
+            {/* ── RIGHT 5 COLUMNS: STICKY LIVE CARD PREVIEW (SCREENSHOT 1) ── */}
             <div className="lg:col-span-5 space-y-6">
               <div className="sticky top-24 space-y-4">
-                
                 {/* Preview Header Badge */}
                 <div className="flex items-center justify-between px-1">
                   <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-orange-400">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Muuqaalka Tooska ah (Live Preview)</span>
+                    <span>{t('sb_preview_title')}</span>
                   </div>
-                  <span className="text-[11px] text-slate-500">Macaamiishu sidaan ayay u arkaan</span>
+                  <span className="text-[11px] text-slate-500">{t('sb_preview_sub')}</span>
                 </div>
 
                 {/* THE HIGH-END STORE PREVIEW CARD */}
@@ -575,15 +615,18 @@ export default function StoreBuilderPage() {
                   {/* Banner Image */}
                   <div className="relative h-36 bg-slate-900 overflow-hidden">
                     <img
-                      src={bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'}
+                      src={
+                        bannerUrl ||
+                        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'
+                      }
                       alt=""
                       className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 opacity-85"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                    
+
                     <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 border border-emerald-400/40">
                       <span>✓</span>
-                      <span>Verified Store</span>
+                      <span>{t('sb_preview_verified')}</span>
                     </div>
                   </div>
 
@@ -592,12 +635,19 @@ export default function StoreBuilderPage() {
                     <div className="flex items-end gap-3.5 -mt-8 mb-3">
                       <div className="relative">
                         <img
-                          src={logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'}
+                          src={
+                            logoUrl ||
+                            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'
+                          }
                           alt=""
                           className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500 bg-slate-900 shadow-xl ring-2 ring-black/40"
                         />
-                        <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950" title="Online" />
+                        <span
+                          className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950"
+                          title="Online"
+                        />
                       </div>
+
                       <div className="min-w-0 flex-1">
                         <h4 className="font-black text-white text-base font-display truncate">
                           {businessName || 'Magaca Meheradda'}
@@ -616,23 +666,25 @@ export default function StoreBuilderPage() {
                     <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
                       <div className="flex items-center gap-1 text-amber-400 font-bold">
                         <span>⭐</span>
-                        <span>5.0 (Qiimeyn Sarreysa)</span>
+                        <span>{t('sb_preview_high_rating')}</span>
                       </div>
                       <span className="text-[11px] bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                        {currentStore?.products.length || 0} Alaab
+                        {currentStore?.products.length || 0} {t('sb_preview_items')}
                       </span>
                     </div>
 
-                    {/* Chat Action Button (NO PHONE NUMBERS!) */}
+                    {/* Chat Action Button */}
                     <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs font-bold text-emerald-400">Wadahadal Sugan</span>
+                        <span className="text-xs font-bold text-emerald-400">
+                          {t('sb_preview_secure_chat')}
+                        </span>
                       </div>
 
                       <div className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-md shadow-emerald-600/20 flex items-center gap-1.5 border border-emerald-500/30">
                         <span>💬</span>
-                        <span>Chat Gaar ah</span>
+                        <span>{t('sb_preview_chat_btn')}</span>
                       </div>
                     </div>
                   </div>
@@ -642,19 +694,18 @@ export default function StoreBuilderPage() {
                 <div className="p-4 bg-slate-950/70 rounded-3xl border border-slate-800 text-xs text-slate-300 space-y-2 backdrop-blur-md">
                   <div className="flex items-center gap-2 font-bold text-amber-400">
                     <span>💡</span>
-                    <span>Maxaa looga saaray lambarada dadweynaha?</span>
+                    <span>{t('sb_preview_why_no_phone_title')}</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-slate-400">
-                    Si loo ilaaliyo xogta gaarka ah ee iibiyaha iyo macmiilka, nidaamku ma ogolaado in lambarada la wadaago bannaanka. Dhammaan iibsiyada iyo su&apos;aalaha waxaa lagu maareeyaa <strong>Chat-ka tooska ah</strong> ee nidaamka Fududeeye, kaasoo si buuxda u hubiya damaanadda alaabta iyo lacagta.
+                    {t('sb_preview_why_no_phone_desc')}
                   </p>
                 </div>
-
               </div>
             </div>
           </form>
         )}
 
-        {/* TAB 2: Categories Management (Collections) */}
+        {/* ── TAB 2: CATEGORIES MANAGEMENT (COLLECTIONS) ── */}
         {activeTab === 'categories' && currentStore && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
@@ -663,12 +714,12 @@ export default function StoreBuilderPage() {
                   <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
                     📂
                   </span>
-                  <span>Qaybaha Alaabta ee {currentStore.businessName}</span>
+                  <span>
+                    {t('sb_cat_title')} {currentStore.businessName}
+                  </span>
                 </h3>
               </div>
-              <p className="text-xs text-slate-400 mb-6">
-                U samee meheraddaada qaybo kala soocan sida Collections (tusaale: Dharka Dumarka, Kabaha, Saacadaha). Qaybaha cusub waxay si toos ah u gelayaan xaaladda sugitaanka (WAIT) ilaa maamulku ansixiyo.
-              </p>
+              <p className="text-xs text-slate-400 mb-6">{t('sb_cat_desc')}</p>
 
               {/* Add category form */}
               <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -676,21 +727,21 @@ export default function StoreBuilderPage() {
                   type="text"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Magaca qaybta cusub (e.g. Diracyada Xariirta ah)"
+                  placeholder={t('sb_cat_input_placeholder')}
                   className="flex-1 px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                 />
                 <button
                   type="submit"
                   disabled={addingCategoryWait || !newCategoryName.trim()}
-                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 disabled:opacity-50 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 disabled:opacity-50 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {addingCategoryWait ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Fadlan sug (WAIT)...</span>
+                      <span>WAIT...</span>
                     </>
                   ) : (
-                    <span>+ Ku Dar Qayb (WAIT / Sugitaan)</span>
+                    <span>{t('sb_cat_btn_add')}</span>
                   )}
                 </button>
               </form>
@@ -712,19 +763,21 @@ export default function StoreBuilderPage() {
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-white text-sm">{cat}</h4>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                              ⏳ WAIT / Sugitaan
+                              {t('sb_cat_waiting_badge')}
                             </span>
                           </div>
-                          <span className="text-xs text-slate-400">{count} alaab ah ayaa ku jira</span>
+                          <span className="text-xs text-slate-400">
+                            {count} {t('sb_cat_items_count')}
+                          </span>
                         </div>
                       </div>
 
                       <button
                         onClick={() => deleteStoreCategory(currentStore.slug, cat)}
-                        className="text-xs text-slate-500 hover:text-rose-400 p-2 font-bold transition-colors"
-                        title="Tir qaybta"
+                        className="text-xs text-slate-500 hover:text-rose-400 p-2 font-bold transition-colors cursor-pointer"
+                        title="Delete category"
                       >
-                        🗑️ Ka saar
+                        {t('sb_cat_delete')}
                       </button>
                     </div>
                   );
@@ -734,7 +787,7 @@ export default function StoreBuilderPage() {
           </div>
         )}
 
-        {/* TAB 3: Stock / Inventory Management */}
+        {/* ── TAB 3: STOCK / INVENTORY MANAGEMENT (SHEIN STYLE) ── */}
         {activeTab === 'stock' && currentStore && (
           <div className="space-y-6">
             <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
@@ -744,19 +797,21 @@ export default function StoreBuilderPage() {
                     <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
                       📦
                     </span>
-                    <span>Maamulka Alaabta & Stock-ga ({currentStore.businessName})</span>
+                    <span>
+                      {t('sb_inv_title')} ({currentStore.businessName})
+                    </span>
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Waxaad haysataa <strong>{currentStore.products.length}</strong> badeecadood. Waxaad wax ka beddeli kartaa tirada yaalla bakhaarka, qiimaha, ama ku dari kartaa alaab cusub.
+                    {t('sb_inv_count_msg')}
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowAddProductModal(true)}
-                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
                 >
                   <span>+</span>
-                  <span>Ku Dar Alaab Cusub (Add Product)</span>
+                  <span>{t('sb_inv_btn_add_product')}</span>
                 </button>
               </div>
 
@@ -765,12 +820,12 @@ export default function StoreBuilderPage() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-bold">
                     <tr>
-                      <th className="p-3.5 rounded-l-xl">Alaabta</th>
-                      <th className="p-3.5">Qaybta</th>
-                      <th className="p-3.5">Qiimaha</th>
-                      <th className="p-3.5">Stock Quantity</th>
-                      <th className="p-3.5">Xaaladda Stock-ga</th>
-                      <th className="p-3.5 rounded-r-xl text-right">Hawlaha</th>
+                      <th className="p-3.5 rounded-l-xl">{t('sb_inv_th_product')}</th>
+                      <th className="p-3.5">{t('sb_inv_th_category')}</th>
+                      <th className="p-3.5">{t('sb_inv_th_price')}</th>
+                      <th className="p-3.5">{t('sb_inv_th_stock_qty')}</th>
+                      <th className="p-3.5">{t('sb_inv_th_status')}</th>
+                      <th className="p-3.5 rounded-r-xl text-right">{t('sb_inv_th_actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-850">
@@ -781,7 +836,7 @@ export default function StoreBuilderPage() {
                             <img
                               src={prod.images[0]}
                               alt=""
-                              className="w-12 h-12 rounded-xl object-contain border border-slate-700 bg-slate-900"
+                              className="w-12 h-14 rounded-lg object-cover border border-slate-700 bg-slate-900"
                             />
                             <div>
                               <div className="font-bold text-white text-sm line-clamp-1 max-w-xs">
@@ -790,6 +845,11 @@ export default function StoreBuilderPage() {
                               <div className="text-[11px] text-slate-500 font-mono">
                                 SKU: {prod.sku}
                               </div>
+                              {prod.colors && (
+                                <div className="text-[10px] text-orange-400">
+                                  {prod.colors.slice(0, 3).join(', ')}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -818,7 +878,7 @@ export default function StoreBuilderPage() {
                                   stockQuantity: Math.max(0, prod.stockQuantity - 1),
                                 })
                               }
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors"
+                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors cursor-pointer"
                             >
                               -
                             </button>
@@ -831,7 +891,7 @@ export default function StoreBuilderPage() {
                                   stockQuantity: prod.stockQuantity + 1,
                                 })
                               }
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors"
+                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors cursor-pointer"
                             >
                               +
                             </button>
@@ -843,17 +903,17 @@ export default function StoreBuilderPage() {
                           {prod.stockQuantity > 10 ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              Waa Buuxaa (In Stock)
+                              {t('sb_inv_status_in_stock')}
                             </span>
                           ) : prod.stockQuantity > 0 ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                              Wuu Gabaabsi yahay ({prod.stockQuantity})
+                              {t('sb_inv_status_low')} ({prod.stockQuantity})
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                              Wuu Dhamaaday (Out of Stock)
+                              {t('sb_inv_status_out')}
                             </span>
                           )}
                         </td>
@@ -861,8 +921,8 @@ export default function StoreBuilderPage() {
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => deleteStoreProduct(currentStore.slug, prod.id)}
-                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
-                            title="Tir alaabta"
+                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer font-bold"
+                            title="Delete product"
                           >
                             🗑️
                           </button>
@@ -875,10 +935,9 @@ export default function StoreBuilderPage() {
             </div>
           </div>
         )}
-
       </div>
 
-      {/* Modal: Add New Product */}
+      {/* ── MODAL: ADD NEW PRODUCT (SHEIN MULTI-COLORS & SIZES) ── */}
       {showAddProductModal && currentStore && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
           <div
@@ -888,15 +947,15 @@ export default function StoreBuilderPage() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
               <div>
                 <h3 className="font-bold text-xl text-white font-display">
-                  Ku Dar Alaab Cusub Stock-gaaga
+                  {t('sb_modal_title')}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Meheradda: <strong className="text-orange-400">{currentStore.businessName}</strong>
+                  {t('sb_modal_store_label')} <strong className="text-orange-400">{currentStore.businessName}</strong>
                 </p>
               </div>
               <button
                 onClick={() => setShowAddProductModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center font-bold transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center font-bold transition-colors cursor-pointer"
               >
                 ✕
               </button>
@@ -905,14 +964,14 @@ export default function StoreBuilderPage() {
             <form onSubmit={handleAddProduct} className="space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-300 mb-1.5">
-                  Magaca Alaabta (Product Title)*
+                  {t('sb_modal_prod_title')}
                 </label>
                 <input
                   type="text"
                   required
                   value={prodTitle}
                   onChange={(e) => setProdTitle(e.target.value)}
-                  placeholder="e.g. 2MP Full HD Security Camera CCTV Bullet..."
+                  placeholder="e.g. Aloruh Women's Elegant Pleated Waist Shirt..."
                   className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                 />
               </div>
@@ -920,7 +979,7 @@ export default function StoreBuilderPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-slate-300 mb-1.5">
-                    Qaybta (Category)*
+                    {t('sb_modal_prod_category')}
                   </label>
                   <select
                     value={prodCategory}
@@ -937,7 +996,7 @@ export default function StoreBuilderPage() {
 
                 <div>
                   <label className="block font-bold text-slate-300 mb-1.5">
-                    SKU / Koodhka Alaabta
+                    {t('sb_modal_prod_sku')}
                   </label>
                   <input
                     type="text"
@@ -951,7 +1010,7 @@ export default function StoreBuilderPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block font-bold text-slate-300 mb-1.5">
-                    Qiimaha Iibka ($)*
+                    {t('sb_modal_price')}
                   </label>
                   <input
                     type="number"
@@ -959,28 +1018,28 @@ export default function StoreBuilderPage() {
                     required
                     value={prodPrice}
                     onChange={(e) => setProdPrice(e.target.value)}
-                    placeholder="15.00"
+                    placeholder="9.99"
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white font-bold focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-300 mb-1.5">
-                    Qiimihii Hore ($ Compare-at)
+                    {t('sb_modal_compare_price')}
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     value={prodComparePrice}
                     onChange={(e) => setProdComparePrice(e.target.value)}
-                    placeholder="25.00"
+                    placeholder="12.99"
                     className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block font-bold text-slate-300 mb-1.5">
-                    Cadadka Stock-ga (Tirada yaalla)
+                    {t('sb_modal_stock')}
                   </label>
                   <input
                     type="number"
@@ -991,49 +1050,71 @@ export default function StoreBuilderPage() {
                 </div>
               </div>
 
+              {/* Main Image */}
               <div>
                 <label className="block font-bold text-slate-300 mb-1.5">
-                  Sawirka Alaabta (Image URL)
+                  {t('sb_modal_main_image')}
                 </label>
                 <input
                   type="url"
                   value={prodImage}
                   onChange={(e) => setProdImage(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
                   className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1.5">
-                    Midabbada (Kala saar hakad &quot;,&quot;)
-                  </label>
-                  <input
-                    type="text"
-                    value={prodColors}
-                    onChange={(e) => setProdColors(e.target.value)}
-                    placeholder="Black, White, Gold"
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
-                  />
-                </div>
+              {/* Extra Images */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  {t('sb_modal_extra_images')}
+                </label>
+                <input
+                  type="text"
+                  value={prodExtraImages}
+                  onChange={(e) => setProdExtraImages(e.target.value)}
+                  placeholder="https://image1.jpg, https://image2.jpg"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
+                />
+              </div>
 
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1.5">
-                    Cabbirrada (Kala saar hakad &quot;,&quot;)
-                  </label>
-                  <input
-                    type="text"
-                    value={prodSizes}
-                    onChange={(e) => setProdSizes(e.target.value)}
-                    placeholder="M, L, XL"
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
-                  />
-                </div>
+              {/* SHEIN Multi-Colors */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  {t('sb_modal_colors')}
+                </label>
+                <input
+                  type="text"
+                  value={prodColors}
+                  onChange={(e) => setProdColors(e.target.value)}
+                  placeholder={t('sb_modal_colors_hint')}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  {t('sb_modal_colors_hint')}
+                </span>
+              </div>
+
+              {/* SHEIN Sizes */}
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">
+                  {t('sb_modal_sizes')}
+                </label>
+                <input
+                  type="text"
+                  value={prodSizes}
+                  onChange={(e) => setProdSizes(e.target.value)}
+                  placeholder={t('sb_modal_sizes_hint')}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  {t('sb_modal_sizes_hint')}
+                </span>
               </div>
 
               <div>
                 <label className="block font-bold text-slate-300 mb-1.5">
-                  Sharaxaadda Alaabta (Description)
+                  {t('sb_modal_description')}
                 </label>
                 <textarea
                   rows={3}
@@ -1046,17 +1127,17 @@ export default function StoreBuilderPage() {
 
               <div className="pt-4 flex gap-3">
                 <button
-                  type="submit"
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5"
-                >
-                  Ku Dar Alaabta Stock-ga
-                </button>
-                <button
                   type="button"
                   onClick={() => setShowAddProductModal(false)}
-                  className="px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-400 bg-slate-900 hover:bg-slate-800 transition-colors"
+                  className="px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer"
                 >
-                  Ka Laabo
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 cursor-pointer"
+                >
+                  {t('sb_modal_submit')}
                 </button>
               </div>
             </form>

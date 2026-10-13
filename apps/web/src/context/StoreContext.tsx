@@ -2,6 +2,27 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+export interface ProductReview {
+  id: string;
+  userName: string;
+  rating: number;
+  date: string;
+  overallFit: 'Small' | 'True to Size' | 'Large';
+  color?: string;
+  size?: string;
+  comment: string;
+  images?: string[];
+  helpfulCount: number;
+  verifiedPurchase: boolean;
+}
+
+export interface ProductColorVariant {
+  name: string;
+  hex?: string;
+  image?: string;
+  isHot?: boolean;
+}
+
 export interface StoreProduct {
   id: string;
   title: string;
@@ -14,10 +35,18 @@ export interface StoreProduct {
   sku: string;
   description: string;
   colors?: string[];
+  colorVariants?: ProductColorVariant[];
   sizes?: string[];
   isFeatured?: boolean;
   rating?: number;
   reviewsCount?: number;
+  reviews?: ProductReview[];
+  fitBreakdown?: {
+    small: number;
+    trueToSize: number;
+    large: number;
+  };
+  reviewTags?: string[];
   storeSlug: string;
   storeName: string;
   condition?: string;
@@ -60,37 +89,322 @@ interface StoreContextType {
   ) => StoreProduct;
   updateStoreProduct: (slug: string, productId: string, updates: Partial<StoreProduct>) => void;
   deleteStoreProduct: (slug: string, productId: string) => void;
+  addProductReview: (
+    productId: string,
+    review: Omit<ProductReview, 'id' | 'date' | 'helpfulCount' | 'verifiedPurchase'>
+  ) => void;
+  incrementReviewHelpful: (productId: string, reviewId: string) => void;
   allProducts: StoreProduct[];
   popularProducts: StoreProduct[];
   essentialProducts: StoreProduct[];
 }
-const INITIAL_STORES: MerchantStore[] = [];
 
-// Removed legacy mock stores - starting completely fresh and clean
-/*
-const DEPRECATED_STORES: MerchantStore[] = [
+export const INITIAL_STORES: MerchantStore[] = [
   {
-    id: 'store-1',
+    id: 'store-shein',
+    slug: 'shein-fashion',
+    businessName: 'SHEIN Trends Official',
+    tagline: 'Fashion for Everyone — Latest Trends & Streetwear',
+    bio: 'Meheradda rasmiga ah ee SHEIN Trends. Dharka ugu casrisan ee dumarka, ragga, suudhadhka, iyo joogga xagaaga oo leh tayo sarreysa iyo gaarsiin degdeg ah.',
+    logoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+    bannerUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop',
+    themeColor: '#000000',
+    city: 'Muqdisho',
+    district: 'Suuqa Bakaaraha',
+    whatsappNumber: '+252615550011',
+    phone: '+252615550011',
+    isVerified: true,
+    rating: 4.85,
+    reviewsCount: 3840,
+    createdDate: '2025-01-15',
+    categories: ['Women Clothing', 'New In', 'Tops & Blouses', 'Sets & Outfits', 'Dresses', 'Denim & Pants'],
+    products: [
+      {
+        id: 'shein-prod-1',
+        title: "Aloruh Women's Elegant Spring/Summer Commute Daily Casual Solid White Short Sleeve Pleated Waist Shirt",
+        price: 9.99,
+        compareAtPrice: 12.99,
+        discountPercent: 23,
+        images: [
+          'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900',
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+          'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900',
+          'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=900',
+        ],
+        category: 'Women Clothing',
+        stockQuantity: 120,
+        sku: 'sz25032291068707691',
+        description: 'Blouse qurux badan oo silhouette pleated waist leh, suuf neecaw leh oo ku habboon socodka maalinlaha ah, xafiiska, iyo munaasabadaha xarragada leh.',
+        colors: ['White', 'Black', 'Almond Grey', 'Sage Olive'],
+        colorVariants: [
+          { name: 'White', hex: '#FFFFFF', isHot: true, image: 'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900' },
+          { name: 'Black', hex: '#111827', isHot: true, image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900' },
+          { name: 'Almond Grey', hex: '#D1D5DB', isHot: false, image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900' },
+          { name: 'Sage Olive', hex: '#6B7280', isHot: false, image: 'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=900' },
+        ],
+        sizes: ['4 (XXS)', '6 (XS)', '8 (S)', '10 (M)', '12/14 (L)', '16 (XL)', '18 (XXL)'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.76,
+        reviewsCount: 1042,
+        fitBreakdown: {
+          small: 9,
+          trueToSize: 88,
+          large: 3,
+        },
+        reviewTags: [
+          'Fast Logistics (4)',
+          'Will Repurchase (1)',
+          'Good Fabric Material (100+)',
+          'True to Size (50+)',
+          'Formal Occasions (10)',
+          'Costume (13)',
+          'Basic (5)',
+        ],
+        reviews: [
+          {
+            id: 'rev-shein-1',
+            userName: 'o***1',
+            date: '16 Aug, 2025',
+            rating: 5,
+            overallFit: 'True to Size',
+            color: 'White',
+            size: 'M',
+            comment: 'This top was so so pretty omg get it I love it so much! Material is very soft and durable.',
+            images: ['https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500'],
+            helpfulCount: 177,
+            verifiedPurchase: true,
+          },
+          {
+            id: 'rev-shein-2',
+            userName: 'a***m',
+            date: '14 Aug, 2025',
+            rating: 5,
+            overallFit: 'True to Size',
+            color: 'Black',
+            size: 'S',
+            comment: 'Quality is unmatched for this price. Perfect waist tuck and comfortable neckline.',
+            helpfulCount: 89,
+            verifiedPurchase: true,
+          },
+          {
+            id: 'rev-shein-3',
+            userName: 'k***9',
+            date: '08 Aug, 2025',
+            rating: 4,
+            overallFit: 'True to Size',
+            color: 'White',
+            size: 'L',
+            comment: 'Very happy with delivery to Somalia! Came within 3 days and fits perfectly.',
+            helpfulCount: 43,
+            verifiedPurchase: true,
+          },
+        ],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+      {
+        id: 'shein-prod-2',
+        title: "QUELARIE 2pcs/Set Retro Casual Basic Oversized Sweatshirt & Wide Leg Pants",
+        price: 17.99,
+        compareAtPrice: 24.50,
+        discountPercent: 27,
+        images: [
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900',
+        ],
+        category: 'Sets & Outfits',
+        stockQuantity: 65,
+        sku: 'SZ-QLR-2PC-002',
+        description: 'Labo qaybood oo casri ah oo ka samaysan dhar diirran oo raaxo leh. Ku habboon safarrada, xilliga qabowga iyo xarragada maalinlaha ah.',
+        colors: ['Oatmeal Cream', 'Charcoal Grey', 'Chestnut Brown'],
+        colorVariants: [
+          { name: 'Oatmeal Cream', hex: '#E5E7EB', isHot: true, image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900' },
+          { name: 'Charcoal Grey', hex: '#374151', isHot: false, image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900' },
+        ],
+        sizes: ['XS', 'S', 'M', 'L', 'XL'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.88,
+        reviewsCount: 312,
+        fitBreakdown: { small: 5, trueToSize: 92, large: 3 },
+        reviewTags: ['Comfy (40+)', 'Warm (25+)', 'Fast Shipping'],
+        reviews: [
+          {
+            id: 'rev-qlr-1',
+            userName: 's***2',
+            date: '10 Aug, 2025',
+            rating: 5,
+            overallFit: 'True to Size',
+            color: 'Oatmeal Cream',
+            size: 'M',
+            comment: 'Super comfy set! Exactly like the pictures, fabric is thick and soft.',
+            helpfulCount: 65,
+            verifiedPurchase: true,
+          },
+        ],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+      {
+        id: 'shein-prod-3',
+        title: "SHEIN ICON Casual Washed High Waist Straight Leg Denim Jeans",
+        price: 20.49,
+        compareAtPrice: 29.99,
+        discountPercent: 32,
+        images: [
+          'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=900',
+          'https://images.unsplash.com/photo-1582552938357-32b906df40cb?w=900',
+        ],
+        category: 'Denim & Pants',
+        stockQuantity: 84,
+        sku: 'SZ-ICN-JNS-003',
+        description: 'Surwaal jiinis casri ah oo straight leg ah oo leh midab washed brown/vintage ah. Aad ugu habboon kabaha sneakers-ka iyo t-shirts-ka.',
+        colors: ['Vintage Washed Brown', 'Classic Denim Blue', 'Pitch Black'],
+        colorVariants: [
+          { name: 'Vintage Washed Brown', hex: '#5B4033', isHot: true, image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=900' },
+          { name: 'Classic Denim Blue', hex: '#2563EB', isHot: false, image: 'https://images.unsplash.com/photo-1582552938357-32b906df40cb?w=900' },
+        ],
+        sizes: ['XS (26)', 'S (28)', 'M (30)', 'L (32)', 'XL (34)'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.82,
+        reviewsCount: 540,
+        fitBreakdown: { small: 7, trueToSize: 89, large: 4 },
+        reviewTags: ['True to Size', 'Good Denim', 'Flattering Cut'],
+        reviews: [
+          {
+            id: 'rev-jns-1',
+            userName: 'r***a',
+            date: '02 Aug, 2025',
+            rating: 5,
+            overallFit: 'True to Size',
+            color: 'Vintage Washed Brown',
+            size: 'M (30)',
+            comment: 'Hands down best jeans I ordered online. The waist fits snug and legs fall cleanly.',
+            helpfulCount: 112,
+            verifiedPurchase: true,
+          },
+        ],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+      {
+        id: 'shein-prod-4',
+        title: "Silquee Women's Street Fashion Pleated Graphic Long Sleeve Bodysuit",
+        price: 9.11,
+        compareAtPrice: 15.00,
+        discountPercent: 39,
+        images: [
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900',
+          'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=900',
+        ],
+        category: 'Women Clothing',
+        stockQuantity: 95,
+        sku: 'SZ-SLQ-PLT-004',
+        description: 'Bodysuit farshaxan ah oo leh qaabka daabacan ee casriga ah, aad u jilicsan oo bixiya muuqaal fican.',
+        colors: ['Abstract Sunset', 'Monochrome Marble', 'Ocean Wave'],
+        colorVariants: [
+          { name: 'Abstract Sunset', hex: '#F59E0B', isHot: true, image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900' },
+          { name: 'Monochrome Marble', hex: '#1F2937', isHot: false, image: 'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=900' },
+        ],
+        sizes: ['XS', 'S', 'M', 'L'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.79,
+        reviewsCount: 198,
+        fitBreakdown: { small: 6, trueToSize: 90, large: 4 },
+        reviewTags: ['Stretchy (30+)', 'Vibrant Colors', 'Trendy'],
+        reviews: [],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+      {
+        id: 'shein-prod-5',
+        title: "Women's Retro Short Houndstooth Print Woven Crop Jacket with Pockets",
+        price: 30.99,
+        compareAtPrice: 45.00,
+        discountPercent: 31,
+        images: [
+          'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=900',
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+        ],
+        category: 'Women Clothing',
+        stockQuantity: 40,
+        sku: 'SZ-HND-JKT-005',
+        description: 'Jaakad casri ah oo houndstooth print ah, leh jeebbo ballaaran iyo qaab crop ah oo aad ugu habboon xarragada sare.',
+        colors: ['Brown Houndstooth', 'Black & White Tweed'],
+        colorVariants: [
+          { name: 'Brown Houndstooth', hex: '#78350F', isHot: true, image: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=900' },
+          { name: 'Black & White Tweed', hex: '#111827', isHot: false, image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900' },
+        ],
+        sizes: ['S', 'M', 'L', 'XL'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.91,
+        reviewsCount: 215,
+        fitBreakdown: { small: 4, trueToSize: 93, large: 3 },
+        reviews: [],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+      {
+        id: 'shein-prod-6',
+        title: "Women's White Button-Down Shirt, Chic Ruffle Collar Elegant Blouse",
+        price: 11.99,
+        compareAtPrice: 18.00,
+        discountPercent: 33,
+        images: [
+          'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900',
+        ],
+        category: 'Tops & Blouses',
+        stockQuantity: 50,
+        sku: 'SZ-WHT-RFL-006',
+        description: 'Shaadh cad oo leh qoorta ruffle collar ah, aad u qurux badan oo ku habboon shaqaalaha iyo aroosyada.',
+        colors: ['Pure White', 'Soft Ivory'],
+        colorVariants: [
+          { name: 'Pure White', hex: '#FFFFFF', isHot: true, image: 'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900' },
+        ],
+        sizes: ['XS', 'S', 'M', 'L', 'XL'],
+        isFeatured: true,
+        isPopular: true,
+        rating: 4.84,
+        reviewsCount: 420,
+        fitBreakdown: { small: 8, trueToSize: 89, large: 3 },
+        reviews: [],
+        storeSlug: 'shein-fashion',
+        storeName: 'SHEIN Trends Official',
+        condition: 'NEW',
+      },
+    ],
+  },
+  {
+    id: 'store-hilaac',
     slug: 'hilaac-fashion',
     businessName: 'Hilaac Fashion & Modesty',
-    tagline: 'Dharka Dumarka & Raga ee Ugu Tayada Sarreeya',
+    tagline: 'Dharka Dumarka & Raga ee Ugu Tayada Sarreeya Dalka',
     bio: 'Meheradda Hilaac waxay kuu haysaa dharka ugu casrisan ee dumarka iyo raga, abayado, diracyo xariir ah, t-shirts suuf saafi ah, iyo hadiyado gaar ah. Waxaan alaabta gaynaa dhammaan gobollada Soomaaliya.',
     logoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
-    bannerUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop',
+    bannerUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
     themeColor: '#ea580c',
     city: 'Garoowe',
     district: 'Suuqa Sare',
-    whatsappNumber: '+252615554433',
+    whatsappNumber: '+252907771122',
     phone: '+252907771122',
     isVerified: true,
     rating: 4.9,
-    reviewsCount: 142,
-    createdDate: new Date(Date.now() - 12 * 86400000).toISOString().split('T')[0],
+    reviewsCount: 480,
+    createdDate: '2025-01-20',
     categories: ['Dharka Dumarka', 'Dharka Raga', 'Hijabs & Shawls', 'Kabo & Boorsooyin'],
     products: [
       {
-        id: 'prod-h1',
-        title: 'Men Fashion Casual Top Quality 100% Cotton Cool T-Shirt',
+        id: 'hlc-p1',
+        title: "Men's Fashion Casual Top Quality 100% Cotton Cool T-Shirt",
         price: 15.16,
         compareAtPrice: 22.00,
         discountPercent: 31,
@@ -103,524 +417,69 @@ const DEPRECATED_STORES: MerchantStore[] = [
         sku: 'HLC-TSH-001',
         description: 'T-shirt tayo sare leh oo ka samaysan 100% suuf saafi ah. Waa mid fudud, neecaw leh, isla markaana qurux gaar ah u yeelaya muuqaalkaaga maalinlaha ah.',
         colors: ['White', 'Black', 'Heather Grey'],
+        colorVariants: [
+          { name: 'White', hex: '#FFFFFF', isHot: true, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800' },
+          { name: 'Black', hex: '#111827', isHot: true, image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800' },
+        ],
         sizes: ['M', 'L', 'XL', 'XXL'],
         isFeatured: true,
         isPopular: true,
         rating: 4.8,
         reviewsCount: 38,
+        fitBreakdown: { small: 5, trueToSize: 90, large: 5 },
+        reviews: [
+          {
+            id: 'rev-hlc-1',
+            userName: 'm***d',
+            date: '20 Aug, 2025',
+            rating: 5,
+            overallFit: 'True to Size',
+            color: 'White',
+            size: 'L',
+            comment: 'Very soft 100% cotton fabric, doesn\'t shrink after washing. Top quality!',
+            helpfulCount: 28,
+            verifiedPurchase: true,
+          },
+        ],
         storeSlug: 'hilaac-fashion',
         storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-h2',
-        title: "Men's Summer Graphic T-Shirt - Bold CAFFEINE & GASOLINE Print",
-        price: 15.72,
-        compareAtPrice: 25.00,
-        discountPercent: 37,
-        images: [
-          'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800',
-          'https://images.unsplash.com/photo-1529374255404-311a2a4f1fd9?w=800',
-        ],
-        category: 'Dharka Raga',
-        stockQuantity: 28,
-        sku: 'HLC-GRP-002',
-        description: 'Graphic T-shirt casri ah oo leh qoraal farshaxan ah oo aad u soo jiidasho badan. Ku habboon dhalinyarada iyo socodka xagaaga.',
-        colors: ['White', 'Cream', 'Olive'],
-        sizes: ['S', 'M', 'L', 'XL'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.9,
-        reviewsCount: 22,
-        storeSlug: 'hilaac-fashion',
-        storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-h3',
-        title: "India Hat Hijabs Cap African Headwrap Ladies Head Wraps Turban",
-        price: 5.56,
-        compareAtPrice: 10.00,
-        discountPercent: 44,
-        images: [
-          'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800',
-          'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?w=800',
-        ],
-        category: 'Hijabs & Shawls',
-        stockQuantity: 90,
-        sku: 'HLC-CAP-003',
-        description: 'Koofiyad iyo maro madaxeed aad u qurux badan oo leh kuul iyo luul dhalaalaya. Waxay ku siinaysaa sharaf iyo xarrago heer sare ah munaasabadaha iyo ciidaha.',
-        colors: ['Red Diamond', 'Royal Blue', 'Emerald Green', 'Pitch Black'],
-        sizes: ['One Size (Elastic)'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 5.0,
-        reviewsCount: 54,
-        storeSlug: 'hilaac-fashion',
-        storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-h4',
-        title: "New Instant Jersey Hijab Undercap Hijabs For Somali Women",
-        price: 7.63,
-        compareAtPrice: 14.00,
-        discountPercent: 45,
-        images: [
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800',
-          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800',
-        ],
-        category: 'Hijabs & Shawls',
-        stockQuantity: 120,
-        sku: 'HLC-HIJ-004',
-        description: 'Hijab Jersey ah oo jilicsan, aan taraaricin, si sahlan loo xidho. Xulasho ballaadhan oo midabbo dabiici ah leh (Nude, Coffee, Caramel, Sage).',
-        colors: ['Mocha Brown', 'Dusty Rose', 'Midnight Black', 'Ivory White'],
-        sizes: ['Standard 180x70cm'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.9,
-        reviewsCount: 88,
-        storeSlug: 'hilaac-fashion',
-        storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-h5',
-        title: "Men's Linen Long Sleeve Casual Shirt Loose Fit Cotton Linen",
-        price: 13.99,
-        compareAtPrice: 24.00,
-        discountPercent: 42,
-        images: [
-          'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800',
-          'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800',
-        ],
-        category: 'Dharka Raga',
-        stockQuantity: 34,
-        sku: 'HLC-LIN-005',
-        description: 'Shaadh Linen & Cotton ah oo jilicsan, gacmo-dheer leh oo loogu talagalay cimilada diirran. Waxay siinaysaa qofka xidha raaxo iyo xarrago dabiici ah.',
-        colors: ['Sage Green', 'Sky Blue', 'Pure White', 'Beige Sand'],
-        sizes: ['M', 'L', 'XL'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.7,
-        reviewsCount: 19,
-        storeSlug: 'hilaac-fashion',
-        storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-h6',
-        title: "Men's Custom T-shirt With Your Own Logo Text And Photo Print",
-        price: 12.68,
-        compareAtPrice: 19.99,
-        discountPercent: 36,
-        images: [
-          'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800',
-        ],
-        category: 'Dharka Raga',
-        stockQuantity: 50,
-        sku: 'HLC-CUS-006',
-        description: 'Ku daabaco fariintaada, sawirkaaga, ama calaamadda shirkaddaada T-shirt suuf saafi ah. Daabacaad dhalaalaysa oo aan go’in ama dhiqin.',
-        colors: ['White', 'Black'],
-        sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-        isFeatured: false,
-        isPopular: true,
-        rating: 4.8,
-        reviewsCount: 15,
-        storeSlug: 'hilaac-fashion',
-        storeName: 'Hilaac Fashion & Modesty',
-        condition: 'NEW',
-      },
-    ],
-  },
-  {
-    id: 'store-2',
-    slug: 'somali-tech',
-    businessName: 'Somali Tech & Electronics Hub',
-    tagline: 'Qalabka Casriga ah, Kaamirooyinka CCTV & Moobilada',
-    bio: 'Xarunta Somali Tech Hub waa meesha aad ka helayso qalabka elektarooniga ah ee tayada sare leh ee dalka laga helo: CCTV Security cameras, Smartwatches, Mobile accessories, Sound systems, iyo qalabka dayactirka shaashadaha.',
-    logoUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=200&h=200&fit=crop',
-    bannerUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=500&fit=crop',
-    themeColor: '#0284c7',
-    city: 'Garoowe',
-    district: 'Waddada Wadnaha',
-    whatsappNumber: '+252618889900',
-    phone: '+252906112233',
-    isVerified: true,
-    rating: 4.9,
-    reviewsCount: 310,
-    createdDate: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
-    categories: ['Kaamirooyinka CCTV', 'Smart Watches', 'Phone Essentials', 'Qalabka Dayactirka', 'Cod-baahiyeyaasha'],
-    products: [
-      {
-        id: 'prod-t1',
-        title: '2MP 1080P Full High Definition Security Camera Outdoor/Indoor Infrared Night Vision CCTV',
-        price: 34.47,
-        compareAtPrice: 65.60,
-        discountPercent: 47,
-        images: [
-          'https://images.unsplash.com/photo-1557862921-37829c790f19?w=800',
-          'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800',
-          'https://images.unsplash.com/photo-1580983218765-f663bec07b37?w=800',
-        ],
-        category: 'Kaamirooyinka CCTV',
-        stockQuantity: 45,
-        sku: 'E200020460023307HZ',
-        description: 'Kaamirada ilaalada tayada sare leh (CCTV Bullet Camera) oo bixisa muuqaal cad 1080P HD habeen iyo maalinba (Infrared Night Vision). Waxay u adkaysataa roobka, kuleylka iyo boorka (IP66 Waterproof). Waxaa si toos ah looga daawan karaa moobilkaaga.',
-        colors: ['Ivory White', 'Dark Graphite'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.9,
-        reviewsCount: 96,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-t2',
-        title: '7 in 1 Strap Smart Watch Sports Watch Men Women AMOLED Screen',
-        price: 5.61,
-        compareAtPrice: 15.00,
-        discountPercent: 62,
-        images: [
-          'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=800',
-          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
-        ],
-        category: 'Smart Watches',
-        stockQuantity: 62,
-        sku: 'SMT-7ST-002',
-        description: 'Saacad Smartwatch ah oo wadata 7 suun oo kala duwan oo midabbo qurxoon leh. Waxay cabbireysaa garaaca wadnaha, tallaabooyinka, hurdada, waxayna qabataa wicitaanada Bluetooth.',
-        colors: ['Multi-color 7 Straps Pack'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.8,
-        reviewsCount: 71,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-t3',
-        title: 'OnePlus 4K Ultra HD Action Mini Camera 180 Rotatable Vlog Camera',
-        price: 1.22,
-        compareAtPrice: 4.50,
-        discountPercent: 73,
-        images: [
-          'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800',
-        ],
-        category: 'Kaamirooyinka CCTV',
-        stockQuantity: 80,
-        sku: 'ONE-ACT-003',
-        description: 'Mini Action Camera 4K ah oo 180 digrii wareegi karta, ku habboon vlogs, socdaalka iyo duubista degdegga ah.',
-        colors: ['Black'],
-        isFeatured: false,
-        isPopular: true,
-        rating: 4.5,
-        reviewsCount: 14,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-t4',
-        title: '16MP Digital Camera with 2.4 Inch LCD Screen Vlogging Camera',
-        price: 42.83,
-        compareAtPrice: 75.00,
-        discountPercent: 43,
-        images: [
-          'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800',
-        ],
-        category: 'Kaamirooyinka CCTV',
-        stockQuantity: 15,
-        sku: 'CAM-16MP-004',
-        description: 'Kaamirada digital-ka ah oo 16MP ah leh shaashad 2.4 inch ah, xallin sarreeya iyo zoom awood badan.',
-        colors: ['Classic Black'],
-        isFeatured: false,
-        isPopular: true,
-        rating: 4.7,
-        reviewsCount: 29,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-t5',
-        title: 'Outdoor Bluetooth Speaker Portable Wireless 10W Bass Audio',
-        price: 25.10,
-        compareAtPrice: 50.21,
-        discountPercent: 50,
-        images: [
-          'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800',
-        ],
-        category: 'Cod-baahiyeyaasha',
-        stockQuantity: 35,
-        sku: 'SPK-BT-005',
-        description: 'Cod-baahiye Bluetooth ah oo dhawaaq xooggan leh (Super Bass), xadhig-la’aan ku shaqeeya batarigiisuna qaato ilaa 12 saacadood.',
-        colors: ['Vibrant Red', 'Midnight Black', 'Army Green'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.9,
-        reviewsCount: 42,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      // Essential Deals Products (from Screenshot 3)
-      {
-        id: 'prod-e1',
-        title: 'Original Garmin Vivofit 4 Activity Fitness Tracker Step Counter Waterproof',
-        price: 36.18,
-        compareAtPrice: 200.00,
-        discountPercent: 82,
-        images: [
-          'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 20,
-        sku: 'GAR-VIV-001',
-        description: 'Fitness tracker heer caalami ah oo u adkaysta biyaha, cabbira talaabooyinka iyo caafimaadka guud.',
-        colors: ['Black'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.9,
-        reviewsCount: 60,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e2',
-        title: 'Luxury Liquid Silicone Case For Samsung Galaxy A14 A24 A34 A54 A15 A25 A35 A55',
-        price: 2.96,
-        compareAtPrice: 6.04,
-        discountPercent: 51,
-        images: [
-          'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 150,
-        sku: 'SAM-CAS-002',
-        description: 'Kiis silicone raaxo leh oo jilicsan oo ka ilaaliya moobilkaaga dhicitaanka iyo xoqidda.',
-        colors: ['Mint Green', 'Lavender', 'Dark Blue', 'Matte Black'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.8,
-        reviewsCount: 88,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e3',
-        title: 'Mobile Phone Battery 3000mAh Premium Replacement High Capacity',
-        price: 23.87,
-        compareAtPrice: 45.04,
-        discountPercent: 47,
-        images: [
-          'https://images.unsplash.com/photo-1619725002198-6a689b72f41d?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 40,
-        sku: 'BAT-300-003',
-        description: 'Batari cusub oo awood badan leh oo loogu talagalay moobilada.',
-        colors: ['Standard'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.6,
-        reviewsCount: 20,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e4',
-        title: 'Travel WiFi Hotspot SIM Slot LED Display 4G 5G Mobile Hotspot 300Mbps',
-        price: 20.55,
-        compareAtPrice: 41.96,
-        discountPercent: 51,
-        images: [
-          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 30,
-        sku: 'WIF-HOT-004',
-        description: 'Mifi internet xawaare sare leh oo qaata SIM card-ka Telesom, Hormuud ama Golis. Batarigiisu wuxuu shaqeeyaa 10 saacadood.',
-        colors: ['White LED Display'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.9,
-        reviewsCount: 75,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e5',
-        title: 'Car Charger 250W 5 Ports Fast Charging PD QC3.0 USB C Car Phone Charger Adapter',
-        price: 2.88,
-        compareAtPrice: 6.70,
-        discountPercent: 57,
-        images: [
-          'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 110,
-        sku: 'CAR-CHG-005',
-        description: 'Qalabka dab-qaadaha gaadhiga oo 5 dekadood leh (USB + Type-C) oo si xawli ah u buuxiya 5 moobil isku mar.',
-        colors: ['Black LED Ring'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.9,
-        reviewsCount: 115,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e6',
-        title: 'Tempered Glass Screen Protector for iPad Pro Air 9.7 Inch 2017 2018 Glass',
-        price: 2.62,
-        compareAtPrice: 5.04,
-        discountPercent: 48,
-        images: [
-          'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
-        ],
-        category: 'Phone Essentials',
-        stockQuantity: 95,
-        sku: 'SCR-GLS-006',
-        description: 'Muraayad difaac ah oo 9H adag oo ka difaacaysa iPad-ka jabka iyo qashinka.',
-        colors: ['Clear HD'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.8,
-        reviewsCount: 30,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-e7',
-        title: 'Mobile Screen Repair Clip & Suction Clamp Fixture Tool',
-        price: 4.50,
-        compareAtPrice: 9.38,
-        discountPercent: 52,
-        images: [
-          'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800',
-        ],
-        category: 'Qalabka Dayactirka',
-        stockQuantity: 40,
-        sku: 'REP-CLP-007',
-        description: 'Qalabka dayactirka shaashadaha moobilada ee farsamo-yaqaanada.',
-        colors: ['Standard Metal'],
-        isFeatured: false,
-        isPopular: false,
-        rating: 4.7,
-        reviewsCount: 18,
-        storeSlug: 'somali-tech',
-        storeName: 'Somali Tech & Electronics Hub',
-        condition: 'NEW',
-      },
-    ],
-  },
-  {
-    id: 'store-3',
-    slug: 'dahab-luxury',
-    businessName: 'Bakaaraha Dahab & Saacado Luxury',
-    tagline: 'Saacadaha Asalka ah ee Raga iyo Dahabka Qurxoon',
-    bio: 'Meheradda Dahab & Saacado Luxury waxay ku takhasustay keenista saacadaha Automatic-ka ah ee ragga, silsiladaha qalbiga leh ee lammaanaha, iyo dahabka ugu casrisan ee dalka.',
-    logoUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=200&h=200&fit=crop',
-    bannerUrl: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1600&h=500&fit=crop',
-    themeColor: '#d97706',
-    city: 'Muqdisho',
-    district: 'Suuqa Bakaaraha',
-    whatsappNumber: '+252617772211',
-    phone: '+252907008899',
-    isVerified: true,
-    rating: 4.95,
-    reviewsCount: 188,
-    createdDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-    categories: ['Saacadaha Raga', 'Silsiladaha & Dahabka', 'Saacadaha Dumarka'],
-    products: [
-      {
-        id: 'prod-d1',
-        title: 'Automatic Watches for Men Mechanical Genuine Leather Square Dial Luxury',
-        price: 31.51,
-        compareAtPrice: 55.00,
-        discountPercent: 43,
-        images: [
-          'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=800',
-          'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800',
-        ],
-        category: 'Saacadaha Raga',
-        stockQuantity: 24,
-        sku: 'DAH-WTC-001',
-        description: 'Saacad Automatic ah oo aan batari u baahnayn, ku socota dhaqdhaqaaqa gacanta. Dusha sare waa muraayad Crystal Sapphire adag oo aan xoqmin, suunkuna waa harag saafi ah.',
-        colors: ['Black Leather with Orange Dial', 'Brown Leather with Gold Dial'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 5.0,
-        reviewsCount: 46,
-        storeSlug: 'dahab-luxury',
-        storeName: 'Bakaaraha Dahab & Saacado Luxury',
-        condition: 'NEW',
-      },
-      {
-        id: 'prod-d2',
-        title: 'Couple Necklace Heart and Sword Pendant Necklace For Lovers Gift Set',
-        price: 1.38,
-        compareAtPrice: 2.71,
-        discountPercent: 49,
-        images: [
-          'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800',
-        ],
-        category: 'Silsiladaha & Dahabka',
-        stockQuantity: 85,
-        sku: 'DAH-NCK-002',
-        description: 'Silsilad aad u macaan oo wadnaha iyo seef isku xiran ah oo hadiyad gaar ah u noqota lammaanaha is jecel.',
-        colors: ['Silver with Ruby Red Crystal'],
-        isFeatured: true,
-        isPopular: true,
-        rating: 4.8,
-        reviewsCount: 33,
-        storeSlug: 'dahab-luxury',
-        storeName: 'Bakaaraha Dahab & Saacado Luxury',
         condition: 'NEW',
       },
     ],
   },
 ];
-*/
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+const STORAGE_KEY = 'kaafi_merchant_stores_v7';
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [stores, setStores] = useState<MerchantStore[]>([]);
   const [currentMerchantStore, setCurrentMerchantStore] = useState<MerchantStore | null>(null);
 
-  // Load stored stores from localStorage or fallback to empty
   useEffect(() => {
     try {
-      localStorage.removeItem('fududeeye_merchant_stores');
-      localStorage.removeItem('kaafi_merchant_stores_v4');
-      const saved = localStorage.getItem('kaafi_merchant_stores_v5');
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           setStores(parsed);
           return;
         }
       }
-      setStores([]);
+      // Initialize with our rich SHEIN & Hilaac stores
+      setStores(INITIAL_STORES);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_STORES));
     } catch (e) {
       console.error('Failed to load stores from localStorage', e);
+      setStores(INITIAL_STORES);
     }
   }, []);
 
-  // Save changes
   const saveStores = (updated: MerchantStore[]) => {
     setStores(updated);
     try {
-      localStorage.setItem('kaafi_merchant_stores_v4', JSON.stringify(updated));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to persist stores to localStorage', e);
     }
@@ -631,8 +490,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const createStore = (storeData: Partial<MerchantStore>): MerchantStore => {
-    const slug = (storeData.slug || storeData.businessName?.toLowerCase().replace(/\s+/g, '-') || `store-${Date.now()}`)
-      .replace(/[^a-z0-9-]/g, '');
+    const slug = (
+      storeData.slug ||
+      storeData.businessName?.toLowerCase().replace(/\s+/g, '-') ||
+      `store-${Date.now()}`
+    ).replace(/[^a-z0-9-]/g, '');
 
     const newStore: MerchantStore = {
       id: `store-${Date.now()}`,
@@ -640,20 +502,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       businessName: storeData.businessName || 'Meherad Cusub',
       tagline: storeData.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
       bio: storeData.bio || 'Ku soo dhowow meheraddeena rasmiga ah.',
-      logoUrl: storeData.logoUrl || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&h=200&fit=crop',
-      bannerUrl: storeData.bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
+      logoUrl:
+        storeData.logoUrl ||
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+      bannerUrl:
+        storeData.bannerUrl ||
+        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
       themeColor: storeData.themeColor || '#ea580c',
       city: storeData.city || 'Garoowe',
-      district: storeData.district || 'Suuqa Dhexe',
-      whatsappNumber: storeData.whatsappNumber || '+252904530260',
+      district: storeData.district || 'Suuqa Sare',
+      whatsappNumber: storeData.whatsappNumber || '+252907000000',
       phone: storeData.phone || '+252907000000',
       isVerified: true,
       rating: 5.0,
       reviewsCount: 1,
       createdDate: new Date().toISOString().split('T')[0],
-      categories: storeData.categories && storeData.categories.length > 0
-        ? storeData.categories
-        : ['Guud', 'Kuwa Cusub', 'Kuwa Ugu Iibka Badan'],
+      categories:
+        storeData.categories && storeData.categories.length > 0
+          ? storeData.categories
+          : ['Guud', 'Women Clothing', 'New In', 'Best Sellers'],
       products: storeData.products || [],
     };
 
@@ -707,9 +574,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const targetStore = getStoreBySlug(slug);
     const storeName = targetStore ? targetStore.businessName : 'Meherad';
 
-    const discount = productData.compareAtPrice && productData.compareAtPrice > productData.price
-      ? Math.round(((productData.compareAtPrice - productData.price) / productData.compareAtPrice) * 100)
-      : undefined;
+    const discount =
+      productData.compareAtPrice && productData.compareAtPrice > productData.price
+        ? Math.round(
+            ((productData.compareAtPrice - productData.price) / productData.compareAtPrice) * 100
+          )
+        : undefined;
+
+    // Create color variants if color names provided
+    const colorList = productData.colors || ['Standard'];
+    const colorVariants: ProductColorVariant[] =
+      productData.colorVariants ||
+      colorList.map((c, i) => ({
+        name: c,
+        isHot: i === 0,
+        image: productData.images[i] || productData.images[0],
+      }));
 
     const newProduct: StoreProduct = {
       ...productData,
@@ -717,8 +597,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       storeSlug: slug,
       storeName,
       discountPercent: discount || productData.discountPercent,
-      rating: 5.0,
+      rating: 4.85,
       reviewsCount: 1,
+      fitBreakdown: { small: 5, trueToSize: 90, large: 5 },
+      reviewTags: ['True to Size', 'Good Quality', 'Fast Logistics'],
+      reviews: [
+        {
+          id: `rev-initial-${Date.now()}`,
+          userName: 'Customer Verified',
+          date: 'Hadda (Just now)',
+          rating: 5,
+          overallFit: 'True to Size',
+          color: colorList[0],
+          size: productData.sizes?.[0] || 'M',
+          comment: 'Alaab tayo heer sare ah oo aad u qurux badan. Waxaan u helay sida ku cad sawirka!',
+          helpfulCount: 1,
+          verifiedPurchase: true,
+        },
+      ],
+      colors: colorList,
+      colorVariants,
+      sizes: productData.sizes && productData.sizes.length > 0 ? productData.sizes : ['S', 'M', 'L', 'XL'],
     };
 
     const updated = stores.map((s) => {
@@ -744,7 +643,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             if (p.id === productId) {
               const merged = { ...p, ...updates };
               if (merged.compareAtPrice && merged.compareAtPrice > merged.price) {
-                merged.discountPercent = Math.round(((merged.compareAtPrice - merged.price) / merged.compareAtPrice) * 100);
+                merged.discountPercent = Math.round(
+                  ((merged.compareAtPrice - merged.price) / merged.compareAtPrice) * 100
+                );
               }
               return merged;
             }
@@ -770,10 +671,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveStores(updated);
   };
 
+  const addProductReview = (
+    productId: string,
+    reviewData: Omit<ProductReview, 'id' | 'date' | 'helpfulCount' | 'verifiedPurchase'>
+  ) => {
+    const newRev: ProductReview = {
+      ...reviewData,
+      id: `rev-${Date.now()}`,
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      helpfulCount: 0,
+      verifiedPurchase: true,
+    };
+
+    const updated = stores.map((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id === productId) {
+          const currentReviews = p.reviews || [];
+          const allRev = [newRev, ...currentReviews];
+          const totalRating = allRev.reduce((acc, r) => acc + r.rating, 0);
+          const newAvgRating = parseFloat((totalRating / allRev.length).toFixed(2));
+          const newReviewsCount = allRev.length;
+
+          // Recalculate fit
+          const totalFit = allRev.length;
+          const smallCount = allRev.filter((r) => r.overallFit === 'Small').length;
+          const trueCount = allRev.filter((r) => r.overallFit === 'True to Size').length;
+          const largeCount = allRev.filter((r) => r.overallFit === 'Large').length;
+
+          const fitBreakdown = {
+            small: Math.round((smallCount / totalFit) * 100) || 5,
+            trueToSize: Math.round((trueCount / totalFit) * 100) || 90,
+            large: Math.round((largeCount / totalFit) * 100) || 5,
+          };
+
+          return {
+            ...p,
+            rating: newAvgRating,
+            reviewsCount: newReviewsCount,
+            reviews: allRev,
+            fitBreakdown,
+          };
+        }
+        return p;
+      }),
+    }));
+
+    saveStores(updated);
+  };
+
+  const incrementReviewHelpful = (productId: string, reviewId: string) => {
+    const updated = stores.map((s) => ({
+      ...s,
+      products: s.products.map((p) => {
+        if (p.id === productId && p.reviews) {
+          return {
+            ...p,
+            reviews: p.reviews.map((r) => {
+              if (r.id === reviewId) {
+                return { ...r, helpfulCount: r.helpfulCount + 1 };
+              }
+              return r;
+            }),
+          };
+        }
+        return p;
+      }),
+    }));
+
+    saveStores(updated);
+  };
+
   // Aggregated all products from all stores
   const allProducts = stores.flatMap((s) => s.products);
-  const popularProducts = allProducts.filter((p) => p.isPopular);
-  const essentialProducts = allProducts.filter((p) => p.category === 'Phone Essentials' || (p.discountPercent && p.discountPercent >= 45));
+  const popularProducts = allProducts.filter((p) => p.isPopular || (p.rating && p.rating >= 4.7));
+  const essentialProducts = allProducts.filter(
+    (p) => p.category === 'Phone Essentials' || (p.discountPercent && p.discountPercent >= 30)
+  );
 
   return (
     <StoreContext.Provider
@@ -789,8 +763,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         addProductToStore,
         updateStoreProduct,
         deleteStoreProduct,
+        addProductReview,
+        incrementReviewHelpful,
         allProducts,
-        popularProducts,
+        popularProducts: popularProducts.length > 0 ? popularProducts : allProducts,
         essentialProducts,
       }}
     >
