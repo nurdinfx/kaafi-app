@@ -53,11 +53,6 @@ export default function StorefrontPage({ params }: Props) {
     return matchCat && matchSearch;
   });
 
-  const handleWhatsAppChat = () => {
-    const text = `Asc ${store.businessName}! Waxaan wax ka daawanayaa store-kaaga Fududeeye Online, waxaana doonayaa inaan wax ka weydiiyo alaabtaada.`;
-    const cleanNumber = store.whatsappNumber.replace(/\D/g, '') || '252904530260';
-    window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`, '_blank');
-  };
 
   return (
     <main className="min-h-screen bg-slate-100/70 text-slate-800">
@@ -109,13 +104,13 @@ export default function StorefrontPage({ params }: Props) {
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2.5">
-              <button
-                onClick={handleWhatsAppChat}
-                className="px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/30 transition-transform hover:-translate-y-0.5 flex items-center gap-2"
+              <Link
+                href="/chat"
+                className="px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 transition-transform hover:-translate-y-0.5 flex items-center gap-2"
               >
                 <span>💬</span>
-                <span>Kula Hadal WhatsApp</span>
-              </button>
+                <span>Kula Hadal Chat-ka (Private Chat)</span>
+              </Link>
 
               <Link
                 href="/seller/store-builder"

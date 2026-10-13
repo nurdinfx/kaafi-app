@@ -43,11 +43,6 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
     setTimeout(() => setAddedToast(false), 2500);
   };
 
-  const handleWhatsAppDirect = () => {
-    const text = `Asc ${product.storeName}! Waxaan rabaa inaan si toos ah u iibsado alaabtan:\n*${product.title}*\nQiimaha: $${product.price}\nSKU: ${product.sku}\nCadadka: ${quantity} xabbo\nMidabka: ${selectedColor}\nFadlan iiga soo jawaaba!`;
-    const waUrl = `https://wa.me/252904530260?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, '_blank');
-  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-in">
@@ -293,13 +288,14 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleWhatsAppDirect}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-transform hover:scale-105"
+                  <Link
+                    href="/chat"
+                    onClick={onClose}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-sm transition-transform hover:scale-105"
                   >
                     <span>💬</span>
-                    WhatsApp
-                  </button>
+                    Chat Gaar ah
+                  </Link>
                 </div>
 
                 {addedToast && (

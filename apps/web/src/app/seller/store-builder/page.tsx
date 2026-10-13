@@ -14,7 +14,7 @@ export default function StoreBuilderPage() {
 
   // Active store selected for editing (defaults to first or create new)
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>(stores[0]?.slug || 'new');
-  const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'stock' | 'preview'>('brand');
+  const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'stock'>('brand');
 
   const currentStore = stores.find((s) => s.slug === selectedStoreSlug);
 
@@ -23,13 +23,11 @@ export default function StoreBuilderPage() {
   const [slug, setSlug] = useState(currentStore?.slug || '');
   const [tagline, setTagline] = useState(currentStore?.tagline || '');
   const [bio, setBio] = useState(currentStore?.bio || '');
-  const [logoUrl, setLogoUrl] = useState(currentStore?.logoUrl || '');
-  const [bannerUrl, setBannerUrl] = useState(currentStore?.bannerUrl || '');
+  const [logoUrl, setLogoUrl] = useState(currentStore?.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop');
+  const [bannerUrl, setBannerUrl] = useState(currentStore?.bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop');
   const [themeColor, setThemeColor] = useState(currentStore?.themeColor || '#ea580c');
   const [city, setCity] = useState(currentStore?.city || 'Garoowe');
   const [district, setDistrict] = useState(currentStore?.district || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(currentStore?.whatsappNumber || '+252904530260');
-  const [phone, setPhone] = useState(currentStore?.phone || '+252907000000');
 
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -52,7 +50,7 @@ export default function StoreBuilderPage() {
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleSelectStore = (storeSlug: string) => {
@@ -68,10 +66,20 @@ export default function StoreBuilderPage() {
       setThemeColor(s.themeColor);
       setCity(s.city);
       setDistrict(s.district || '');
-      setWhatsappNumber(s.whatsappNumber);
-      setPhone(s.phone);
       setProdCategory(s.categories[0] || 'Guud');
     }
+  };
+
+  const handleStartNewStore = () => {
+    setSelectedStoreSlug('new');
+    setBusinessName('');
+    setSlug('');
+    setTagline('');
+    setBio('');
+    setLogoUrl('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop');
+    setBannerUrl('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop');
+    setCity('Garoowe');
+    setDistrict('');
   };
 
   const handleSaveBrand = (e: React.FormEvent) => {
@@ -83,31 +91,28 @@ export default function StoreBuilderPage() {
 
     if (currentStore) {
       updateStore(currentStore.slug, {
-        businessName,
-        tagline,
-        bio,
+        businessName: businessName.trim(),
+        tagline: tagline.trim(),
+        bio: bio.trim(),
         logoUrl: logoUrl || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&h=200&fit=crop',
         bannerUrl: bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
         themeColor,
         city,
-        district,
-        whatsappNumber,
-        phone,
+        district: district.trim(),
       });
       showToast('✓ Xogta meheraddaada si guul leh ayaa loo keydiyay!');
     } else {
+      const generatedSlug = (slug || businessName.toLowerCase().replace(/\s+/g, '-')).replace(/[^a-z0-9-]/g, '');
       const newStore = createStore({
-        businessName,
-        slug: slug || businessName.toLowerCase().replace(/\s+/g, '-'),
-        tagline,
-        bio,
+        businessName: businessName.trim(),
+        slug: generatedSlug,
+        tagline: tagline.trim(),
+        bio: bio.trim(),
         logoUrl,
         bannerUrl,
         themeColor,
         city,
-        district,
-        whatsappNumber,
-        phone,
+        district: district.trim(),
       });
       setSelectedStoreSlug(newStore.slug);
       showToast('🎉 Hambalyo! Meheraddaada cusub waa la sameeyay!');
@@ -178,44 +183,50 @@ export default function StoreBuilderPage() {
   ];
 
   const bannerPresets = [
-    'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1600&h=500&fit=crop',
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
+    { title: 'Fashion & Style', url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1600&h=500&fit=crop' },
+    { title: 'Tech & Gadgets', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&h=500&fit=crop' },
+    { title: 'Luxury & Watches', url: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=1600&h=500&fit=crop' },
+    { title: 'General Store', url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop' },
   ];
 
+  const popularCities = ['Garoowe', 'Muqdisho', 'Hargeisa', 'Bosaso', 'Kismaayo', 'Baydhabo'];
+
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-800">
+    <main className="min-h-screen bg-slate-900 text-slate-100 antialiased">
       <Navbar />
 
-      {/* Top Banner */}
-      <div className="bg-slate-900 text-white border-b border-slate-800 py-6 sm:py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold mb-2 border border-orange-500/30">
-                <span>🚀</span>
-                <span>Fududeeye Shopify-Like Store Builder</span>
+      {/* Top Hero Banner */}
+      <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 py-8 sm:py-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(249,115,22,0.15),rgba(255,255,255,0))]" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20 backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                <span>Dukaami Online • Store Creator</span>
+                <span className="text-slate-500">|</span>
+                <span className="text-emerald-400 flex items-center gap-1">🔒 100% Private In-App Chat</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
-                Dhis & Maamul Store-kaaga Ganacsi
+              <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-white">
+                Dhis & Qurxi Meheraddaada Ganacsi
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Kala dooro meheradahaaga, u samee Logo iyo Brand u gaar ah, ku dar Categories, oo maamul Stock-gaaga.
+              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                Sameyso meherad casri ah oo u gaar ah astaantaada. Macaamiishu waxay toos kuugula xiriirayaan kaliya Chat-ka sugan ee app-ka si xogtaada lambarrada loogu dhowro si buuxda.
               </p>
             </div>
 
             {/* Storefront Link Button */}
             {currentStore && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Link
                   href={`/stores/${currentStore.slug}`}
                   target="_blank"
-                  className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-md transition-transform hover:-translate-y-0.5 flex items-center gap-1.5"
+                  className="px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-xl shadow-orange-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2 border border-orange-400/30"
                 >
                   <span>👁️</span>
-                  <span>Eeg Store-ka (Live Storefront)</span>
-                  <span>↗</span>
+                  <span>Eeg Storefront-ka Tooska ah</span>
+                  <span className="text-orange-200">↗</span>
                 </Link>
               </div>
             )}
@@ -224,42 +235,38 @@ export default function StoreBuilderPage() {
       </div>
 
       {/* Store Switcher Bar */}
-      <div className="bg-white border-b border-slate-200 py-3 shadow-xs">
+      <div className="bg-slate-950/70 border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-30 py-3 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Meheradda Hadda:</span>
-            <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏪</span> Meheraddaada:
+            </span>
+            <div className="flex items-center gap-2">
               {stores.map((s) => (
                 <button
                   key={s.slug}
                   onClick={() => handleSelectStore(s.slug)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
                     selectedStoreSlug === s.slug
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-400 shadow-md shadow-orange-500/20 scale-[1.02]'
+                      : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
                   }`}
                 >
-                  <img src={s.logoUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+                  <img src={s.logoUrl} alt="" className="w-4 h-4 rounded-full object-cover ring-1 ring-white/20" />
                   <span>{s.businessName}</span>
                 </button>
               ))}
 
               <button
-                onClick={() => {
-                  setSelectedStoreSlug('new');
-                  setBusinessName('');
-                  setSlug('');
-                  setTagline('');
-                  setBio('');
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border border-dashed transition-all flex items-center gap-1 ${
+                onClick={handleStartNewStore}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border border-dashed transition-all flex items-center gap-1.5 ${
                   selectedStoreSlug === 'new'
-                    ? 'border-orange-500 text-orange-600 bg-orange-50'
-                    : 'border-slate-300 text-slate-600 hover:border-orange-400'
+                    ? 'border-orange-500 text-orange-400 bg-orange-500/10'
+                    : 'border-slate-700 text-slate-400 hover:border-orange-500/50 hover:text-orange-300 bg-slate-900/50'
                 }`}
               >
-                <span>+</span>
-                <span>Fur Store Cusub</span>
+                <span className="text-orange-400 font-black">+</span>
+                <span>Fur Meherad Cusub</span>
               </button>
             </div>
           </div>
@@ -269,40 +276,43 @@ export default function StoreBuilderPage() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Toast feedback */}
+        {/* Toast Feedback */}
         {toastMessage && (
-          <div className="mb-6 p-4 rounded-2xl bg-emerald-600 text-white font-bold text-sm shadow-xl flex items-center justify-between animate-fade-in">
-            <span>{toastMessage}</span>
-            <button onClick={() => setToastMessage(null)} className="text-white/80 hover:text-white">✕</button>
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-2xl shadow-emerald-500/20 flex items-center justify-between border border-emerald-400/30 animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">✨</span>
+              <span>{toastMessage}</span>
+            </div>
+            <button onClick={() => setToastMessage(null)} className="text-white/80 hover:text-white p-1">✕</button>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-200 mb-6 space-x-6 text-sm font-bold">
+        <div className="flex border-b border-slate-800 mb-8 space-x-4 sm:space-x-8 text-sm font-bold">
           <button
             onClick={() => setActiveTab('brand')}
-            className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'brand'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-orange-500 text-orange-400 text-sm font-black'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>🎨</span>
-            <span>Brand, Logo & Cover</span>
+            <span>Astaanta, Logo-ga & Cover-ka</span>
           </button>
 
           <button
             onClick={() => setActiveTab('categories')}
-            className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'categories'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-orange-500 text-orange-400 text-sm font-black'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>📂</span>
             <span>Qaybaha Store-ka (Categories)</span>
             {currentStore && (
-              <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full">
+              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
                 {currentStore.categories.length}
               </span>
             )}
@@ -310,16 +320,16 @@ export default function StoreBuilderPage() {
 
           <button
             onClick={() => setActiveTab('stock')}
-            className={`pb-3 border-b-2 transition-colors flex items-center gap-2 ${
+            className={`pb-3.5 border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'stock'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-orange-500 text-orange-400 text-sm font-black'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <span>📦</span>
-            <span>Maamulka Stock-ga (Inventory)</span>
+            <span>Maamulka Alaabta (Inventory)</span>
             {currentStore && (
-              <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.2 rounded-full font-black">
+              <span className="text-[10px] bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full font-black border border-orange-500/30">
                 {currentStore.products.length}
               </span>
             )}
@@ -328,19 +338,28 @@ export default function StoreBuilderPage() {
 
         {/* TAB 1: Brand, Logo & Cover Banner */}
         {activeTab === 'brand' && (
-          <form onSubmit={handleSaveBrand} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
+          <form onSubmit={handleSaveBrand} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left 7 Columns: Form Input Cards */}
+            <div className="lg:col-span-7 space-y-6">
               
               {/* Store Details Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-4">
-                <h3 className="text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                  <span>🏢</span>
-                  <span>Macluumaadka Guud ee Meheradda</span>
-                </h3>
+              <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 backdrop-blur-xl space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                  <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                      🏢
+                    </span>
+                    <span>Macluumaadka Guud ee Meheradda</span>
+                  </h3>
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    Waxaa loo soo bandhigayaa macaamiisha
+                  </span>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
                       Magaca Store-ka (Business Name)*
                     </label>
                     <input
@@ -349,241 +368,287 @@ export default function StoreBuilderPage() {
                       onChange={(e) => setBusinessName(e.target.value)}
                       placeholder="e.g. Hilaac Fashion Store"
                       required
-                      className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-orange-500 bg-white"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      URL Handle / Slug (Link-ga Store-ka)*
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      URL Handle / Slug (Link-ga Tooska ah)*
                     </label>
-                    <div className="flex items-center rounded-xl border border-slate-300 bg-slate-50 overflow-hidden">
-                      <span className="text-xs text-slate-400 pl-3">/stores/</span>
+                    <div className="flex items-center rounded-2xl border border-slate-700 bg-slate-900/90 overflow-hidden focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all">
+                      <span className="text-xs text-orange-400/80 pl-3 font-mono font-medium">/stores/</span>
                       <input
                         type="text"
                         value={slug}
                         onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                         placeholder="hilaac-fashion"
-                        className="w-full p-3 text-sm focus:outline-none bg-transparent"
+                        className="w-full px-2 py-3 text-sm text-white font-mono bg-transparent focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Halkudhegga Store-ka (Slogan / Tagline)
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Halkudhegga Meheradda (Slogan / Tagline)
                   </label>
                   <input
                     type="text"
                     value={tagline}
                     onChange={(e) => setTagline(e.target.value)}
-                    placeholder="e.g. Dharka Dumarka & Raga ee Ugu Tayada Sarreeya"
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-orange-500 bg-white"
+                    placeholder="e.g. Dharka Dumarka & Raga ee Ugu Tayada Sarreeya Dalka"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Faahfaahinta Meheradda (Bio / About)
                   </label>
                   <textarea
                     rows={3}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ka sheekee badeecooyinka aad iibiso, tayadaada, iyo dammaanadda..."
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-orange-500 bg-white"
+                    placeholder="Ka sheekee badeecooyinka aad iibiso, tayadaada, dammaanadda, iyo goobta aad ku taal..."
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
                 </div>
 
-                {/* Location & Contact */}
+                {/* Location Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
                       Magaalada (City)
                     </label>
                     <select
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     >
-                      <option value="Garoowe">Garoowe</option>
-                      <option value="Muqdisho">Muqdisho (Bakaaraha)</option>
-                      <option value="Hargeisa">Hargeisa</option>
-                      <option value="Bosaso">Bosaso</option>
-                      <option value="Kismaayo">Kismaayo</option>
-                      <option value="Baydhabo">Baydhabo</option>
+                      {popularCities.map((c) => (
+                        <option key={c} value={c} className="bg-slate-900 text-white">
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Degmada / Suuqa (District / Market)
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Degmada ama Suuqa (District / Market)
                     </label>
                     <input
                       type="text"
                       value={district}
                       onChange={(e) => setDistrict(e.target.value)}
                       placeholder="e.g. Suuqa Bakaaraha, Suuqa Sare"
-                      className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      WhatsApp Number (Macaamiishu toos kuugu soo xariiraan)
-                    </label>
-                    <input
-                      type="text"
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      placeholder="+252904530260"
-                      className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
-                    />
+                {/* PRIVACY & IN-APP CHAT GUARANTEE BANNER */}
+                <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 border border-emerald-500/30 text-xs text-slate-200 space-y-1.5">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <span className="text-base">🛡️</span>
+                    <span>Xogtaada Waa Qarsoodi (No Phone Numbers Required)</span>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Telefoonka Guud (Phone)
-                    </label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+252907000000"
-                      className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
-                    />
-                  </div>
+                  <p className="text-slate-300 leading-relaxed text-[11px]">
+                    Lambaradaada taleefanka lama weydiinayo lamana muujinayo dukaanka dhexdiisa. Macaamiisha iyo adiga waxaad si toos ah oo aamin ah ugu wada hadli doontaan kaliya <strong>Chat-ka Gaarka ah ee App-ka (Private Chat)</strong> si looga fogaado khaladaadka iyo xiriirrada dibadda, lana sugo badbaadada heshiisyadaada.
+                  </p>
                 </div>
               </div>
 
               {/* Logo & Banner Customization Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-5">
-                <h3 className="text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                  <span>🖼️</span>
-                  <span>Logo & Hero Cover Banner</span>
-                </h3>
+              <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 backdrop-blur-xl space-y-6">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                  <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                      🖼️
+                    </span>
+                    <span>Logo & Hero Cover Banner</span>
+                  </h3>
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    Muuqaalka Astaantaada
+                  </span>
+                </div>
 
                 {/* Logo input & presets */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Sawirka Logo-ga (URL ama Dooro Tusaale)
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Sawirka Logo-ga (URL ama Xulo Mid Diyaar ah)
                   </label>
                   <input
                     type="url"
                     value={logoUrl}
                     onChange={(e) => setLogoUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm mb-2 bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Tusaalooyinka Logo-ga:</span>
-                    {logoPresets.map((lp, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setLogoUrl(lp)}
-                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-transform hover:scale-110 ${
-                          logoUrl === lp ? 'border-orange-500 scale-110 ring-2 ring-orange-200' : 'border-slate-300'
-                        }`}
-                      >
-                        <img src={lp} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <span className="text-xs text-slate-400 font-medium">Tusaalooyinka Logo-ga:</span>
+                    <div className="flex items-center gap-2">
+                      {logoPresets.map((lp, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setLogoUrl(lp)}
+                          className={`w-9 h-9 rounded-2xl overflow-hidden border-2 transition-all hover:scale-110 ${
+                            logoUrl === lp
+                              ? 'border-orange-500 scale-110 ring-2 ring-orange-500/50 shadow-md shadow-orange-500/30'
+                              : 'border-slate-700 opacity-70 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={lp} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Banner input & presets */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Sawirka Cover Banner (Dusha Sare ee Store-ka)
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Sawirka Cover Banner (Dusha Sare ee Storefront-ka)
                   </label>
                   <input
                     type="url"
                     value={bannerUrl}
                     onChange={(e) => setBannerUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm mb-2 bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Tusaalooyinka Cover-ka:</span>
-                    {bannerPresets.map((bp, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setBannerUrl(bp)}
-                        className={`w-14 h-8 rounded-lg overflow-hidden border-2 transition-transform hover:scale-105 ${
-                          bannerUrl === bp ? 'border-orange-500 ring-2 ring-orange-200' : 'border-slate-300'
-                        }`}
-                      >
-                        <img src={bp} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
+                  
+                  <div className="pt-1">
+                    <div className="text-xs text-slate-400 font-medium mb-2">Xulo Banner Qosol Leh:</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      {bannerPresets.map((bp, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setBannerUrl(bp.url)}
+                          className={`relative h-14 rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] text-left group ${
+                            bannerUrl === bp.url
+                              ? 'border-orange-500 ring-2 ring-orange-500/40 shadow-lg'
+                              : 'border-slate-800 opacity-75 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={bp.url} alt="" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1.5">
+                            <span className="text-[10px] font-bold text-white truncate drop-shadow-md">
+                              {bp.title}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Submit Save */}
+              {/* Submit Save Button */}
               <button
                 type="submit"
-                className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/25 transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-2xl shadow-orange-500/30 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 border border-orange-400/30 cursor-pointer"
               >
-                <span>💾</span>
-                <span>Keydi Xogta Store-ka (Save Store)</span>
+                <span className="text-lg">💾</span>
+                <span>Keydi & Daabac Meheraddaada (Save Storefront)</span>
               </button>
             </div>
 
-            {/* Right: Live Card Preview */}
-            <div className="space-y-6">
-              <div className="sticky top-28 bg-white rounded-3xl p-5 shadow-lg border border-slate-200 space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Muuqaalka Tooska ah (Live Preview)
-                </h4>
+            {/* Right 5 Columns: Sticky Live Card Preview */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="sticky top-24 space-y-4">
+                
+                {/* Preview Header Badge */}
+                <div className="flex items-center justify-between px-1">
+                  <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-orange-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Muuqaalka Tooska ah (Live Preview)</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Macaamiishu sidaan ayay u arkaan</span>
+                </div>
 
-                <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 text-white shadow-md">
-                  {/* Banner */}
-                  <div className="relative h-28 bg-slate-800">
+                {/* THE HIGH-END STORE PREVIEW CARD */}
+                <div className="rounded-3xl overflow-hidden border border-slate-800 bg-slate-950 text-white shadow-2xl transition-all duration-300 hover:border-slate-700">
+                  {/* Banner Image */}
+                  <div className="relative h-36 bg-slate-900 overflow-hidden">
                     <img
-                      src={bannerUrl || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800'}
+                      src={bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'}
                       alt=""
-                      className="w-full h-full object-cover opacity-80"
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 opacity-85"
                     />
-                    <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                      ✓ Verified Store
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                    
+                    <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1 border border-emerald-400/40">
+                      <span>✓</span>
+                      <span>Verified Store</span>
                     </div>
                   </div>
 
-                  <div className="p-4 pt-0">
-                    <div className="flex items-end gap-3 -mt-6 mb-2">
-                      <img
-                        src={logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'}
-                        alt=""
-                        className="w-14 h-14 rounded-2xl object-cover border-2 border-orange-500 bg-slate-900 shadow-md"
-                      />
-                      <div>
-                        <h4 className="font-bold text-white text-sm font-display leading-tight">
+                  {/* Body Content */}
+                  <div className="p-5 pt-0">
+                    <div className="flex items-end gap-3.5 -mt-8 mb-3">
+                      <div className="relative">
+                        <img
+                          src={logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'}
+                          alt=""
+                          className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500 bg-slate-900 shadow-xl ring-2 ring-black/40"
+                        />
+                        <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950" title="Online" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-black text-white text-base font-display truncate">
                           {businessName || 'Magaca Meheradda'}
                         </h4>
-                        <p className="text-[10px] text-slate-400">
-                          📍 {city} • {district || 'Suuqa Sare'}
+                        <p className="text-xs text-orange-400 font-semibold truncate">
+                          📍 {city} {district ? `• ${district}` : ''}
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-300 line-clamp-2 mt-2">
-                      {tagline || 'Dharka & badeecooyinka casriga ah ee dalka.'}
+                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                      {tagline || 'Badeecooyinka ugu tayada sarreeya ee dalka gacantaada ku hay.'}
                     </p>
 
-                    <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-orange-400 font-bold">
-                      <span>WhatsApp: {whatsappNumber}</span>
-                      <span>Booqo →</span>
+                    {/* Stats Snippet */}
+                    <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                      <div className="flex items-center gap-1 text-amber-400 font-bold">
+                        <span>⭐</span>
+                        <span>5.0 (Qiimeyn Sarreysa)</span>
+                      </div>
+                      <span className="text-[11px] bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                        {currentStore?.products.length || 0} Alaab
+                      </span>
+                    </div>
+
+                    {/* Chat Action Button (NO PHONE NUMBERS!) */}
+                    <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs font-bold text-emerald-400">Wadahadal Sugan</span>
+                      </div>
+
+                      <div className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-md shadow-emerald-600/20 flex items-center gap-1.5 border border-emerald-500/30">
+                        <span>💬</span>
+                        <span>Chat Gaar ah</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-orange-50 rounded-2xl border border-orange-200 text-xs text-orange-900">
-                  💡 <strong>Talo Ganacsi:</strong> Doorashada sawirro tayo sare leh iyo buuxinta WhatsApp-ka waxay 4x kordhisaa iibkaaga maalinlaha ah.
+                {/* Educational Security Callout Box */}
+                <div className="p-4 bg-slate-950/70 rounded-3xl border border-slate-800 text-xs text-slate-300 space-y-2 backdrop-blur-md">
+                  <div className="flex items-center gap-2 font-bold text-amber-400">
+                    <span>💡</span>
+                    <span>Maxaa looga saaray lambarada dadweynaha?</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-400">
+                    Si loo ilaaliyo xogta gaarka ah ee iibiyaha iyo macmiilka, nidaamku ma ogolaado in lambarada la wadaago bannaanka. Dhammaan iibsiyada iyo su&apos;aalaha waxaa lagu maareeyaa <strong>Chat-ka tooska ah</strong> ee nidaamka Fududeeye, kaasoo si buuxda u hubiya damaanadda alaabta iyo lacagta.
+                  </p>
                 </div>
+
               </div>
             </div>
           </form>
@@ -592,33 +657,37 @@ export default function StoreBuilderPage() {
         {/* TAB 2: Categories Management (Collections) */}
         {activeTab === 'categories' && currentStore && (
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
-              <h3 className="text-lg font-bold text-slate-900 font-display mb-1 flex items-center gap-2">
-                <span>📂</span>
-                <span>Qaybaha Alaabta ee {currentStore.businessName}</span>
-              </h3>
-              <p className="text-xs text-slate-500 mb-6">
-                U samee meheraddaada qaybo kala soocan sida Shopify Collections (tusaale: Dharka Dumarka, Kabaha, Saacadaha).
+            <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-bold text-white font-display flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                    📂
+                  </span>
+                  <span>Qaybaha Alaabta ee {currentStore.businessName}</span>
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-6">
+                U samee meheraddaada qaybo kala soocan sida Collections (tusaale: Dharka Dumarka, Kabaha, Saacadaha). Qaybaha cusub waxay si toos ah u gelayaan xaaladda sugitaanka (WAIT) ilaa maamulku ansixiyo.
               </p>
 
               {/* Add category form */}
-              <form onSubmit={handleAddCategory} className="flex gap-3 mb-6">
+              <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row gap-3 mb-6">
                 <input
                   type="text"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="Magaca qaybta cusub (e.g. Diracyada Xariirta ah)"
-                  className="flex-1 p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-orange-500 bg-white"
+                  className="flex-1 px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                 />
                 <button
                   type="submit"
                   disabled={addingCategoryWait || !newCategoryName.trim()}
-                  className="px-6 py-3 rounded-xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors shadow-md flex items-center gap-2"
+                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 disabled:opacity-50 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   {addingCategoryWait ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Fadlan sug... (WAIT)...</span>
+                      <span>Fadlan sug (WAIT)...</span>
                     </>
                   ) : (
                     <span>+ Ku Dar Qayb (WAIT / Sugitaan)</span>
@@ -633,16 +702,16 @@ export default function StoreBuilderPage() {
                   return (
                     <div
                       key={cat}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-orange-200 transition-colors"
+                      className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-bold text-xs flex items-center justify-center">
+                        <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 font-bold text-xs flex items-center justify-center border border-orange-500/20">
                           {idx + 1}
                         </span>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-slate-800 text-sm">{cat}</h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                            <h4 className="font-bold text-white text-sm">{cat}</h4>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
                               ⏳ WAIT / Sugitaan
                             </span>
                           </div>
@@ -652,7 +721,7 @@ export default function StoreBuilderPage() {
 
                       <button
                         onClick={() => deleteStoreCategory(currentStore.slug, cat)}
-                        className="text-xs text-slate-400 hover:text-rose-500 p-2 font-bold"
+                        className="text-xs text-slate-500 hover:text-rose-400 p-2 font-bold transition-colors"
                         title="Tir qaybta"
                       >
                         🗑️ Ka saar
@@ -668,21 +737,23 @@ export default function StoreBuilderPage() {
         {/* TAB 3: Stock / Inventory Management */}
         {activeTab === 'stock' && currentStore && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200">
+            <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-                    <span>📦</span>
+                  <h3 className="text-lg font-bold text-white font-display flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                      📦
+                    </span>
                     <span>Maamulka Alaabta & Stock-ga ({currentStore.businessName})</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-400 mt-1">
                     Waxaad haysataa <strong>{currentStore.products.length}</strong> badeecadood. Waxaad wax ka beddeli kartaa tirada yaalla bakhaarka, qiimaha, ama ku dari kartaa alaab cusub.
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowAddProductModal(true)}
-                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-md transition-transform hover:-translate-y-0.5 flex items-center gap-2"
+                  className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <span>+</span>
                   <span>Ku Dar Alaab Cusub (Add Product)</span>
@@ -692,7 +763,7 @@ export default function StoreBuilderPage() {
               {/* Products Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-600 uppercase tracking-wider font-bold">
+                  <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider font-bold">
                     <tr>
                       <th className="p-3.5 rounded-l-xl">Alaabta</th>
                       <th className="p-3.5">Qaybta</th>
@@ -702,37 +773,37 @@ export default function StoreBuilderPage() {
                       <th className="p-3.5 rounded-r-xl text-right">Hawlaha</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-850">
                     {currentStore.products.map((prod) => (
-                      <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={prod.id} className="hover:bg-slate-900/50 transition-colors">
                         <td className="p-3.5">
                           <div className="flex items-center gap-3">
                             <img
                               src={prod.images[0]}
                               alt=""
-                              className="w-12 h-12 rounded-xl object-contain border border-slate-200 bg-white"
+                              className="w-12 h-12 rounded-xl object-contain border border-slate-700 bg-slate-900"
                             />
                             <div>
-                              <div className="font-bold text-slate-800 text-sm line-clamp-1 max-w-xs">
+                              <div className="font-bold text-white text-sm line-clamp-1 max-w-xs">
                                 {prod.title}
                               </div>
-                              <div className="text-[11px] text-slate-400 font-mono">
+                              <div className="text-[11px] text-slate-500 font-mono">
                                 SKU: {prod.sku}
                               </div>
                             </div>
                           </div>
                         </td>
 
-                        <td className="p-3.5 font-semibold text-slate-600">
-                          <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md border border-orange-200">
+                        <td className="p-3.5 font-semibold text-slate-300">
+                          <span className="bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded-md border border-orange-500/20">
                             {prod.category}
                           </span>
                         </td>
 
                         <td className="p-3.5">
-                          <span className="font-bold text-slate-900 text-sm">${prod.price.toFixed(2)}</span>
+                          <span className="font-bold text-white text-sm">${prod.price.toFixed(2)}</span>
                           {prod.compareAtPrice && (
-                            <span className="text-[11px] text-slate-400 line-through ml-1.5">
+                            <span className="text-[11px] text-slate-500 line-through ml-1.5">
                               ${prod.compareAtPrice.toFixed(2)}
                             </span>
                           )}
@@ -747,11 +818,11 @@ export default function StoreBuilderPage() {
                                   stockQuantity: Math.max(0, prod.stockQuantity - 1),
                                 })
                               }
-                              className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold flex items-center justify-center"
+                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors"
                             >
                               -
                             </button>
-                            <span className="w-10 text-center font-bold text-slate-800 text-sm">
+                            <span className="w-10 text-center font-bold text-white text-sm">
                               {prod.stockQuantity}
                             </span>
                             <button
@@ -760,7 +831,7 @@ export default function StoreBuilderPage() {
                                   stockQuantity: prod.stockQuantity + 1,
                                 })
                               }
-                              className="w-6 h-6 rounded bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold flex items-center justify-center"
+                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center transition-colors"
                             >
                               +
                             </button>
@@ -770,18 +841,18 @@ export default function StoreBuilderPage() {
                         {/* Stock status badge */}
                         <td className="p-3.5">
                           {prod.stockQuantity > 10 ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               Waa Buuxaa (In Stock)
                             </span>
                           ) : prod.stockQuantity > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                               Wuu Gabaabsi yahay ({prod.stockQuantity})
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                               Wuu Dhamaaday (Out of Stock)
                             </span>
                           )}
@@ -790,7 +861,7 @@ export default function StoreBuilderPage() {
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => deleteStoreProduct(currentStore.slug, prod.id)}
-                            className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
                             title="Tir alaabta"
                           >
                             🗑️
@@ -807,25 +878,25 @@ export default function StoreBuilderPage() {
 
       </div>
 
-      {/* Modal: Add New Product (Sida Shopify Add Product) */}
+      {/* Modal: Add New Product */}
       {showAddProductModal && currentStore && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
           <div
-            className="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 text-slate-800 my-8"
+            className="w-full max-w-2xl bg-slate-950 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 text-white my-8"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
               <div>
-                <h3 className="font-bold text-xl text-slate-900 font-display">
+                <h3 className="font-bold text-xl text-white font-display">
                   Ku Dar Alaab Cusub Stock-gaaga
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Meheradda: <strong>{currentStore.businessName}</strong>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Meheradda: <strong className="text-orange-400">{currentStore.businessName}</strong>
                 </p>
               </div>
               <button
                 onClick={() => setShowAddProductModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold"
+                className="w-8 h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center font-bold transition-colors"
               >
                 ✕
               </button>
@@ -833,7 +904,7 @@ export default function StoreBuilderPage() {
 
             <form onSubmit={handleAddProduct} className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-300 mb-1.5">
                   Magaca Alaabta (Product Title)*
                 </label>
                 <input
@@ -842,22 +913,22 @@ export default function StoreBuilderPage() {
                   value={prodTitle}
                   onChange={(e) => setProdTitle(e.target.value)}
                   placeholder="e.g. 2MP Full HD Security Camera CCTV Bullet..."
-                  className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-orange-500 bg-white"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1.5">
                     Qaybta (Category)*
                   </label>
                   <select
                     value={prodCategory}
                     onChange={(e) => setProdCategory(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
                   >
                     {currentStore.categories.map((cat) => (
-                      <option key={cat} value={cat}>
+                      <option key={cat} value={cat} className="bg-slate-900 text-white">
                         {cat}
                       </option>
                     ))}
@@ -865,21 +936,21 @@ export default function StoreBuilderPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1.5">
                     SKU / Koodhka Alaabta
                   </label>
                   <input
                     type="text"
                     value={prodSku}
                     onChange={(e) => setProdSku(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white font-mono"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white font-mono focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1.5">
                     Qiimaha Iibka ($)*
                   </label>
                   <input
@@ -889,12 +960,12 @@ export default function StoreBuilderPage() {
                     value={prodPrice}
                     onChange={(e) => setProdPrice(e.target.value)}
                     placeholder="15.00"
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white font-bold"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white font-bold focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1.5">
                     Qiimihii Hore ($ Compare-at)
                   </label>
                   <input
@@ -903,65 +974,65 @@ export default function StoreBuilderPage() {
                     value={prodComparePrice}
                     onChange={(e) => setProdComparePrice(e.target.value)}
                     placeholder="25.00"
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
+                  <label className="block font-bold text-slate-300 mb-1.5">
                     Cadadka Stock-ga (Tirada yaalla)
                   </label>
                   <input
                     type="number"
                     value={prodStock}
                     onChange={(e) => setProdStock(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white font-bold"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white font-bold focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-300 mb-1.5">
                   Sawirka Alaabta (Image URL)
                 </label>
                 <input
                   type="url"
                   value={prodImage}
                   onChange={(e) => setProdImage(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Midabbada (Kala saar hakad ",")
+                  <label className="block font-bold text-slate-300 mb-1.5">
+                    Midabbada (Kala saar hakad &quot;,&quot;)
                   </label>
                   <input
                     type="text"
                     value={prodColors}
                     onChange={(e) => setProdColors(e.target.value)}
                     placeholder="Black, White, Gold"
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">
-                    Cabbirrada (Kala saar hakad ",")
+                  <label className="block font-bold text-slate-300 mb-1.5">
+                    Cabbirrada (Kala saar hakad &quot;,&quot;)
                   </label>
                   <input
                     type="text"
                     value={prodSizes}
                     onChange={(e) => setProdSizes(e.target.value)}
                     placeholder="M, L, XL"
-                    className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
+                <label className="block font-bold text-slate-300 mb-1.5">
                   Sharaxaadda Alaabta (Description)
                 </label>
                 <textarea
@@ -969,21 +1040,21 @@ export default function StoreBuilderPage() {
                   value={prodDescription}
                   onChange={(e) => setProdDescription(e.target.value)}
                   placeholder="Faahfaahin ku saabsan tayada alaabta, astaamaha gaarka ah..."
-                  className="w-full p-3 rounded-xl border border-slate-300 text-sm bg-white"
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
                 />
               </div>
 
               <div className="pt-4 flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-md transition-transform hover:-translate-y-0.5"
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5"
                 >
                   Ku Dar Alaabta Stock-ga
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddProductModal(false)}
-                  className="px-6 py-3.5 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  className="px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-400 bg-slate-900 hover:bg-slate-800 transition-colors"
                 >
                   Ka Laabo
                 </button>

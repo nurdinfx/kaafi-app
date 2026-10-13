@@ -34,8 +34,6 @@ export default async function ListingDetailPage({ params }: Props) {
   const price = formatPrice(listing.price, listing.currency);
   const location = getLandmarkDisplay(listing);
   const ago = timeAgo(listing.createdAt);
-  const sellerPhone = (listing.business as any)?.whatsappNumber || listing.seller.phoneNumber || '';
-  const sellerWA = buildWhatsAppLink(sellerPhone, listing);
 
   const specs: { label: string; value: string }[] = [];
   if (listing.vehicleDetails) {

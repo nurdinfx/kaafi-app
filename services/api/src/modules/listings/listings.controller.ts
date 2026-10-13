@@ -91,7 +91,7 @@ export const getListings = async (req: Request, res: Response, next: NextFunctio
         include: {
           media: { orderBy: { sortOrder: 'asc' } },
           category: { select: { id: true, name: true, slug: true, verticalType: true } },
-          seller: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
+          seller: { select: { id: true, fullName: true, avatarUrl: true } },
           business: { select: { id: true, businessName: true, slug: true, logoUrl: true, isVerified: true } },
           vehicleDetails: true,
           propertyDetails: true,
@@ -134,7 +134,6 @@ export const getListingBySlug = async (req: Request, res: Response, next: NextFu
           select: {
             id: true,
             fullName: true,
-            phoneNumber: true,
             avatarUrl: true,
             sellerProfile: true,
           },

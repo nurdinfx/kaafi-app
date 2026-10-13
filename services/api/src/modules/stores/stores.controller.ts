@@ -14,7 +14,7 @@ export const getStoreBySlug = async (req: Request, res: Response, next: NextFunc
         OR: [{ slug }, { id: slug }],
       },
       include: {
-        owner: { select: { id: true, fullName: true, phoneNumber: true, email: true } },
+        owner: { select: { id: true, fullName: true, avatarUrl: true } },
         branches: { where: { isActive: true } },
         listings: {
           where: { status: 'ACTIVE' },
@@ -61,8 +61,8 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
       licenseNumber,
     } = req.body;
 
-    if (!businessName || !phone) {
-      throw new AppError('Business name and contact phone are required.', 400, ErrorCode.VALIDATION_ERROR);
+    if (!businessName) {
+      throw new AppError('Business name is required.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
     const baseSlug = businessName
@@ -80,8 +80,8 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
         description: description || null,
         logoUrl: logoUrl || null,
         coverImageUrl: coverImageUrl || null,
-        phone,
-        whatsappNumber: whatsappNumber || phone,
+        phone: phone || (req.user as any)?.phoneNumber || '+252000000000',
+        whatsappNumber: whatsappNumber || phone || (req.user as any)?.phoneNumber || null,
         city,
         landmarkAddress: landmarkAddress || null,
         openingHours: openingHours || 'Sat-Thu: 8:00 AM - 9:00 PM',
