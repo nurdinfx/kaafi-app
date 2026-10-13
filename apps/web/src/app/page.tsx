@@ -7,11 +7,10 @@ import HeroSection from '../components/HeroSection';
 import TrustBadges from '../components/TrustBadges';
 import ProductCard from '../components/ProductCard';
 import ProductDetailModal from '../components/ProductDetailModal';
-import ListingCard from '../components/ListingCard';
 import Footer from '../components/Footer';
 import { useStore, StoreProduct } from '../context/StoreContext';
 import { useLanguage } from '../context/LanguageContext';
-import { api, Listing, Category } from '../lib/api';
+import { api, Category } from '../lib/api';
 
 /* ─── Real Circular Categories for Homepage Matching Database ─── */
 const HOME_CATEGORIES = [
@@ -32,24 +31,12 @@ export default function HomePage() {
   const { stores, popularProducts, essentialProducts } = useStore();
   const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
-  const [liveListings, setLiveListings] = useState<Listing[]>([]);
   const [liveCategories, setLiveCategories] = useState<Category[]>([]);
-  const [loadingListings, setLoadingListings] = useState(true);
 
   useEffect(() => {
     // Fetch live categories from backend database
     api.getCategories().then((cats) => {
       if (cats && cats.length > 0) setLiveCategories(cats);
-    });
-
-    // Fetch real market listings from backend database
-    api.getListings({ limit: 12 }).then((res) => {
-      if (res && res.data) {
-        setLiveListings(res.data);
-      }
-      setLoadingListings(false);
-    }).catch(() => {
-      setLoadingListings(false);
     });
   }, []);
 
@@ -155,50 +142,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION: Xayeysiisyada Tooska Ah (Live Real Market Listings) ── */}
-      <section id="live-listings" className="py-10 sm:py-14 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>{t('sec_live_badge')}</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white font-display">
-                {t('sec_live_title')}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                {t('sec_live_desc')}
-              </p>
-            </div>
-            <Link
-              href="/listings"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 shadow-md transition-all self-start sm:self-auto"
-            >
-              <span>{t('sec_all_listings')} ({liveListings.length})</span>
-              <span>→</span>
-            </Link>
-          </div>
 
-          {loadingListings ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-64 rounded-2xl bg-white/5 animate-pulse" />
-              ))}
-            </div>
-          ) : liveListings.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {liveListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 text-center text-slate-400 text-sm">
-              Weli wax xayeysiis ah lama soo gelin. Noqo qofka ugu horreeya ee dhiga!
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* ── PROMOTIONAL BANNER ── */}
       <section className="py-6 sm:py-8">
