@@ -10,6 +10,7 @@ import ProductDetailModal from '../components/ProductDetailModal';
 import ListingCard from '../components/ListingCard';
 import Footer from '../components/Footer';
 import { useStore, StoreProduct } from '../context/StoreContext';
+import { useLanguage } from '../context/LanguageContext';
 import { api, Listing, Category } from '../lib/api';
 
 /* ─── Real Circular Categories for Homepage Matching Database ─── */
@@ -29,6 +30,7 @@ const HOME_CATEGORIES = [
 
 export default function HomePage() {
   const { stores, popularProducts, essentialProducts } = useStore();
+  const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [liveListings, setLiveListings] = useState<Listing[]>([]);
   const [liveCategories, setLiveCategories] = useState<Category[]>([]);
@@ -116,12 +118,12 @@ export default function HomePage() {
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 text-orange-500 text-xs font-bold tracking-widest uppercase mb-1">
               <span className="w-8 sm:w-16 h-px bg-orange-400" />
-              <span>Doorashada Ugu Wanaagsan</span>
+              <span>{t('sec_best_sellers_badge')}</span>
               <span className="w-8 sm:w-16 h-px bg-orange-400" />
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 font-display">
-              Kuwa Ugu <span className="text-orange-600">Iibka Badan</span>
+              {t('sec_best_sellers_title')}
             </h2>
 
             <div className="flex justify-center gap-1.5 mt-2.5">
@@ -147,7 +149,7 @@ export default function HomePage() {
               href="/listings"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white bg-orange-500 hover:bg-orange-600 shadow-md transition-all hover:-translate-y-0.5"
             >
-              Daawo Dhammaan Alaabta →
+              {t('sec_view_all_products')}
             </Link>
           </div>
         </div>
@@ -160,20 +162,20 @@ export default function HomePage() {
             <div>
               <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Toos uga Socda Suuqa (Live Real Market)</span>
+                <span>{t('sec_live_badge')}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white font-display">
-                Xayeysiisyada <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">Ugu Dambeeyay</span>
+                {t('sec_live_title')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Alaab, gaadiid, guryo & adeegyo hadda la soo dhigay oo leh taariikh dhab ah (Real Dates & Real Categories).
+                {t('sec_live_desc')}
               </p>
             </div>
             <Link
               href="/listings"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-blue-600 hover:bg-blue-500 shadow-md transition-all self-start sm:self-auto"
             >
-              <span>Dhammaan Xayeysiisyada ({liveListings.length})</span>
+              <span>{t('sec_all_listings')} ({liveListings.length})</span>
               <span>→</span>
             </Link>
           </div>
@@ -208,20 +210,19 @@ export default function HomePage() {
             />
             <div className="relative text-center sm:text-left">
               <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs font-bold px-3 py-1 rounded-full mb-3">
-                🔥 Heshiis Gaar Ah
+                {t('promo_badge')}
               </div>
               <h3 className="text-2xl sm:text-3xl font-black font-display leading-tight">
-                Gadaal u Gal Hargeysa, Muqdisho,<br />
-                <span className="text-orange-400">iyo Garoowe!</span>
+                {t('promo_title')}
               </h3>
-              <p className="text-sm text-slate-300 mt-2">Waxaan gaynaa dhammaan magaalooyinka waaweyn ee Soomaaliya</p>
+              <p className="text-sm text-slate-300 mt-2">{t('promo_sub')}</p>
             </div>
             <div className="relative flex-shrink-0">
               <Link
                 href="/listings"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm text-orange-900 bg-white hover:bg-orange-50 shadow-2xl transition-transform hover:scale-105"
               >
-                Dukaameyso Haddeer →
+                {t('promo_btn')}
               </Link>
             </div>
           </div>
@@ -237,13 +238,13 @@ export default function HomePage() {
             <div>
               <div className="flex items-center gap-2 text-orange-600 text-xs font-bold tracking-widest uppercase mb-1">
                 <span className="w-8 h-px bg-orange-500" />
-                <span>La Muujiyay</span>
+                <span>{t('sec_essentials_badge')}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-display">
-                Phone Essentials & <span className="text-orange-600">Qiimo Dhimis Gaar Ah</span>
+                {t('sec_essentials_title')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                Qalabka casriga ah ee taleefannada oo leh dhimis gaareysa ilaa -82%
+                {t('sec_essentials_desc')}
               </p>
             </div>
 
@@ -389,20 +390,14 @@ export default function HomePage() {
           <div className="rounded-3xl bg-black/20 p-8 sm:p-12 border border-white/20 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="space-y-3 text-center md:text-left max-w-xl">
               <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">
-                🚀 Ku Iibi DukaamiOnline
+                {t('invite_badge')}
               </span>
               <h3 className="text-2xl sm:text-3xl font-black font-display leading-tight">
-                Ma rabtaa inaad yeelato Store Online ah sida Shopify?
+                {t('invite_title')}
               </h3>
               <p className="text-sm text-orange-100 leading-relaxed">
-                Ku dhex sameyso meherad buuxda: ku dar logo-gaaga, cover banner, samayso qaybaha alaabta (categories), maamul stock-gaaga, oo si toos ah uga hel macaamiil dalka oo dhan lacagtoodana ku bixinaya EVC Plus & eDahab!
+                {t('invite_desc')}
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-white/80">
-                <span className="flex items-center gap-1">✅ Bilaash</span>
-                <span className="flex items-center gap-1">✅ Xawli ah</span>
-                <span className="flex items-center gap-1">✅ URL Kuu Gaar ah</span>
-                <span className="flex items-center gap-1">✅ Logo & Brand</span>
-              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -410,13 +405,13 @@ export default function HomePage() {
                 href="/seller/store-builder"
                 className="px-8 py-4 rounded-2xl font-black text-sm text-orange-900 bg-white hover:bg-orange-50 shadow-2xl transition-transform hover:scale-105 text-center"
               >
-                Fur Store-kaaga Bilaash →
+                {t('invite_btn')}
               </Link>
               <Link
                 href="/stores"
                 className="px-6 py-4 rounded-2xl font-bold text-sm text-white bg-black/30 hover:bg-black/40 border border-white/30 text-center transition-colors"
               >
-                Eeg Meheradaha Kale
+                {t('invite_explore')}
               </Link>
             </div>
           </div>

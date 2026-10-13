@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '../context/LanguageContext';
 
 interface HeroSlide {
   id: string;
@@ -18,64 +19,66 @@ interface HeroSlide {
   ctaLabel: string;
 }
 
-const HERO_SLIDES: HeroSlide[] = [
-  {
-    id: 'fashion',
-    brandTag: 'Dukaami',
-    brandAccent: 'Online',
-    mainTitle: 'DukaamiOnline\nFashion',
-    subtitle: 'Dharka Dumarka ee Ugu Quruuxda Badan',
-    pills: [
-      { icon: '👑', title: 'Qaabab', subtitle: 'Qurux Badan' },
-      { icon: '🌿', title: 'Tayo', subtitle: 'Sare Leh' },
-      { icon: '🛍️', title: 'Dukaameysi', subtitle: 'Aman Ah' },
-    ],
-    leftImage: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700&auto=format&fit=crop',
-    rightImage: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=900&auto=format&fit=crop',
-    accentColor: '#f97316',
-    bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(249,115,22,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(217,119,6,0.2) 0%, transparent 50%), linear-gradient(135deg, #241108 0%, #3e1b0c 45%, #5a2612 75%, #351509 100%)',
-    link: '/listings?categorySlug=fashion',
-    ctaLabel: 'Daawo Dharka →',
-  },
-  {
-    id: 'tech',
-    brandTag: 'Dukaami',
-    brandAccent: 'Online',
-    mainTitle: 'DukaamiOnline\nTech Hub',
-    subtitle: 'Kaamirooyinka CCTV, Moobillada & Qalabka Casriga ah',
-    pills: [
-      { icon: '⚡', title: 'HD Quality', subtitle: 'Xallin Sare' },
-      { icon: '🚀', title: 'Gaarsiin', subtitle: 'Degdeg Ah' },
-      { icon: '🛡️', title: 'Dammaanad', subtitle: '1 Sano Ah' },
-    ],
-    leftImage: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=700&auto=format&fit=crop',
-    rightImage: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=900&auto=format&fit=crop',
-    accentColor: '#0ea5e9',
-    bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(14,165,233,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(2,132,199,0.25) 0%, transparent 50%), linear-gradient(135deg, #071726 0%, #0d2a45 45%, #133961 75%, #081d33 100%)',
-    link: '/listings?categorySlug=electronics',
-    ctaLabel: 'Daawo Qalabka →',
-  },
-  {
-    id: 'watches',
-    brandTag: 'Dukaami',
-    brandAccent: 'Online',
-    mainTitle: 'DukaamiOnline\nLuxury',
-    subtitle: 'Saacadaha Automatic-ka ah & Dahabka Raaxada',
-    pills: [
-      { icon: '⭐', title: 'Brand Asal', subtitle: 'Tayo Heer Sare' },
-      { icon: '💎', title: 'Dahab & Luul', subtitle: 'Dhalaal Joogto' },
-      { icon: '🎁', title: 'Baakidh', subtitle: 'Hadiyadeed' },
-    ],
-    leftImage: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=700&auto=format&fit=crop',
-    rightImage: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=900&auto=format&fit=crop',
-    accentColor: '#d97706',
-    bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(217,119,6,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(180,83,9,0.25) 0%, transparent 50%), linear-gradient(135deg, #211603 0%, #3a2606 45%, #54370a 75%, #241703 100%)',
-    link: '/listings?categorySlug=wholesale',
-    ctaLabel: 'Daawo Saacadaha →',
-  },
-];
-
 export default function HeroSection() {
+  const { t } = useLanguage();
+
+  const slides: HeroSlide[] = [
+    {
+      id: 'fashion',
+      brandTag: 'Dukaami',
+      brandAccent: 'Online',
+      mainTitle: t('hero_fashion_brand', 'DukaamiOnline\nFashion'),
+      subtitle: t('hero_fashion_sub', 'Dharka Dumarka ee Ugu Quruuxda Badan'),
+      pills: [
+        { icon: '👑', title: t('hero_fashion_pill1_title', 'Qaabab'), subtitle: t('hero_fashion_pill1_sub', 'Qurux Badan') },
+        { icon: '🌿', title: t('hero_fashion_pill2_title', 'Tayo'), subtitle: t('hero_fashion_pill2_sub', 'Sare Leh') },
+        { icon: '🛍️', title: t('hero_fashion_pill3_title', 'Dukaameysi'), subtitle: t('hero_fashion_pill3_sub', 'Aman Ah') },
+      ],
+      leftImage: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=700&auto=format&fit=crop',
+      rightImage: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=900&auto=format&fit=crop',
+      accentColor: '#f97316',
+      bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(249,115,22,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(217,119,6,0.2) 0%, transparent 50%), linear-gradient(135deg, #241108 0%, #3e1b0c 45%, #5a2612 75%, #351509 100%)',
+      link: '/listings?categorySlug=fashion',
+      ctaLabel: t('hero_fashion_cta', 'Daawo Dharka →'),
+    },
+    {
+      id: 'tech',
+      brandTag: 'Dukaami',
+      brandAccent: 'Online',
+      mainTitle: t('hero_tech_brand', 'DukaamiOnline\nTech Hub'),
+      subtitle: t('hero_tech_sub', 'Kaamirooyinka CCTV, Moobillada & Qalabka Casriga ah'),
+      pills: [
+        { icon: '⚡', title: t('hero_tech_pill1_title', 'HD Quality'), subtitle: t('hero_tech_pill1_sub', 'Xallin Sare') },
+        { icon: '🚀', title: t('hero_tech_pill2_title', 'Gaarsiin'), subtitle: t('hero_tech_pill2_sub', 'Degdeg Ah') },
+        { icon: '🛡️', title: t('hero_tech_pill3_title', 'Dammaanad'), subtitle: t('hero_tech_pill3_sub', '1 Sano Ah') },
+      ],
+      leftImage: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=700&auto=format&fit=crop',
+      rightImage: 'https://images.unsplash.com/photo-1557862921-37829c790f19?w=900&auto=format&fit=crop',
+      accentColor: '#0ea5e9',
+      bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(14,165,233,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(2,132,199,0.25) 0%, transparent 50%), linear-gradient(135deg, #071726 0%, #0d2a45 45%, #133961 75%, #081d33 100%)',
+      link: '/listings?categorySlug=electronics',
+      ctaLabel: t('hero_tech_cta', 'Daawo Qalabka →'),
+    },
+    {
+      id: 'watches',
+      brandTag: 'Dukaami',
+      brandAccent: 'Online',
+      mainTitle: t('hero_luxury_brand', 'DukaamiOnline\nLuxury'),
+      subtitle: t('hero_luxury_sub', 'Saacadaha Automatic-ka ah & Dahabka Raaxada'),
+      pills: [
+        { icon: '⭐', title: t('hero_luxury_pill1_title', 'Brand Asal'), subtitle: t('hero_luxury_pill1_sub', 'Tayo Heer Sare') },
+        { icon: '💎', title: t('hero_luxury_pill2_title', 'Dahab & Luul'), subtitle: t('hero_luxury_pill2_sub', 'Dhalaal Joogto') },
+        { icon: '🎁', title: t('hero_luxury_pill3_title', 'Baakidh'), subtitle: t('hero_luxury_pill3_sub', 'Hadiyadeed') },
+      ],
+      leftImage: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=700&auto=format&fit=crop',
+      rightImage: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=900&auto=format&fit=crop',
+      accentColor: '#d97706',
+      bgGradient: 'radial-gradient(ellipse at 75% 40%, rgba(217,119,6,0.3) 0%, transparent 55%), radial-gradient(ellipse at 20% 60%, rgba(180,83,9,0.25) 0%, transparent 50%), linear-gradient(135deg, #211603 0%, #3a2606 45%, #54370a 75%, #241703 100%)',
+      link: '/listings?categorySlug=wholesale',
+      ctaLabel: t('hero_luxury_cta', 'Daawo Saacadaha →'),
+    },
+  ];
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [nextSlide, setNextSlide] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -100,11 +103,11 @@ export default function HeroSection() {
   useEffect(() => {
     if (isPaused) return;
     const timer = setInterval(() => {
-      const next = (currentSlide + 1) % HERO_SLIDES.length;
+      const next = (currentSlide + 1) % slides.length;
       goToSlide(next);
     }, SLIDE_DURATION);
     return () => clearInterval(timer);
-  }, [isPaused, currentSlide, goToSlide]);
+  }, [isPaused, currentSlide, goToSlide, slides.length]);
 
   // Progress bar
   useEffect(() => {
@@ -117,15 +120,15 @@ export default function HeroSection() {
   }, [currentSlide, isPaused]);
 
   const handleNext = () => {
-    const next = (currentSlide + 1) % HERO_SLIDES.length;
+    const next = (currentSlide + 1) % slides.length;
     goToSlide(next);
   };
   const handlePrev = () => {
-    const prev = (currentSlide - 1 + HERO_SLIDES.length) % HERO_SLIDES.length;
+    const prev = (currentSlide - 1 + slides.length) % slides.length;
     goToSlide(prev);
   };
 
-  const slide = HERO_SLIDES[currentSlide];
+  const slide = slides[currentSlide];
 
   return (
     <section
@@ -327,7 +330,7 @@ export default function HeroSection() {
 
         {/* Slide dots + labels */}
         <div className="flex items-center justify-center gap-3 mt-4 sm:mt-6">
-          {HERO_SLIDES.map((s, idx) => (
+          {slides.map((s, idx) => (
             <button
               key={s.id}
               onClick={() => goToSlide(idx)}

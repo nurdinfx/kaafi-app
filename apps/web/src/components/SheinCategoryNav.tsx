@@ -4,9 +4,30 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SHEIN_CATEGORIES, SheinCategory, SheinSubItem } from '../data/sheinCategories';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function SheinCategoryNav() {
   const router = useRouter();
+  const { t } = useLanguage();
+
+  const getCategoryName = (cat: SheinCategory) => {
+    const keyMap: Record<string, string> = {
+      'new-in': 'cat_new_in',
+      'workdays': 'cat_est_workdays',
+      'women': 'cat_women_clothing',
+      'beachwear': 'cat_beachwear',
+      'curve': 'cat_curve_plus',
+      'kids': 'cat_kids',
+      'men': 'cat_men_clothing',
+      'home': 'cat_home_living',
+      'underwear': 'cat_underwear_sleepwear',
+      'shoes': 'cat_shoes',
+      'jewelry': 'cat_jewelry_accessories',
+      'beauty': 'cat_beauty_health',
+    };
+    const key = keyMap[cat.id];
+    return key ? t(key, cat.name) : cat.name;
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string>('new-in');
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -71,7 +92,7 @@ export default function SheinCategoryNav() {
               isOpen ? 'bg-white/20 text-orange-400' : 'hover:bg-white/10'
             }`}
           >
-            <span>Categories</span>
+            <span>{t('cat_categories')}</span>
             <svg
               className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-orange-400' : ''}`}
               fill="none"
@@ -107,7 +128,7 @@ export default function SheinCategoryNav() {
                       : 'text-slate-200 hover:text-white'
                   }`}
                 >
-                  <span>{cat.name}</span>
+                  <span>{getCategoryName(cat)}</span>
                   {cat.badge && (
                     <span className="text-[9px] px-1 py-0.2 rounded bg-orange-500 text-white font-extrabold leading-none uppercase scale-90">
                       {cat.badge}
