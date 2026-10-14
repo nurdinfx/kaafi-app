@@ -138,7 +138,26 @@ export async function wipeAllData() {
   console.log(`   Password: Admin@Garoowe2026`);
   console.log(`   ID: ${cleanAdmin.id}`);
 
-  // Verification counts
+  // Seed default canonical categories if empty
+  const catCount = await prisma.category.count();
+  if (catCount === 0) {
+    const defaultCats = [
+      { name: 'Telefoonnada & Tech', slug: 'electronics', verticalType: 'PRODUCT', icon: '📱', commissionRate: 4.5 },
+      { name: 'Dharka Dumarka & Fashion', slug: 'fashion', verticalType: 'PRODUCT', icon: '👗', commissionRate: 5.0 },
+      { name: 'Gaadiidka & Baabuurta', slug: 'vehicles', verticalType: 'VEHICLE', icon: '🚗', commissionRate: 3.5 },
+      { name: 'Guryaha & Dhulka', slug: 'real-estate', verticalType: 'REAL_ESTATE', icon: '🏠', commissionRate: 3.0 },
+      { name: 'Dhul & Boosas', slug: 'land', verticalType: 'LAND', icon: '📐', commissionRate: 2.5 },
+      { name: 'Qalabka Guriga & Jikada', slug: 'home-living', verticalType: 'PRODUCT', icon: '🛋️', commissionRate: 4.0 },
+      { name: 'Caafimaadka & Qurxinta', slug: 'health-beauty', verticalType: 'PRODUCT', icon: '✨', commissionRate: 5.0 },
+      { name: 'Caruurta & Ciyaarta', slug: 'kids', verticalType: 'PRODUCT', icon: '🧸', commissionRate: 4.0 },
+      { name: 'Ganacsiga Jumlada', slug: 'wholesale', verticalType: 'WHOLESALE', icon: '📦', commissionRate: 2.0 },
+      { name: 'Adeegyada & Xirfadaha', slug: 'services', verticalType: 'SERVICE', icon: '🔧', commissionRate: 5.0 },
+    ];
+    for (const c of defaultCats) {
+      await prisma.category.create({ data: { ...c, status: 'ACTIVE', isActive: true } });
+    }
+    console.log('✅ Seeded 10 canonical Somali categories in Supabase Postgres.');
+  }
   const userCount = await prisma.user.count();
   const listingCount = await prisma.listing.count();
   const orderCount = await prisma.marketplaceTransaction.count();
