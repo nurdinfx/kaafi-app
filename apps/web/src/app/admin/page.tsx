@@ -79,6 +79,22 @@ export default function SuperAdminPortal() {
   const [newListingImageUrl, setNewListingImageUrl] = useState('');
   const [savingListing, setSavingListing] = useState(false);
 
+  const handleListingImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Sawirku wuxuu ka weyn yahay 8MB. Fadlan soo dooro sawir ka yar 8MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setNewListingImageUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // ─── Categories Management State ──────────────────────────
   const [adminCategories, setAdminCategories] = useState<any[]>([]);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
@@ -2766,15 +2782,65 @@ export default function SuperAdminPortal() {
                 </div>
               </div>
 
-              {/* Image URL */}
+              {/* Image Picker from Device & URL */}
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Sawirka URL (optional)</label>
+                <label className="block font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Sawirka Alaabta *</span>
+                  <span className="text-[10px] text-orange-400 font-normal">Dooro Device-kaaga ama URL</span>
+                </label>
+
+                {newListingImageUrl ? (
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden border-2 border-orange-500/50 bg-slate-900 group shadow-lg">
+                    <img src={newListingImageUrl} alt="Product Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <label htmlFor="admin-listing-file-input" className="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold cursor-pointer transition-all shadow-md">
+                        🔄 Beddel Sawirka
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setNewListingImageUrl('')}
+                        className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-md"
+                      >
+                        ✕ Tirtir
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="admin-listing-file-input"
+                    className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-orange-500/50 hover:border-orange-500 rounded-2xl bg-orange-500/5 hover:bg-orange-500/10 cursor-pointer transition-all text-center group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-orange-500/10 group-hover:bg-orange-500/20 flex items-center justify-center text-2xl mb-2 transition-transform group-hover:scale-110">
+                      📷
+                    </div>
+                    <span className="font-bold text-orange-400 text-xs">
+                      Dooro Sawirka Device-kaaga (Gallery / Camera / PC)
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1">
+                      Taabo si aad sawir uga soo doorato taleefankaaga ama kombuyuutarkaaga
+                    </span>
+                  </label>
+                )}
+
                 <input
-                  type="url" value={newListingImageUrl}
-                  onChange={(e) => setNewListingImageUrl(e.target.value)}
-                  placeholder="https://example.com/product.jpg"
-                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+                  type="file"
+                  id="admin-listing-file-input"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleListingImageUpload}
                 />
+
+                {/* Optional direct URL input */}
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 whitespace-nowrap">Ama URL:</span>
+                  <input
+                    type="url"
+                    value={newListingImageUrl.startsWith('data:') ? '' : newListingImageUrl}
+                    onChange={(e) => setNewListingImageUrl(e.target.value)}
+                    placeholder="https://example.com/sawir.jpg"
+                    className="flex-1 px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-700/80 text-white text-[11px] placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* Negotiable */}

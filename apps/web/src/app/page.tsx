@@ -63,7 +63,19 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
-            {HOME_CATEGORIES.map((cat, idx) => (
+            {(liveCategories.length > 0
+              ? [
+                  { label: 'Dhammaan (All)', isViewAll: true, slug: '' },
+                  ...liveCategories.map((c) => ({
+                    label: c.name,
+                    icon: c.icon || '🛍️',
+                    slug: c.slug,
+                    isViewAll: false,
+                    image: c.imageUrl,
+                  })),
+                ]
+              : HOME_CATEGORIES
+            ).map((cat: any, idx: number) => (
               <Link
                 key={cat.label + idx}
                 href={`/listings?categorySlug=${cat.slug}`}
@@ -78,6 +90,10 @@ export default function HomePage() {
                         <rect x="4" y="14" width="6" height="6" rx="1" />
                         <rect x="14" y="14" width="6" height="6" rx="1" />
                       </svg>
+                    </div>
+                  ) : cat.icon ? (
+                    <div className="w-full h-full bg-orange-50/50 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                      {cat.icon}
                     </div>
                   ) : (
                     <img
@@ -120,16 +136,28 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Product Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-            {popularProducts.slice(0, 12).map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onQuickView={setSelectedProduct}
-              />
-            ))}
-          </div>
+          {/* Product Cards Grid / Clean Empty State */}
+          {popularProducts.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+              {popularProducts.slice(0, 12).map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onQuickView={setSelectedProduct}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 px-4 rounded-3xl bg-white border border-slate-200/80 shadow-xs max-w-lg mx-auto">
+              <div className="w-16 h-16 rounded-full bg-orange-100 text-orange-500 mx-auto flex items-center justify-center text-3xl mb-3">
+                🛍️
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Weli wax alaab ah lama soo gelin</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Admin-ka iyo ganacsatada ayaa dhowaan soo gelin doona alaabo tayo sare leh.
+              </p>
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <Link
@@ -244,86 +272,108 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Stores Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {stores.map((store) => (
-              <Link
-                key={store.id}
-                href={`/stores/${store.slug}`}
-                className="group relative rounded-3xl overflow-hidden bg-slate-800/90 border border-slate-700/80 hover:border-orange-500/60 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
-              >
-                {/* Store Cover Banner */}
-                <div className="relative h-32 w-full overflow-hidden bg-slate-700">
-                  <img
-                    src={store.bannerUrl}
-                    alt={store.businessName}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+          {/* Stores Grid / Clean Empty State */}
+          {stores.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {stores.map((store) => (
+                <Link
+                  key={store.id}
+                  href={`/stores/${store.slug}`}
+                  className="group relative rounded-3xl overflow-hidden bg-slate-800/90 border border-slate-700/80 hover:border-orange-500/60 shadow-xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+                >
+                  {/* Store Cover Banner */}
+                  <div className="relative h-32 w-full overflow-hidden bg-slate-700">
+                    <img
+                      src={store.bannerUrl}
+                      alt={store.businessName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
 
-                  {/* Verified Badge */}
-                  {store.isVerified && (
-                    <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                      <span>✓</span> Verified Store
-                    </div>
-                  )}
-                </div>
+                    {/* Verified Badge */}
+                    {store.isVerified && (
+                      <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <span>✓</span> Verified Store
+                      </div>
+                    )}
+                  </div>
 
-                {/* Store Info */}
-                <div className="p-5 pt-0 flex-1 flex flex-col justify-between">
-                  <div>
-                    {/* Logo & Name */}
-                    <div className="flex items-end gap-3 -mt-8 mb-3">
-                      <img
-                        src={store.logoUrl}
-                        alt={store.businessName}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500 bg-slate-900 shadow-lg"
-                      />
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-white text-base font-display truncate group-hover:text-orange-400 transition-colors">
-                          {store.businessName}
-                        </h3>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          📍 {store.city} {store.district ? `• ${store.district}` : ''}
-                        </p>
+                  {/* Store Info */}
+                  <div className="p-5 pt-0 flex-1 flex flex-col justify-between">
+                    <div>
+                      {/* Logo & Name */}
+                      <div className="flex items-end gap-3 -mt-8 mb-3">
+                        <img
+                          src={store.logoUrl}
+                          alt={store.businessName}
+                          className="w-16 h-16 rounded-2xl object-cover border-2 border-orange-500 bg-slate-900 shadow-lg"
+                        />
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-white text-base font-display truncate group-hover:text-orange-400 transition-colors">
+                            {store.businessName}
+                          </h3>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            📍 {store.city} {store.district ? `• ${store.district}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-300 line-clamp-2 mb-4 leading-relaxed">
+                        {store.tagline || store.bio}
+                      </p>
+
+                      {/* Category Tags */}
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {store.categories.slice(0, 3).map((cat) => (
+                          <span
+                            key={cat}
+                            className="text-[10px] px-2 py-0.5 rounded-md bg-slate-700/60 text-orange-200 border border-slate-600/50"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                        {store.categories.length > 3 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-700/40 text-slate-400">
+                            +{store.categories.length - 3}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-300 line-clamp-2 mb-4 leading-relaxed">
-                      {store.tagline || store.bio}
-                    </p>
-
-                    {/* Category Tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {store.categories.slice(0, 3).map((cat) => (
-                        <span
-                          key={cat}
-                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-700/60 text-orange-200 border border-slate-600/50"
-                        >
-                          {cat}
-                        </span>
-                      ))}
-                      {store.categories.length > 3 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-700/40 text-slate-400">
-                          +{store.categories.length - 3}
-                        </span>
-                      )}
+                    {/* Footer stats & Visit button */}
+                    <div className="pt-3 border-t border-slate-700/70 flex items-center justify-between text-xs text-slate-400">
+                      <div>
+                        <strong className="text-white">{store.products.length}</strong> alaab ah bakhaarka
+                      </div>
+                      <span className="text-orange-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                        Booqo Store-ka →
+                      </span>
                     </div>
                   </div>
-
-                  {/* Footer stats & Visit button */}
-                  <div className="pt-3 border-t border-slate-700/70 flex items-center justify-between text-xs text-slate-400">
-                    <div>
-                      <strong className="text-white">{store.products.length}</strong> alaab ah bakhaarka
-                    </div>
-                    <span className="text-orange-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                      Booqo Store-ka →
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 px-6 rounded-3xl bg-slate-800/60 border border-slate-700/80 max-w-lg mx-auto">
+              <div className="w-16 h-16 rounded-full bg-orange-500/10 text-orange-400 mx-auto flex items-center justify-center text-3xl mb-3">
+                🏬
+              </div>
+              <h3 className="text-base font-bold text-white">Weli ma jiraan meherado diiwaangashan</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                Ma haysaa ganacsi aad rabto inaad online ka iibiso? Fur store-kaaga bilaash maanta oo bilow inaad alaabtaada gaarsiiso dhammaan gobollada!
+              </p>
+              <div className="mt-5">
+                <Link
+                  href="/seller/store-builder"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-lg shadow-orange-500/20 transition-all hover:scale-105"
+                >
+                  <span>✨</span>
+                  <span>Fur Meheraddaada Hadda</span>
+                  <span>→</span>
+                </Link>
+              </div>
+            </div>
+          )}
 
         </div>
       </section>

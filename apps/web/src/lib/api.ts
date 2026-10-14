@@ -21,6 +21,7 @@ export interface Category {
   name: string;
   slug: string;
   icon: string;
+  imageUrl?: string;
   verticalType: string;
   description?: string;
   commissionRate?: number;
