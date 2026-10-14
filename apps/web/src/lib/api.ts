@@ -863,6 +863,94 @@ export const api = {
     return res.json();
   },
 
+  // ── Admin: Listing Management ─────────────────────────────────────────────
+  async adminGetAllListings(token: string, params: { page?: number; limit?: number; status?: string; search?: string; verticalType?: string; categoryId?: string } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, String(v)); });
+      const res = await fetch(`${API_URL}/admin/manage/listings?${query}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      return await res.json();
+    } catch { return { success: false, data: [], meta: { total: 0 } }; }
+  },
+
+  async adminCreateListing(data: {
+    title: string; description: string; price: number; currency?: string;
+    categoryId: string; verticalType?: string; condition?: string;
+    inventoryCount?: number; isNegotiable?: boolean; city?: string;
+    region?: string; landmark?: string; mediaUrls?: string[]; status?: string;
+  }, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/listings`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async adminUpdateListing(id: string, data: any, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async adminDeleteListing(id: string, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    });
+    return res.json();
+  },
+
+  // ── Admin: Category Management ────────────────────────────────────────────
+  async adminGetAllCategories(token: string) {
+    try {
+      const res = await fetch(`${API_URL}/admin/manage/categories`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      return await res.json();
+    } catch { return { success: false, data: [] }; }
+  },
+
+  async adminCreateCategory(data: {
+    name: string; slug: string; description?: string; icon?: string;
+    verticalType?: string; parentId?: string; commissionRate?: number; displayOrder?: number;
+  }, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/categories`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async adminUpdateCategory(id: string, data: any, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/categories/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async adminDeleteCategory(id: string, token: string) {
+    const res = await fetch(`${API_URL}/admin/manage/categories/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    });
+    return res.json();
+  },
+
+  // ── Admin: System Data Clear ──────────────────────────────────────────────
+  async adminClearSystemData(clearType: 'TRANSACTIONS_ONLY' | 'FULL_WIPE', token: string) {
+    const res = await fetch(`${API_URL}/admin/system/clear-data`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ clearType, confirmPhrase: 'CONFIRM_CLEAR_DATA' }),
+    });
+    return res.json();
+  },
+
   // ─── Realtime In-App Chat ───────────────────────────────────────────────────
   async getConversations(token: string): Promise<ChatConversation[]> {
     try {

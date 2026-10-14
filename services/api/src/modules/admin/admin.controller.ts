@@ -825,3 +825,454 @@ export const createAdminUserAdmin = async (req: AuthenticatedRequest, res: Respo
     next(error);
   }
 };
+
+// ─── ADMIN: Manage All Listings (No Store Required) ───────────────────────────
+
+// Admin: Get ALL listings across platform (incl. drafts, archived)
+export const adminGetAllListings = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { page = '1', limit = '30', status, search, verticalType, categoryId } = req.query;
+    const pageNum = parseInt(String(page), 10) || 1;
+    const limitNum = parseInt(String(limit), 10) || 30;
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: any = {};
+    if (status && status !== 'ALL') where.status = String(status);
+    if (verticalType && verticalType !== 'ALL') where.verticalType = String(verticalType);
+    if (categoryId) where.categoryId = String(categoryId);
+    if (search) {
+      where.OR = [
+        { title: { contains: String(search) } },
+        { seller: { fullName: { contains: String(search) } } },
+        { seller: { phoneNumber: { contains: String(search) } } },
+      ];
+    }
+
+    const [total, listings] = await Promise.all([
+      prisma.listing.count({ where }),
+      prisma.listing.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          media: { take: 1, orderBy: { sortOrder: 'asc' } },
+          category: { select: { id: true, name: true, slug: true, verticalType: true } },
+          seller: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
+          business: { select: { id: true, businessName: true, slug: true, logoUrl: true } },
+          _count: { select: { transactionItems: true, reviews: true, offers: true } },
+        },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: listings,
+      meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Create a listing directly (no store/seller profile needed — admin adds products)
+export const adminCreateListing = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      title,
+      description,
+      price,
+      currency = 'USD',
+      categoryId,
+      verticalType = 'PRODUCT',
+      condition = 'NEW',
+      inventoryCount = 1,
+      isNegotiable = false,
+      city = 'Garoowe',
+      region = 'Puntland',
+      country = 'Somalia',
+      district,
+      neighborhood,
+      landmark,
+      mediaUrls = [],
+      status = 'ACTIVE',
+    } = req.body;
+
+    if (!title || !description || price === undefined || !categoryId) {
+      throw new AppError('Title, description, price, and categoryId are required.', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) {
+      throw new AppError('Category not found.', 404, ErrorCode.NOT_FOUND);
+    }
+
+    const adminUserId = req.user?.id;
+    if (!adminUserId) {
+      throw new AppError('Admin user ID not found in token.', 401, ErrorCode.UNAUTHORIZED);
+    }
+
+    // Generate unique slug
+    const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const slug = `${baseSlug}-${Date.now()}`;
+
+    const listing = await prisma.listing.create({
+      data: {
+        sellerId: adminUserId,
+        categoryId,
+        verticalType,
+        title: title.trim(),
+        slug,
+        description: description.trim(),
+        price: parseFloat(String(price)),
+        currency,
+        condition,
+        inventoryCount: parseInt(String(inventoryCount), 10),
+        isNegotiable: !!isNegotiable,
+        city,
+        region,
+        country,
+        district: district || null,
+        neighborhood: neighborhood || null,
+        landmark: landmark || null,
+        status,
+        verificationStatus: 'VERIFIED', // Admin listings auto-verified
+        media: {
+          create: (mediaUrls as string[]).map((url: string, idx: number) => ({
+            url,
+            mediaType: 'IMAGE',
+            sortOrder: idx,
+          })),
+        },
+      },
+      include: {
+        media: true,
+        category: { select: { id: true, name: true, slug: true } },
+        seller: { select: { id: true, fullName: true, phoneNumber: true } },
+      },
+    });
+
+    await logAuditEvent({
+      userId: adminUserId,
+      action: 'ADMIN_LISTING_CREATED',
+      entityType: 'LISTING',
+      entityId: listing.id,
+      details: { title, price, categoryId, verticalType },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: listing,
+      message: `Alaabta "${title}" si guul leh ayaa loogu daray platform-ka.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Update a listing
+export const adminUpdateListing = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { title, description, price, status, inventoryCount, isNegotiable, city, landmark, mediaUrls } = req.body;
+
+    const existing = await prisma.listing.findUnique({ where: { id } });
+    if (!existing) throw new AppError('Listing not found.', 404, ErrorCode.NOT_FOUND);
+
+    const updateData: any = {};
+    if (title) updateData.title = title.trim();
+    if (description) updateData.description = description.trim();
+    if (price !== undefined) updateData.price = parseFloat(String(price));
+    if (status) updateData.status = status;
+    if (inventoryCount !== undefined) updateData.inventoryCount = parseInt(String(inventoryCount), 10);
+    if (isNegotiable !== undefined) updateData.isNegotiable = !!isNegotiable;
+    if (city) updateData.city = city;
+    if (landmark) updateData.landmark = landmark;
+
+    const updated = await prisma.listing.update({
+      where: { id },
+      data: updateData,
+      include: {
+        media: true,
+        category: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    // Update media if provided
+    if (mediaUrls && Array.isArray(mediaUrls) && mediaUrls.length > 0) {
+      await prisma.listingMedia.deleteMany({ where: { listingId: id } });
+      await prisma.listingMedia.createMany({
+        data: mediaUrls.map((url: string, idx: number) => ({
+          listingId: id,
+          url,
+          mediaType: 'IMAGE',
+          sortOrder: idx,
+        })),
+      });
+    }
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_LISTING_UPDATED',
+      entityType: 'LISTING',
+      entityId: id,
+      details: { title, status, price },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Permanently delete a listing
+export const adminDeleteListing = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+
+    const existing = await prisma.listing.findUnique({ where: { id }, select: { id: true, title: true } });
+    if (!existing) throw new AppError('Listing not found.', 404, ErrorCode.NOT_FOUND);
+
+    // Delete in correct FK order
+    await prisma.listingAttributeValue.deleteMany({ where: { listingId: id } });
+    await prisma.listingMedia.deleteMany({ where: { listingId: id } });
+    await prisma.productVariant.deleteMany({ where: { listingId: id } });
+    await prisma.stockMovement.deleteMany({ where: { listingId: id } });
+    await prisma.vehicleDetail.deleteMany({ where: { listingId: id } });
+    await prisma.propertyDetail.deleteMany({ where: { listingId: id } });
+    await prisma.serviceDetail.deleteMany({ where: { listingId: id } });
+    await prisma.linkedListing.deleteMany({ where: { listingId: id } });
+    await prisma.offer.deleteMany({ where: { listingId: id } });
+    await prisma.listing.delete({ where: { id } });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_LISTING_DELETED',
+      entityType: 'LISTING',
+      entityId: id,
+      details: { title: existing.title },
+    });
+
+    res.json({ success: true, message: `Alaabta "${existing.title}" si buuxda waa la tirtiray.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── ADMIN: Category Management ───────────────────────────────────────────────
+
+// Admin: Get all categories (including inactive)
+export const adminGetCategories = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        _count: { select: { listings: true, subcategories: true } },
+        parent: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Create a new category
+export const adminCreateCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { name, slug, description, icon, imageUrl, verticalType = 'PRODUCT', parentId, commissionRate = 5.0, displayOrder = 0 } = req.body;
+
+    if (!name || !slug) {
+      throw new AppError('Name and slug are required.', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const existing = await prisma.category.findUnique({ where: { slug } });
+    if (existing) throw new AppError(`Slug "${slug}" is already taken.`, 409, ErrorCode.CONFLICT);
+
+    const category = await prisma.category.create({
+      data: {
+        name: name.trim(),
+        slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        description: description || null,
+        icon: icon || null,
+        imageUrl: imageUrl || null,
+        verticalType,
+        parentId: parentId || null,
+        commissionRate: parseFloat(String(commissionRate)),
+        displayOrder: parseInt(String(displayOrder), 10),
+        isActive: true,
+        status: 'ACTIVE',
+      },
+    });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_CATEGORY_CREATED',
+      entityType: 'CATEGORY',
+      entityId: category.id,
+      details: { name, slug, verticalType },
+    });
+
+    res.status(201).json({ success: true, data: category, message: `Qeybta "${name}" si guul leh waa la abuuray.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Update category
+export const adminUpdateCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { name, description, icon, imageUrl, isActive, status, commissionRate, displayOrder } = req.body;
+
+    const updateData: any = {};
+    if (name) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description;
+    if (icon !== undefined) updateData.icon = icon;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (isActive !== undefined) updateData.isActive = !!isActive;
+    if (status) updateData.status = status;
+    if (commissionRate !== undefined) updateData.commissionRate = parseFloat(String(commissionRate));
+    if (displayOrder !== undefined) updateData.displayOrder = parseInt(String(displayOrder), 10);
+
+    const updated = await prisma.category.update({ where: { id }, data: updateData });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_CATEGORY_UPDATED',
+      entityType: 'CATEGORY',
+      entityId: id,
+      details: { name, isActive, status },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Delete a category (only if no listings)
+export const adminDeleteCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+
+    const cat = await prisma.category.findUnique({
+      where: { id },
+      include: { _count: { select: { listings: true } } },
+    });
+    if (!cat) throw new AppError('Category not found.', 404, ErrorCode.NOT_FOUND);
+
+    if (cat._count.listings > 0) {
+      throw new AppError(`Cannot delete: ${cat._count.listings} listings exist in this category. Archive them first.`, 400, ErrorCode.BAD_REQUEST);
+    }
+
+    await prisma.categoryAttribute.deleteMany({ where: { categoryId: id } });
+    await prisma.category.delete({ where: { id } });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_CATEGORY_DELETED',
+      entityType: 'CATEGORY',
+      entityId: id,
+      details: { name: cat.name },
+    });
+
+    res.json({ success: true, message: `Qeybta "${cat.name}" si buuxda waa la tirtiray.` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── ADMIN: System Wipe & Data Reset ─────────────────────────────────────────
+
+// Admin: Clear all transactional data (keep users, categories, listings if desired)
+export const adminClearSystemData = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { clearType = 'TRANSACTIONS_ONLY', confirmPhrase } = req.body;
+
+    if (confirmPhrase !== 'CONFIRM_CLEAR_DATA') {
+      throw new AppError('Safety check failed. Send confirmPhrase: "CONFIRM_CLEAR_DATA"', 400, ErrorCode.VALIDATION_ERROR);
+    }
+
+    const results: Record<string, number> = {};
+
+    if (clearType === 'TRANSACTIONS_ONLY' || clearType === 'FULL_WIPE') {
+      // Clear all transaction-related data
+      results.postComments = (await prisma.postComment.deleteMany({})).count;
+      results.postLikes = (await prisma.postLike.deleteMany({})).count;
+      results.socialPosts = (await prisma.socialPost.deleteMany({})).count;
+      results.chatMessages = (await prisma.chatMessage.deleteMany({})).count;
+      results.chatParticipants = (await prisma.chatParticipant.deleteMany({})).count;
+      results.chatConversations = (await prisma.chatConversation.deleteMany({})).count;
+      results.reviews = (await prisma.review.deleteMany({})).count;
+      results.disputes = (await prisma.dispute.deleteMany({})).count;
+      results.deliveryJobs = (await prisma.deliveryJob.deleteMany({})).count;
+      results.paymentAttempts = (await prisma.paymentAttempt.deleteMany({})).count;
+      results.payments = (await prisma.payment.deleteMany({})).count;
+      results.paymentWebhooks = (await prisma.paymentWebhook.deleteMany({})).count;
+      results.escrowHolds = (await prisma.escrowHold.deleteMany({})).count;
+      results.ledgerEntries = (await prisma.ledgerEntry.deleteMany({})).count;
+      results.payoutRequests = (await prisma.payoutRequest.deleteMany({})).count;
+      results.txStatusHistory = (await prisma.transactionStatusHistory.deleteMany({})).count;
+      results.txItems = (await prisma.transactionItem.deleteMany({})).count;
+      results.transactions = (await prisma.marketplaceTransaction.deleteMany({})).count;
+      results.offerHistory = (await prisma.offerHistory.deleteMany({})).count;
+      results.offers = (await prisma.offer.deleteMany({})).count;
+      results.buyerRequests = (await prisma.buyerRequest.deleteMany({})).count;
+      results.wholesaleQuotes = (await prisma.wholesaleQuote.deleteMany({})).count;
+      results.wholesaleRFQs = (await prisma.wholesaleRFQ.deleteMany({})).count;
+      results.notifications = (await prisma.notification.deleteMany({})).count;
+      results.verificationRequests = (await prisma.verificationRequest.deleteMany({})).count;
+      results.auditLogs = (await prisma.auditLog.deleteMany({})).count;
+
+      // Reset all wallet balances to 0
+      await prisma.wallet.updateMany({ data: { balance: 0, pendingBalance: 0 } });
+      results.walletsReset = await prisma.wallet.count();
+    }
+
+    if (clearType === 'FULL_WIPE') {
+      // Also remove listings and stores
+      results.stockMovements = (await prisma.stockMovement.deleteMany({})).count;
+      results.listingMedia = (await prisma.listingMedia.deleteMany({})).count;
+      results.listingAttrValues = (await prisma.listingAttributeValue.deleteMany({})).count;
+      results.productVariants = (await prisma.productVariant.deleteMany({})).count;
+      results.vehicleDetails = (await prisma.vehicleDetail.deleteMany({})).count;
+      results.propertyDetails = (await prisma.propertyDetail.deleteMany({})).count;
+      results.serviceDetails = (await prisma.serviceDetail.deleteMany({})).count;
+      results.linkedListings = (await prisma.linkedListing.deleteMany({})).count;
+      results.listings = (await prisma.listing.deleteMany({})).count;
+      results.businessEmployees = (await prisma.businessEmployee.deleteMany({})).count;
+      results.businessBranches = (await prisma.businessBranch.deleteMany({})).count;
+      results.businessProfiles = (await prisma.businessProfile.deleteMany({})).count;
+      results.sellerProfiles = (await prisma.sellerProfile.deleteMany({})).count;
+      results.driverProfiles = (await prisma.driverProfile.deleteMany({})).count;
+
+      // Remove all non-admin users
+      const adminUsers = await prisma.userRole.findMany({
+        where: { role: { name: { in: ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR', 'OPERATIONS_ADMIN'] } } },
+        select: { userId: true },
+      });
+      const adminIds = adminUsers.map((u) => u.userId);
+
+      await prisma.userRole.deleteMany({ where: { userId: { notIn: adminIds } } });
+      results.usersDeleted = (await prisma.user.deleteMany({ where: { id: { notIn: adminIds } } })).count;
+    }
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_SYSTEM_DATA_CLEARED',
+      entityType: 'SYSTEM',
+      entityId: 'PLATFORM',
+      details: { clearType, results },
+    });
+
+    res.json({
+      success: true,
+      message: `Nidaamka waa la nadiifiyay (${clearType}). Dhammaan xogta ku xusan ayaa la tirtiri.`,
+      data: { clearType, results },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

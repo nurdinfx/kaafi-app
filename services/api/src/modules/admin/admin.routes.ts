@@ -14,6 +14,18 @@ import {
   updateStoreStatusAdmin,
   getLiveActivityAdmin,
   createAdminUserAdmin,
+  // New: Listings Management
+  adminGetAllListings,
+  adminCreateListing,
+  adminUpdateListing,
+  adminDeleteListing,
+  // New: Category Management
+  adminGetCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
+  // New: System Data Clear
+  adminClearSystemData,
 } from './admin.controller';
 import { authenticate } from '../../middleware/auth';
 import { requireAdmin } from '../../middleware/rbac';
@@ -40,4 +52,20 @@ router.patch('/payouts/:payoutId', processPayout);
 router.patch('/categories/:id/commission', updateCategoryCommissionAdmin);
 router.get('/audit-logs', getAuditLogs);
 
+// ── Admin: Full Listing Management (No Store Required) ──────────────────────
+router.get('/manage/listings', adminGetAllListings);
+router.post('/manage/listings', adminCreateListing);
+router.patch('/manage/listings/:id', adminUpdateListing);
+router.delete('/manage/listings/:id', adminDeleteListing);
+
+// ── Admin: Full Category Management ─────────────────────────────────────────
+router.get('/manage/categories', adminGetCategories);
+router.post('/manage/categories', adminCreateCategory);
+router.patch('/manage/categories/:id', adminUpdateCategory);
+router.delete('/manage/categories/:id', adminDeleteCategory);
+
+// ── Admin: System Data Clear / Wipe ─────────────────────────────────────────
+router.post('/system/clear-data', adminClearSystemData);
+
 export default router;
+

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { formatPrice, timeAgo } from '../../lib/utils';
 
-type AdminTab = 'OVERVIEW' | 'TRANSACTIONS' | 'ORDERS' | 'STORES' | 'LIVE_FEED' | 'USERS' | 'AUDIT';
+type AdminTab = 'OVERVIEW' | 'TRANSACTIONS' | 'ORDERS' | 'STORES' | 'LIVE_FEED' | 'USERS' | 'AUDIT' | 'LISTINGS' | 'CATEGORIES' | 'SYSTEM';
 
 export default function SuperAdminPortal() {
   const router = useRouter();
@@ -59,6 +59,42 @@ export default function SuperAdminPortal() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [liveActivity, setLiveActivity] = useState<any>(null);
 
+  // ─── Listings Management State ────────────────────────────
+  const [adminListings, setAdminListings] = useState<any[]>([]);
+  const [adminListingsTotal, setAdminListingsTotal] = useState(0);
+  const [listingStatusFilter, setListingStatusFilter] = useState('ALL');
+  const [listingSearch, setListingSearch] = useState('');
+  const [showAddListingModal, setShowAddListingModal] = useState(false);
+  const [editingListing, setEditingListing] = useState<any | null>(null);
+  const [newListingTitle, setNewListingTitle] = useState('');
+  const [newListingDesc, setNewListingDesc] = useState('');
+  const [newListingPrice, setNewListingPrice] = useState('');
+  const [newListingCategory, setNewListingCategory] = useState('');
+  const [newListingVertical, setNewListingVertical] = useState('PRODUCT');
+  const [newListingCondition, setNewListingCondition] = useState('NEW');
+  const [newListingCurrency, setNewListingCurrency] = useState('USD');
+  const [newListingCity, setNewListingCity] = useState('Garoowe');
+  const [newListingInventory, setNewListingInventory] = useState('1');
+  const [newListingNegotiable, setNewListingNegotiable] = useState(false);
+  const [newListingImageUrl, setNewListingImageUrl] = useState('');
+  const [savingListing, setSavingListing] = useState(false);
+
+  // ─── Categories Management State ──────────────────────────
+  const [adminCategories, setAdminCategories] = useState<any[]>([]);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatSlug, setNewCatSlug] = useState('');
+  const [newCatDesc, setNewCatDesc] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('');
+  const [newCatVertical, setNewCatVertical] = useState('PRODUCT');
+  const [newCatCommission, setNewCatCommission] = useState('5');
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  // ─── System Wipe State ─────────────────────────────────────
+  const [wiping, setWiping] = useState(false);
+  const [wipeResult, setWipeResult] = useState<any | null>(null);
+
   // Filters
   const [txStatusFilter, setTxStatusFilter] = useState('ALL');
   const [txProviderFilter, setTxProviderFilter] = useState('ALL');
@@ -91,13 +127,15 @@ export default function SuperAdminPortal() {
     setRefreshing(true);
     setErrorMsg('');
     try {
-      const [analyticsRes, txRes, storesRes, usersRes, auditRes, liveRes] = await Promise.all([
+      const [analyticsRes, txRes, storesRes, usersRes, auditRes, liveRes, listingsRes, catsRes] = await Promise.all([
         api.getAdminAnalytics(authToken),
         api.getAdminTransactions(authToken, { limit: 100 }),
         api.getAdminStores(authToken),
         api.getAdminUsers(authToken, { limit: 100 }),
         api.getAdminAuditLogs(authToken, 50),
         api.getAdminLiveActivity(authToken),
+        api.adminGetAllListings(authToken, { limit: 100 }),
+        api.adminGetAllCategories(authToken),
       ]);
 
       if (analyticsRes.success) setAnalytics(analyticsRes.data);
@@ -112,6 +150,8 @@ export default function SuperAdminPortal() {
       if (usersRes.success) setUsers(usersRes.data || []);
       if (auditRes.success) setAuditLogs(auditRes.data || []);
       if (liveRes.success) setLiveActivity(liveRes.data);
+      if (listingsRes.success) { setAdminListings(listingsRes.data || []); setAdminListingsTotal(listingsRes.meta?.total || 0); }
+      if (catsRes.success) setAdminCategories(catsRes.data || []);
     } catch {
       setErrorMsg('Khalad baa dhacay marka la soo kicinayay xogta maamulka guud.');
     } finally {
@@ -735,12 +775,15 @@ export default function SuperAdminPortal() {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto font-medium text-xs">
           {[
             { id: 'OVERVIEW', label: 'Xarunta Guud (Overview)', icon: '📊', count: null },
+            { id: 'LISTINGS', label: 'Alaabaha Platform-ka', icon: '🛍️', count: adminListings.length },
+            { id: 'CATEGORIES', label: 'Qaybaha Alaabada', icon: '🗂️', count: adminCategories.length },
             { id: 'TRANSACTIONS', label: 'Dhaqdhaqaaqa Lacagta', icon: '💳', count: transactions.length },
             { id: 'ORDERS', label: 'Maamulka Dalabyada', icon: '📦', count: filteredOrders.length },
             { id: 'STORES', label: 'Meheradaha (Stores)', icon: '🏬', count: stores.length },
             { id: 'LIVE_FEED', label: 'Nidaamka Tooska ah (Live)', icon: '📡', count: 'LIVE' },
             { id: 'USERS', label: 'Isticmaalayaasha & KYC', icon: '👥', count: users.length },
             { id: 'AUDIT', label: 'Diiwaanka Amniga (Audit)', icon: '🔒', count: auditLogs.length },
+            { id: 'SYSTEM', label: 'Nidaamka & Nadiifinta', icon: '⚙️', count: null },
           ].map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -820,12 +863,15 @@ export default function SuperAdminPortal() {
             <div>
               <h1 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 {activeTab === 'OVERVIEW' && '📊 Platform Command Center & Analytics'}
+                {activeTab === 'LISTINGS' && '🛍️ Maamulka Alaabaha Platform-ka (Admin Products)'}
+                {activeTab === 'CATEGORIES' && '🗂️ Qaybaha Alaabada (Category Management)'}
                 {activeTab === 'TRANSACTIONS' && '💳 Dhaqdhaqaaqa Dhammaan Lacagaha (Transactions & Escrow)'}
                 {activeTab === 'ORDERS' && '📦 Dalabyada App & Web (Orders & Fulfillment)'}
                 {activeTab === 'STORES' && '🏬 Meheradaha & Dukaamada Suuqa (Store Management)'}
                 {activeTab === 'LIVE_FEED' && '📡 Nidaamka Tooska ah (Live App & Web Activity Pulse)'}
                 {activeTab === 'USERS' && '👥 Isticmaalayaasha, Ganacsatada & Wadayaasha'}
                 {activeTab === 'AUDIT' && '🔒 Diiwaanka Amniga (Immutable Audit Trail)'}
+                {activeTab === 'SYSTEM' && '⚙️ Nidaamka Xakameeynta & Nadiifinta Xogta'}
               </h1>
               <p className="text-[11px] text-slate-400 hidden sm:block">
                 Xakamee oo kormeero dhammaan howlaha nidaamka DukaamiOnline ee App-ka (Flutter) iyo Web-ka.
@@ -2025,6 +2071,360 @@ export default function SuperAdminPortal() {
             </div>
           )}
 
+          {/* ══════════════════════════════════════════════════════════════
+              TAB 8: ADMIN LISTINGS MANAGEMENT (No Store Required)
+          ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'LISTINGS' && (
+            <div className="space-y-5">
+              {/* Top Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    placeholder="Raadi alaab..."
+                    value={listingSearch}
+                    onChange={(e) => setListingSearch(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none w-44"
+                  />
+                  <select
+                    value={listingStatusFilter}
+                    onChange={(e) => setListingStatusFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 text-xs focus:border-orange-500 focus:outline-none"
+                  >
+                    <option value="ALL">Dhammaan Xaaladaha</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="PAUSED">PAUSED</option>
+                    <option value="ARCHIVED">ARCHIVED</option>
+                  </select>
+                  <span className="text-xs text-slate-400 font-mono">{adminListings.length} alaab</span>
+                </div>
+                <button
+                  onClick={() => { setEditingListing(null); setNewListingTitle(''); setNewListingDesc(''); setNewListingPrice(''); setNewListingCategory(''); setNewListingVertical('PRODUCT'); setNewListingCondition('NEW'); setNewListingCurrency('USD'); setNewListingCity('Garoowe'); setNewListingInventory('1'); setNewListingNegotiable(false); setNewListingImageUrl(''); setShowAddListingModal(true); }}
+                  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-orange-500/20"
+                >
+                  <span>➕</span>
+                  <span>Ku dar Alaab Cusub</span>
+                </button>
+              </div>
+
+              {/* Listings Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {adminListings
+                  .filter((l) => {
+                    if (listingStatusFilter !== 'ALL' && l.status !== listingStatusFilter) return false;
+                    if (listingSearch.trim()) {
+                      const q = listingSearch.toLowerCase();
+                      return l.title?.toLowerCase().includes(q) || l.seller?.fullName?.toLowerCase().includes(q);
+                    }
+                    return true;
+                  })
+                  .map((listing) => (
+                    <div key={listing.id} className="admin-card-hover p-4 rounded-2xl bg-[#0d1627] border border-slate-800 space-y-3 relative overflow-hidden">
+                      {/* Status badge */}
+                      <div className="absolute top-3 right-3">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          listing.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          listing.status === 'DRAFT' ? 'bg-slate-700 text-slate-400' :
+                          'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}>{listing.status}</span>
+                      </div>
+
+                      {/* Image */}
+                      <div className="w-full h-28 rounded-xl bg-slate-900 overflow-hidden border border-slate-800">
+                        {listing.media?.[0]?.url ? (
+                          <img src={listing.media[0].url} alt={listing.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl text-slate-700">📦</div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="font-bold text-white text-sm truncate pr-14">{listing.title}</div>
+                        <div className="text-orange-400 font-mono font-bold text-sm mt-0.5">
+                          {listing.currency} {listing.price?.toLocaleString()}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {listing.category?.name} · {listing.city} · {listing.seller?.fullName || 'Admin'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Stock: <span className="text-white font-mono">{listing.inventoryCount}</span></span>
+                        <span>Views: <span className="text-white font-mono">{listing.viewsCount}</span></span>
+                        <span>Orders: <span className="text-white font-mono">{listing._count?.transactionItems || 0}</span></span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingListing(listing);
+                            setNewListingTitle(listing.title);
+                            setNewListingDesc(listing.description);
+                            setNewListingPrice(String(listing.price));
+                            setNewListingCategory(listing.categoryId);
+                            setNewListingVertical(listing.verticalType);
+                            setNewListingCondition(listing.condition);
+                            setNewListingCurrency(listing.currency);
+                            setNewListingCity(listing.city);
+                            setNewListingInventory(String(listing.inventoryCount));
+                            setNewListingNegotiable(listing.isNegotiable);
+                            setNewListingImageUrl(listing.media?.[0]?.url || '');
+                            setShowAddListingModal(true);
+                          }}
+                          className="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition-all"
+                        >
+                          ✏️ Wax ka bedel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!token || !confirm(`"${listing.title}" ma tirtirayaa? Tani waa mid aan dib loo soo celin karin.`)) return;
+                            setActionInProgress(listing.id);
+                            const res = await api.adminDeleteListing(listing.id, token);
+                            if (res.success) {
+                              setSuccessMsg(res.message || 'Alaabta waa la tirtiray.');
+                              setAdminListings((prev) => prev.filter((l) => l.id !== listing.id));
+                            } else {
+                              setErrorMsg(res.message || 'Khalad baa dhacay.');
+                            }
+                            setActionInProgress(null);
+                          }}
+                          disabled={actionInProgress === listing.id}
+                          className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-xs font-semibold border border-rose-500/30 transition-all"
+                        >
+                          {actionInProgress === listing.id ? '...' : '🗑️'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              {adminListings.filter((l) => {
+                if (listingStatusFilter !== 'ALL' && l.status !== listingStatusFilter) return false;
+                if (listingSearch.trim()) {
+                  const q = listingSearch.toLowerCase();
+                  return l.title?.toLowerCase().includes(q) || l.seller?.fullName?.toLowerCase().includes(q);
+                }
+                return true;
+              }).length === 0 && (
+                <div className="text-center py-16 text-slate-500">
+                  <div className="text-4xl mb-3">📦</div>
+                  <div className="font-semibold">Wax alaab ah lama helin</div>
+                  <div className="text-xs mt-1">Guji "Ku dar Alaab Cusub" si aad uga bilawdo</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB 9: ADMIN CATEGORY MANAGEMENT
+          ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'CATEGORIES' && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-400 font-mono">{adminCategories.length} qaybood</div>
+                <button
+                  onClick={() => { setEditingCategory(null); setNewCatName(''); setNewCatSlug(''); setNewCatDesc(''); setNewCatIcon('📦'); setNewCatVertical('PRODUCT'); setNewCatCommission('5'); setShowAddCategoryModal(true); }}
+                  className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-orange-500/20"
+                >
+                  <span>➕</span>
+                  <span>Qayb Cusub</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {adminCategories.map((cat) => (
+                  <div key={cat.id} className="admin-card-hover p-4 rounded-2xl bg-[#0d1627] border border-slate-800 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{cat.icon || '📂'}</span>
+                        <div>
+                          <div className="font-bold text-white text-sm">{cat.name}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{cat.slug}</div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        cat.isActive ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400'
+                      }`}>
+                        {cat.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">Commission: <span className="text-orange-400 font-bold">{cat.commissionRate}%</span></span>
+                      <span className="text-slate-500">{cat._count?.listings || 0} alaab</span>
+                      <span className="text-slate-500 capitalize text-[10px]">{cat.verticalType}</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingCategory(cat);
+                          setNewCatName(cat.name);
+                          setNewCatSlug(cat.slug);
+                          setNewCatDesc(cat.description || '');
+                          setNewCatIcon(cat.icon || '');
+                          setNewCatVertical(cat.verticalType);
+                          setNewCatCommission(String(cat.commissionRate));
+                          setShowAddCategoryModal(true);
+                        }}
+                        className="flex-1 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200"
+                      >
+                        ✏️ Wax ka bedel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!token) return;
+                          if ((cat._count?.listings || 0) > 0) { setErrorMsg(`Ma tirtiri kartid: ${cat._count.listings} alaab ayaa ku jirta qeybtan.`); return; }
+                          if (!confirm(`"${cat.name}" ma tirtirayaa?`)) return;
+                          setActionInProgress(cat.id);
+                          const res = await api.adminDeleteCategory(cat.id, token);
+                          if (res.success) { setSuccessMsg(res.message || 'Qeybta waa la tirtiray.'); setAdminCategories((prev) => prev.filter((c) => c.id !== cat.id)); }
+                          else setErrorMsg(res.message || 'Khalad baa dhacay.');
+                          setActionInProgress(null);
+                        }}
+                        disabled={actionInProgress === cat.id}
+                        className="px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-xs border border-rose-500/30"
+                      >
+                        {actionInProgress === cat.id ? '...' : '🗑️'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {adminCategories.length === 0 && (
+                <div className="text-center py-16 text-slate-500">
+                  <div className="text-4xl mb-3">🗂️</div>
+                  <div className="font-semibold">Wax qaybood ah lama helin</div>
+                  <div className="text-xs mt-1">Abuur qaybta alaabaha adiga oo guji "Qayb Cusub"</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB 10: SYSTEM DATA MANAGEMENT & WIPE
+          ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'SYSTEM' && (
+            <div className="space-y-6 max-w-2xl">
+              <div className="p-5 rounded-2xl bg-[#0d1627] border border-slate-800 space-y-4">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>⚙️</span>
+                  <span>Xakameeynta Nidaamka (System Controls)</span>
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Halkan waxaad ka nadiifin kartaa xogta nidaamka. Labadaba xulashooyinka hoose waa kuwo aan dib loo soo celin karin.
+                  Fadlan aad u taxadar marka aad isticmaalayso.
+                </p>
+              </div>
+
+              {/* Wipe Option 1: Transactions Only */}
+              <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/25 space-y-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">🧹</span>
+                  <div>
+                    <div className="font-bold text-amber-300 text-sm">Nadiifi Dhaqdhaqaaqa Lacagta Keliya</div>
+                    <div className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Waxay tirtiraysaa: Transactions, Payments, Escrow, Chat, Reviews, Disputes, Offers, Notifications.
+                      <br />
+                      <span className="text-emerald-400 font-semibold">Waxay kaaga taagtaa: Users, Listings, Categories, Stores.</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!token) return;
+                    if (!confirm('⚠️ DIGNIIN: Dhammaan transactions, payments, chat, reviews, disputes ayaa la tirtiri doonaa. Haddaad xaqiijiso guji OK.')) return;
+                    setWiping(true); setWipeResult(null); setErrorMsg(''); setSuccessMsg('');
+                    const res = await api.adminClearSystemData('TRANSACTIONS_ONLY', token);
+                    setWiping(false);
+                    if (res.success) {
+                      setWipeResult(res.data);
+                      setSuccessMsg('✅ ' + (res.message || 'Dhaqdhaqaaqa lacagta oo dhan waa la nadiifiyay.'));
+                      setTransactions([]); setTxSummary({ totalVolume: 0, totalCommission: 0, totalCount: 0 }); setAuditLogs([]);
+                    } else { setErrorMsg(res.message || 'Khalad baa dhacay.'); }
+                  }}
+                  disabled={wiping}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2 transition-all"
+                >
+                  {wiping ? (<><span className="animate-spin">⏳</span><span>La nadiifiyaa...</span></>) : (<><span>🧹</span><span>Nadiifi Dhaqdhaqaaqa Lacagta</span></>)}
+                </button>
+              </div>
+
+              {/* Wipe Option 2: Full Wipe */}
+              <div className="p-5 rounded-2xl bg-rose-500/5 border border-rose-500/25 space-y-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">💥</span>
+                  <div>
+                    <div className="font-bold text-rose-400 text-sm">Nadiifinta Guud (Full Wipe)</div>
+                    <div className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Waxay tirtiraysaa: <span className="text-rose-300 font-semibold">DHAMMAAN</span> - Transactions, Listings, Stores, Users (Admin mooyee), Categories aad lahayn alaab.
+                      <br />
+                      <span className="text-rose-400 font-bold">⚠️ Tani waa xaaladda ugu darnaan. Admin account-ka keliya ayaa harsan doonaa.</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!token) return;
+                    const confirmText = prompt('⛔ DIGNIIN ADAG: Geli "TIRTIR-DHAMMAAN" si aad u xaqiijiso full wipe:');
+                    if (confirmText !== 'TIRTIR-DHAMMAAN') { setErrorMsg('Wax la qoray kuma habboonayn. Hawlgalka waa la joojiyay.'); return; }
+                    setWiping(true); setWipeResult(null); setErrorMsg(''); setSuccessMsg('');
+                    const res = await api.adminClearSystemData('FULL_WIPE', token);
+                    setWiping(false);
+                    if (res.success) {
+                      setWipeResult(res.data);
+                      setSuccessMsg('✅ ' + (res.message || 'Nidaamka oo dhan waa la nadiifiyay.'));
+                      setTransactions([]); setTxSummary({ totalVolume: 0, totalCommission: 0, totalCount: 0 });
+                      setStores([]); setSellers([]); setUsers([]); setAuditLogs([]); setAdminListings([]); setAuditLogs([]);
+                    } else { setErrorMsg(res.message || 'Khalad baa dhacay.'); }
+                  }}
+                  disabled={wiping}
+                  className="px-5 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-300 text-xs font-bold flex items-center gap-2 transition-all"
+                >
+                  {wiping ? (<><span className="animate-spin">⏳</span><span>La nadiifiyaa...</span></>) : (<><span>💥</span><span>Full Wipe — Nadiifi Dhammaan</span></>)}
+                </button>
+              </div>
+
+              {/* Wipe Results */}
+              {wipeResult && (
+                <div className="p-4 rounded-2xl bg-[#0d1627] border border-slate-800 space-y-2">
+                  <div className="text-xs font-bold text-emerald-400 mb-2">📊 Natiijooyinka Nadiifinta ({wipeResult.clearType})</div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {Object.entries(wipeResult.results || {}).map(([key, val]) => (
+                      <div key={key} className="flex items-center justify-between text-[11px] font-mono p-1.5 rounded-lg bg-slate-900">
+                        <span className="text-slate-400">{key}</span>
+                        <span className="text-white font-bold">{String(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* System Info */}
+              <div className="p-4 rounded-2xl bg-[#0d1627] border border-slate-800 space-y-2 text-xs">
+                <div className="font-bold text-white text-sm">📋 Xogta Nidaamka Hadda</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Isticmaalayaasha', val: users.length },
+                    { label: 'Alaabaha', val: adminListings.length },
+                    { label: 'Meheradaha', val: stores.length },
+                    { label: 'Transactions', val: transactions.length },
+                    { label: 'Qaybaha', val: adminCategories.length },
+                    { label: 'Audit Logs', val: auditLogs.length },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="flex justify-between items-center p-2 rounded-lg bg-slate-900 font-mono">
+                      <span className="text-slate-400">{label}</span>
+                      <span className="text-white font-bold">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -2198,6 +2598,334 @@ export default function SuperAdminPortal() {
                 Xir (Close)
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ADD / EDIT LISTING ── */}
+      {showAddListingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-[#0d1627] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 my-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-bold text-white text-base">
+                  {editingListing ? '✏️ Wax ka bedel Alaabta' : '🛍️ Ku dar Alaab Cusub'}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {editingListing ? 'Cusboonaysii xogta alaabta.' : 'Admin si toos ah u dari karaa alaab — store ma loo baahna.'}
+                </p>
+              </div>
+              <button onClick={() => setShowAddListingModal(false)} className="text-slate-400 hover:text-white text-lg p-1">✕</button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!token) return;
+                setSavingListing(true);
+                setErrorMsg('');
+                try {
+                  const data = {
+                    title: newListingTitle.trim(),
+                    description: newListingDesc.trim(),
+                    price: parseFloat(newListingPrice),
+                    currency: newListingCurrency,
+                    categoryId: newListingCategory,
+                    verticalType: newListingVertical,
+                    condition: newListingCondition,
+                    inventoryCount: parseInt(newListingInventory, 10),
+                    isNegotiable: newListingNegotiable,
+                    city: newListingCity,
+                    mediaUrls: newListingImageUrl.trim() ? [newListingImageUrl.trim()] : [],
+                    status: 'ACTIVE',
+                  };
+                  let res: any;
+                  if (editingListing) {
+                    res = await api.adminUpdateListing(editingListing.id, data, token);
+                    if (res.success) {
+                      setSuccessMsg(`Alaabta "${newListingTitle}" si guul leh waa la cusbooneysiiyay.`);
+                      setAdminListings((prev) => prev.map((l) => l.id === editingListing.id ? { ...l, ...data, media: data.mediaUrls.length ? [{ url: data.mediaUrls[0] }] : l.media } : l));
+                    }
+                  } else {
+                    res = await api.adminCreateListing(data, token);
+                    if (res.success) {
+                      setSuccessMsg(res.message || `Alaabta "${newListingTitle}" si guul leh waa loogu daray suuqa!`);
+                      setAdminListings((prev) => [res.data, ...prev]);
+                    }
+                  }
+                  if (res.success) {
+                    setShowAddListingModal(false);
+                  } else {
+                    setErrorMsg(res.message || 'Khalad baa dhacay.');
+                  }
+                } catch {
+                  setErrorMsg('Server-ka lama xiriiri karin.');
+                } finally {
+                  setSavingListing(false);
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              {/* Title */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Magaca Alaabta *</label>
+                <input
+                  type="text" required value={newListingTitle}
+                  onChange={(e) => setNewListingTitle(e.target.value)}
+                  placeholder="e.g. Samsung Galaxy A55 128GB"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Sharaxaadda *</label>
+                <textarea
+                  required value={newListingDesc} rows={3}
+                  onChange={(e) => setNewListingDesc(e.target.value)}
+                  placeholder="Sharax alaabta si faahfaahsan..."
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              {/* Price & Currency */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="block font-semibold text-slate-300 mb-1">Qiimaha *</label>
+                  <input
+                    type="number" required min="0" step="0.01" value={newListingPrice}
+                    onChange={(e) => setNewListingPrice(e.target.value)}
+                    placeholder="e.g. 150"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Lacag</label>
+                  <select value={newListingCurrency} onChange={(e) => setNewListingCurrency(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                    <option>USD</option>
+                    <option>SOS</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Qaybta Alaabta *</label>
+                <select required value={newListingCategory} onChange={(e) => setNewListingCategory(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                  <option value="">— Dooro Qayb —</option>
+                  {adminCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.icon || ''} {cat.name} ({cat.verticalType})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Vertical & Condition */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Nooca</label>
+                  <select value={newListingVertical} onChange={(e) => setNewListingVertical(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                    <option value="PRODUCT">PRODUCT</option>
+                    <option value="VEHICLE">VEHICLE</option>
+                    <option value="REAL_ESTATE">REAL_ESTATE</option>
+                    <option value="SERVICE">SERVICE</option>
+                    <option value="WHOLESALE">WHOLESALE</option>
+                    <option value="FOOD">FOOD</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Xaaladda</label>
+                  <select value={newListingCondition} onChange={(e) => setNewListingCondition(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                    <option value="NEW">NEW (Cusub)</option>
+                    <option value="LIKE_NEW">LIKE_NEW</option>
+                    <option value="USED_GOOD">USED_GOOD</option>
+                    <option value="USED_FAIR">USED_FAIR</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* City & Inventory */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Magaalada</label>
+                  <select value={newListingCity} onChange={(e) => setNewListingCity(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                    {['Garoowe', 'Bosaso', 'Qardho', 'Galkayo', 'Mogadishu', 'Hargeysa', 'Berbera'].map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Tirada Stock</label>
+                  <input
+                    type="number" min="0" value={newListingInventory}
+                    onChange={(e) => setNewListingInventory(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Sawirka URL (optional)</label>
+                <input
+                  type="url" value={newListingImageUrl}
+                  onChange={(e) => setNewListingImageUrl(e.target.value)}
+                  placeholder="https://example.com/product.jpg"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Negotiable */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={newListingNegotiable} onChange={(e) => setNewListingNegotiable(e.target.checked)} className="w-4 h-4 accent-orange-500" />
+                <span className="text-slate-300 font-semibold">Qiimahu waa la wadahadli karaa (Negotiable)</span>
+              </label>
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowAddListingModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+                  Jooji
+                </button>
+                <button type="submit" disabled={savingListing}
+                  className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-all disabled:opacity-60">
+                  {savingListing ? '⏳ La kaydinayaa...' : editingListing ? '✅ Cusboonaysii' : '🛍️ Ku dar Suuqa'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ADD / EDIT CATEGORY ── */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0d1627] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-bold text-white text-base">
+                  {editingCategory ? '✏️ Wax ka bedel Qaybta' : '🗂️ Abuur Qayb Cusub'}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {editingCategory ? 'Cusboonaysii xogta qaybta.' : 'Samee qayb cusub oo alaabaha platform-ka.'}
+                </p>
+              </div>
+              <button onClick={() => setShowAddCategoryModal(false)} className="text-slate-400 hover:text-white text-lg p-1">✕</button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!token) return;
+                setSavingCategory(true);
+                setErrorMsg('');
+                try {
+                  const data = {
+                    name: newCatName.trim(),
+                    slug: newCatSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                    description: newCatDesc.trim() || undefined,
+                    icon: newCatIcon.trim() || undefined,
+                    verticalType: newCatVertical,
+                    commissionRate: parseFloat(newCatCommission),
+                  };
+                  let res: any;
+                  if (editingCategory) {
+                    res = await api.adminUpdateCategory(editingCategory.id, { name: data.name, description: data.description, icon: data.icon, commissionRate: data.commissionRate }, token);
+                    if (res.success) {
+                      setSuccessMsg(`Qaybta "${newCatName}" si guul leh waa la cusbooneysiiyay.`);
+                      setAdminCategories((prev) => prev.map((c) => c.id === editingCategory.id ? { ...c, ...data } : c));
+                    }
+                  } else {
+                    res = await api.adminCreateCategory(data, token);
+                    if (res.success) {
+                      setSuccessMsg(res.message || `Qaybta "${newCatName}" si guul leh waa la abuuray!`);
+                      setAdminCategories((prev) => [res.data, ...prev]);
+                    }
+                  }
+                  if (res.success) {
+                    setShowAddCategoryModal(false);
+                  } else {
+                    setErrorMsg(res.message || 'Khalad baa dhacay.');
+                  }
+                } catch {
+                  setErrorMsg('Server-ka lama xiriiri karin.');
+                } finally {
+                  setSavingCategory(false);
+                }
+              }}
+              className="space-y-3 text-xs"
+            >
+              {/* Icon & Name */}
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Icon</label>
+                  <input type="text" value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)}
+                    placeholder="📦"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-center text-xl focus:border-orange-500 focus:outline-none" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block font-semibold text-slate-300 mb-1">Magaca Qaybta *</label>
+                  <input type="text" required value={newCatName}
+                    onChange={(e) => {
+                      setNewCatName(e.target.value);
+                      if (!editingCategory) setNewCatSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                    }}
+                    placeholder="e.g. Taleefanada, Gawaari..."
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none" />
+                </div>
+              </div>
+
+              {/* Slug */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Slug (URL) *</label>
+                <input type="text" required value={newCatSlug} onChange={(e) => setNewCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                  placeholder="e.g. taleefanada"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-300 font-mono text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none" />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block font-semibold text-slate-300 mb-1">Sharaxaadda</label>
+                <textarea value={newCatDesc} rows={2} onChange={(e) => setNewCatDesc(e.target.value)}
+                  placeholder="Sharax qaybta si gaaban..."
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-orange-500 focus:outline-none resize-none" />
+              </div>
+
+              {/* Vertical & Commission */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Nooca</label>
+                  <select value={newCatVertical} onChange={(e) => setNewCatVertical(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none">
+                    <option value="PRODUCT">PRODUCT</option>
+                    <option value="VEHICLE">VEHICLE</option>
+                    <option value="REAL_ESTATE">REAL_ESTATE</option>
+                    <option value="SERVICE">SERVICE</option>
+                    <option value="WHOLESALE">WHOLESALE</option>
+                    <option value="FOOD">FOOD</option>
+                    <option value="LAND">LAND</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Commission %</label>
+                  <input type="number" min="0" max="100" step="0.5" value={newCatCommission}
+                    onChange={(e) => setNewCatCommission(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700 text-white text-xs focus:border-orange-500 focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowAddCategoryModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+                  Jooji
+                </button>
+                <button type="submit" disabled={savingCategory}
+                  className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-all disabled:opacity-60">
+                  {savingCategory ? '⏳ La kaydinayaa...' : editingCategory ? '✅ Cusboonaysii' : '🗂️ Abuur Qayb'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
