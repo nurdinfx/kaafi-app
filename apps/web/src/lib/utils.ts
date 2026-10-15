@@ -97,3 +97,65 @@ export function buildWhatsAppLink(phone: string, listing: Listing): string {
   const msg = `Salaan! Waxaan xiiseynayaa alaabtaada: "${listing.title}" — $${listing.price}`;
   return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 }
+
+/**
+ * Optimizes an image file from the user's device (phone/computer)
+ * by resizing and compressing it via HTML5 Canvas before generating a Data URL.
+ * Keeps memory/localStorage footprint small while maintaining high visual clarity.
+ */
+export async function optimizeImageFile(
+  file: File,
+  maxWidth = 1200,
+  maxHeight = 1200,
+  quality = 0.82
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Faylku ma ahan sawir sax ah'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Khalad ayaa ka dhacay akhrinta faylka'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Sawirka lama furi karin'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+
+        // Draw image onto canvas
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Retain png transparency if applicable, otherwise compress as crisp jpeg
+        const isPng = file.type === 'image/png';
+        const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', quality);
+        resolve(dataUrl);
+      };
+
+      if (typeof reader.result === 'string') {
+        img.src = reader.result;
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+

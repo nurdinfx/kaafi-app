@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
@@ -8,6 +8,7 @@ import Footer from '../../../components/Footer';
 import { useStore, MerchantStore, StoreProduct } from '../../../context/StoreContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { api } from '../../../lib/api';
+import { optimizeImageFile } from '../../../lib/utils';
 
 export default function StoreBuilderPage() {
   const router = useRouter();
@@ -62,9 +63,129 @@ export default function StoreBuilderPage() {
   const [prodImage, setProdImage] = useState(
     'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'
   );
-  const [prodExtraImages, setProdExtraImages] = useState(
-    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900, https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900'
-  );
+  const [prodExtraList, setProdExtraList] = useState<string[]>([
+    'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+    'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900',
+  ]);
+  const [isOptimizingMain, setIsOptimizingMain] = useState(false);
+  const [isOptimizingExtra, setIsOptimizingExtra] = useState(false);
+  const [isOptimizingLogo, setIsOptimizingLogo] = useState(false);
+  const [isOptimizingBanner, setIsOptimizingBanner] = useState(false);
+  const [showUrlInputMain, setShowUrlInputMain] = useState(false);
+  const [showUrlInputExtra, setShowUrlInputExtra] = useState(false);
+  const [customExtraUrl, setCustomExtraUrl] = useState('');
+
+  // Device file input refs
+  const mainImageFileRef = useRef<HTMLInputElement>(null);
+  const extraImagesFileRef = useRef<HTMLInputElement>(null);
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
+
+  // Upload handlers
+  const handleMainImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingMain(true);
+      const dataUrl = await optimizeImageFile(file, 1200, 1200, 0.82);
+      setProdImage(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa ka dhacay doorashada sawirka');
+    } finally {
+      setIsOptimizingMain(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDropMainImage = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingMain(true);
+      const dataUrl = await optimizeImageFile(file, 1200, 1200, 0.82);
+      setProdImage(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa dhacay');
+    } finally {
+      setIsOptimizingMain(false);
+    }
+  };
+
+  const handleExtraImagesFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setIsOptimizingExtra(true);
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await optimizeImageFile(file, 1200, 1200, 0.82);
+          newUrls.push(dataUrl);
+        }
+      }
+      setProdExtraList((prev) => [...prev, ...newUrls]);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa ka dhacay soo gelinta sawirrada');
+    } finally {
+      setIsOptimizingExtra(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDropExtraImages = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    try {
+      setIsOptimizingExtra(true);
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await optimizeImageFile(file, 1200, 1200, 0.82);
+          newUrls.push(dataUrl);
+        }
+      }
+      setProdExtraList((prev) => [...prev, ...newUrls]);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa dhacay');
+    } finally {
+      setIsOptimizingExtra(false);
+    }
+  };
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingLogo(true);
+      const dataUrl = await optimizeImageFile(file, 400, 400, 0.85);
+      setLogoUrl(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa dhacay');
+    } finally {
+      setIsOptimizingLogo(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleBannerFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingBanner(true);
+      const dataUrl = await optimizeImageFile(file, 1600, 600, 0.85);
+      setBannerUrl(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa dhacay');
+    } finally {
+      setIsOptimizingBanner(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const [prodDescription, setProdDescription] = useState('');
   const [prodColors, setProdColors] = useState('White, Black, Almond Tan, Sage Olive');
   const [prodSizes, setProdSizes] = useState('4 (XXS), 6 (XS), 8 (S), 10 (M), 12/14 (L), 16 (XL), 18 (XXL)');
@@ -172,12 +293,7 @@ export default function StoreBuilderPage() {
     const compareNum = prodComparePrice ? parseFloat(prodComparePrice) : undefined;
     const stockNum = parseInt(prodStock) || 20;
 
-    const extraImagesList = prodExtraImages
-      .split(',')
-      .map((i) => i.trim())
-      .filter(Boolean);
-
-    const allImages = [prodImage, ...extraImagesList].filter(Boolean);
+    const allImages = [prodImage, ...prodExtraList].filter(Boolean);
     const colorsList = prodColors
       .split(',')
       .map((c) => c.trim())
@@ -214,6 +330,14 @@ export default function StoreBuilderPage() {
     setProdComparePrice('');
     setProdStock('50');
     setProdSku(`SZ-${Date.now().toString().slice(-6)}`);
+    setProdImage('https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900');
+    setProdExtraList([
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+      'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900',
+    ]);
+    setCustomExtraUrl('');
+    setShowUrlInputMain(false);
+    setShowUrlInputExtra(false);
     showToast(t('sb_toast_prod_added', '✓ Alaabta cusub si guul leh ayaa loogu daray Stock-gaaga!'));
   };
 
@@ -517,9 +641,30 @@ export default function StoreBuilderPage() {
 
                 {/* Logo input & presets */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold text-slate-300">
-                    {t('sb_label_logo_url')}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-300">
+                      {t('sb_label_logo_url')}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => logoFileRef.current?.click()}
+                      disabled={isOptimizingLogo}
+                      className="px-3 py-1 rounded-xl text-xs font-bold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {isOptimizingLogo ? (
+                        <span className="w-3.5 h-3.5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span>📁 Ka soo xulo Device-ka</span>
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    ref={logoFileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoFile}
+                    className="hidden"
+                  />
                   <input
                     type="url"
                     value={logoUrl}
@@ -550,9 +695,30 @@ export default function StoreBuilderPage() {
 
                 {/* Banner input & presets */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold text-slate-300">
-                    {t('sb_label_banner_url')}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-300">
+                      {t('sb_label_banner_url')}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => bannerFileRef.current?.click()}
+                      disabled={isOptimizingBanner}
+                      className="px-3 py-1 rounded-xl text-xs font-bold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {isOptimizingBanner ? (
+                        <span className="w-3.5 h-3.5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span>📁 Ka soo xulo Device-ka</span>
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    ref={bannerFileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerFile}
+                    className="hidden"
+                  />
                   <input
                     type="url"
                     value={bannerUrl}
@@ -1051,31 +1217,230 @@ export default function StoreBuilderPage() {
               </div>
 
               {/* Main Image */}
-              <div>
-                <label className="block font-bold text-slate-300 mb-1.5">
-                  {t('sb_modal_main_image')}
-                </label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-300 text-sm">
+                    {t('sb_modal_main_image')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInputMain(!showUrlInputMain)}
+                    className="text-xs text-orange-400 hover:text-orange-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🔗</span>
+                    <span>{showUrlInputMain ? 'Xidh Link-ga' : t('sb_modal_or_url')}</span>
+                  </button>
+                </div>
+
+                {/* Hidden input for device main image upload */}
                 <input
-                  type="url"
-                  value={prodImage}
-                  onChange={(e) => setProdImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
+                  ref={mainImageFileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainImageFile}
+                  className="hidden"
                 />
+
+                {prodImage ? (
+                  <div className="relative group rounded-2xl border border-slate-700 bg-slate-900/90 p-3.5 flex items-center gap-4 transition-all hover:border-slate-600">
+                    <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex-shrink-0 shadow-inner">
+                      <img
+                        src={prodImage}
+                        alt="Main preview"
+                        className="w-full h-full object-cover"
+                      />
+                      {isOptimizingMain && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                          ★ Sawirka Weyn (Main Cover)
+                        </span>
+                        {prodImage.startsWith('data:') && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            📱 Device-kaaga
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate font-mono">
+                        {prodImage.startsWith('data:') ? 'Sawir toos ah oo laga soo xulay device-kaaga (Ready)' : prodImage}
+                      </p>
+
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => mainImageFileRef.current?.click()}
+                          disabled={isOptimizingMain}
+                          className="px-3 py-1 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <span>📁</span>
+                          <span>{t('sb_modal_change_img')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProdImage('')}
+                          className="px-3 py-1 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <span>🗑️</span>
+                          <span>{t('sb_modal_remove_img')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => mainImageFileRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDropMainImage}
+                    className="border-2 border-dashed border-slate-700 hover:border-orange-500/80 rounded-2xl p-6 bg-slate-900/60 hover:bg-slate-900 transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 group shadow-inner"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center text-xl border border-orange-500/20 group-hover:scale-110 group-hover:bg-orange-500/20 transition-transform">
+                      {isOptimizingMain ? (
+                        <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        '📷'
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">
+                        {isOptimizingMain ? t('sb_modal_processing_img') : t('sb_modal_upload_drag_drop')}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        Taleefanka (Camera / Gallery) ama Computer-ka · PNG, JPG, WEBP
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional direct URL input */}
+                {showUrlInputMain && (
+                  <div className="pt-2">
+                    <input
+                      type="url"
+                      value={prodImage}
+                      onChange={(e) => setProdImage(e.target.value)}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Extra Images */}
-              <div>
-                <label className="block font-bold text-slate-300 mb-1.5">
-                  {t('sb_modal_extra_images')}
-                </label>
+              {/* Extra Images (Gallery) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block font-bold text-slate-300 text-sm">
+                      {t('sb_modal_extra_images')}
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Sawirro dheeraad ah oo qofku arkayo markuu badeecada rog-rogo ({prodExtraList.length} sawir)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInputExtra(!showUrlInputExtra)}
+                    className="text-xs text-orange-400 hover:text-orange-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🔗</span>
+                    <span>{showUrlInputExtra ? 'Xidh' : '+ Ku dar Link'}</span>
+                  </button>
+                </div>
+
+                {/* Hidden input for device extra images upload */}
                 <input
-                  type="text"
-                  value={prodExtraImages}
-                  onChange={(e) => setProdExtraImages(e.target.value)}
-                  placeholder="https://image1.jpg, https://image2.jpg"
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none"
+                  ref={extraImagesFileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleExtraImagesFile}
+                  className="hidden"
                 />
+
+                {/* Thumbnails grid */}
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDropExtraImages}
+                  className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800"
+                >
+                  {prodExtraList.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group aspect-square rounded-xl overflow-hidden bg-slate-950 border border-slate-700 shadow-md"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Extra ${idx + 1}`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-end p-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setProdExtraList(prodExtraList.filter((_, i) => i !== idx))}
+                          className="w-6 h-6 rounded-lg bg-rose-600/90 hover:bg-rose-500 text-white text-xs font-bold flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer"
+                          title="Tirtir sawirkan"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/70 text-slate-300">
+                        #{idx + 1}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Add button tile in grid */}
+                  <button
+                    type="button"
+                    onClick={() => extraImagesFileRef.current?.click()}
+                    disabled={isOptimizingExtra}
+                    className="aspect-square rounded-xl border-2 border-dashed border-slate-700 hover:border-orange-500/80 bg-slate-900/50 hover:bg-slate-900 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-orange-400 transition-all cursor-pointer group"
+                  >
+                    {isOptimizingExtra ? (
+                      <span className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center text-sm font-bold group-hover:scale-110 transition-transform">
+                          +
+                        </div>
+                        <span className="text-[10px] font-bold text-center px-1 leading-tight">
+                          Ka soo xulo Device-ka
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Optional direct URL input for extra images */}
+                {showUrlInputExtra && (
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="url"
+                      value={customExtraUrl}
+                      onChange={(e) => setCustomExtraUrl(e.target.value)}
+                      placeholder="Geli link-ga sawirka: https://image.jpg"
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customExtraUrl.trim()) {
+                          setProdExtraList([...prodExtraList, customExtraUrl.trim()]);
+                          setCustomExtraUrl('');
+                        }
+                      }}
+                      disabled={!customExtraUrl.trim()}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors cursor-pointer"
+                    >
+                      + Ku Dar
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* SHEIN Multi-Colors */}
