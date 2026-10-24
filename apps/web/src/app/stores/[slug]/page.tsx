@@ -60,6 +60,16 @@ export default function StorefrontPage({ params }: Props) {
     <main className="min-h-screen bg-slate-100/70 text-slate-800">
       <Navbar />
 
+      {/* Pending verification alert banner */}
+      {!store.isVerified && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-900 px-4 py-3 text-xs sm:text-sm font-medium flex items-center justify-center gap-2 text-center">
+          <span className="text-base">⏳</span>
+          <span>
+            <strong>Xaaladda Meheradda:</strong> Dukaankani wuxuu ku jiraa dib-u-eegista iyo sugitaanka xaqiijinta maamulka (Pending Admin Verification). Marka la xaqiijiyo ayay alaabtiisu u muuqan doontaa dhammaan users-ka DukaamiOnline.
+          </span>
+        </div>
+      )}
+
       {/* Store Hero Banner */}
       <div className="relative overflow-hidden bg-slate-900 text-white min-h-[260px] sm:min-h-[300px]">
         {/* Cover Photo */}
@@ -81,13 +91,17 @@ export default function StorefrontPage({ params }: Props) {
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover border-4 border-orange-500 bg-slate-900 shadow-2xl flex-shrink-0"
               />
               <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-black text-white font-display truncate">
                     {store.businessName}
                   </h1>
-                  {store.isVerified && (
+                  {store.isVerified ? (
                     <span className="bg-emerald-500/90 text-white font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                      ✓ Verified
+                      ✓ Verified Store
+                    </span>
+                  ) : (
+                    <span className="bg-amber-400 text-slate-950 font-bold text-[10px] px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                      ⏳ Sugaya Xaqiijin (Pending)
                     </span>
                   )}
                 </div>

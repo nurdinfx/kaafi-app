@@ -76,11 +76,14 @@ export interface MerchantStore {
 
 interface StoreContextType {
   stores: MerchantStore[];
+  verifiedStores: MerchantStore[];
+  pendingStores: MerchantStore[];
   currentMerchantStore: MerchantStore | null;
   setCurrentMerchantStore: (store: MerchantStore | null) => void;
   createStore: (storeData: Partial<MerchantStore>) => MerchantStore;
   updateStore: (slug: string, updates: Partial<MerchantStore>) => void;
   getStoreBySlug: (slug: string) => MerchantStore | undefined;
+  refreshStores: () => Promise<void>;
   addStoreCategory: (slug: string, categoryName: string) => void;
   deleteStoreCategory: (slug: string, categoryName: string) => void;
   addProductToStore: (
@@ -103,35 +106,46 @@ export const INITIAL_STORES: MerchantStore[] = [];
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'kaafi_merchant_stores_clean_v1';
+const STORAGE_KEY = 'kaafi_merchant_stores_clean_v2';
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [stores, setStores] = useState<MerchantStore[]>([]);
   const [currentMerchantStore, setCurrentMerchantStore] = useState<MerchantStore | null>(null);
   const [liveProducts, setLiveProducts] = useState<StoreProduct[]>([]);
 
-  useEffect(() => {
+  const loadBackendStoresAndListings = async () => {
     try {
-      ['kaafi_merchant_stores_v7', 'kaafi_merchant_stores_v6', 'kaafi_merchant_stores_v5'].forEach((k) => {
-        localStorage.removeItem(k);
-      });
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const clean = parsed.filter((s: any) => s.id !== 'store-shein' && s.id !== 'store-hilaac' && !s.id.startsWith('shein-'));
-          setStores(clean);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load stores from localStorage', e);
-    }
-
-    import('../lib/api').then(({ api }) => {
-      api.getListings({ limit: 100 })
-        .then((res) => {
-          if (res && res.success && Array.isArray(res.data)) {
-            const mapped: StoreProduct[] = res.data.map((l: any) => {
+      const { api } = await import('../lib/api');
+      
+      // 1. Fetch public/all stores from backend database
+      const dbStores = await api.getStores({ includeUnverified: true });
+      if (Array.isArray(dbStores)) {
+        if (dbStores.length === 0) {
+          // Database was cleared / reset: remove all local stores
+          setStores([]);
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch {}
+        } else {
+          const mappedStores: MerchantStore[] = dbStores.map((bs: any) => ({
+            id: bs.id,
+            slug: bs.slug,
+            businessName: bs.businessName,
+            tagline: bs.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
+            bio: bs.description || 'Ku soo dhowow meheraddeena rasmiga ah.',
+            logoUrl: bs.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+            bannerUrl: bs.coverImageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
+            themeColor: '#ea580c',
+            city: bs.city || 'Garoowe',
+            district: bs.landmarkAddress || '',
+            whatsappNumber: bs.whatsappNumber || '+252907000000',
+            phone: bs.phone || '+252907000000',
+            isVerified: !!bs.isVerified,
+            rating: bs.rating || 5.0,
+            reviewsCount: bs.totalReviews || 0,
+            createdDate: bs.createdAt ? new Date(bs.createdAt).toISOString().split('T')[0] : '2026-01-01',
+            categories: ['Guud', 'Women Clothing', 'New In', 'Best Sellers'],
+            products: (bs.listings || []).map((l: any) => {
               const images = (l.media && l.media.length > 0)
                 ? l.media.map((m: any) => m.url)
                 : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
@@ -147,20 +161,83 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
                 description: l.description || '',
                 condition: l.condition || 'NEW',
-                storeSlug: l.business?.slug || 'admin-store',
-                storeName: l.business?.businessName || 'DukaamiOnline Official',
+                storeSlug: bs.slug,
+                storeName: bs.businessName,
                 isPopular: true,
                 isFeatured: true,
                 rating: 5.0,
                 reviewsCount: 0,
                 reviews: [],
               };
-            });
-            setLiveProducts(mapped);
-          }
-        })
-        .catch(() => {});
-    });
+            }),
+          }));
+
+          setStores(mappedStores);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedStores));
+          } catch {}
+        }
+      }
+
+      // 2. Fetch all public listings for marketplace feed
+      const res = await api.getListings({ limit: 100 });
+      if (res && res.success && Array.isArray(res.data)) {
+        const mapped: StoreProduct[] = res.data.map((l: any) => {
+          const images = (l.media && l.media.length > 0)
+            ? l.media.map((m: any) => m.url)
+            : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
+          return {
+            id: l.id,
+            title: l.title,
+            price: l.price,
+            compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
+            discountPercent: 15,
+            images,
+            category: l.category?.name || 'Guud',
+            stockQuantity: l.inventoryCount ?? 1,
+            sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
+            description: l.description || '',
+            condition: l.condition || 'NEW',
+            storeSlug: l.business?.slug || 'admin-store',
+            storeName: l.business?.businessName || 'DukaamiOnline Official',
+            isPopular: true,
+            isFeatured: true,
+            rating: 5.0,
+            reviewsCount: 0,
+            reviews: [],
+          };
+        });
+        setLiveProducts(mapped);
+      } else {
+        setLiveProducts([]);
+      }
+    } catch (e) {
+      console.warn('Backend store/listing sync:', e);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      [
+        'kaafi_merchant_stores_clean_v1',
+        'kaafi_merchant_stores_v7',
+        'kaafi_merchant_stores_v6',
+        'kaafi_merchant_stores_v5',
+      ].forEach((k) => {
+        localStorage.removeItem(k);
+      });
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setStores(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load stores from localStorage', e);
+    }
+
+    loadBackendStoresAndListings();
   }, []);
 
   const saveStores = (updated: MerchantStore[]) => {
@@ -184,7 +261,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ).replace(/[^a-z0-9-]/g, '');
 
     const newStore: MerchantStore = {
-      id: `store-${Date.now()}`,
+      id: storeData.id || `store-${Date.now()}`,
       slug,
       businessName: storeData.businessName || 'Meherad Cusub',
       tagline: storeData.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
@@ -200,7 +277,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       district: storeData.district || 'Suuqa Sare',
       whatsappNumber: storeData.whatsappNumber || '+252907000000',
       phone: storeData.phone || '+252907000000',
-      isVerified: true,
+      isVerified: false, // CRITICAL: Store is UNVERIFIED/PENDING by default until Admin verifies it!
       rating: 5.0,
       reviewsCount: 1,
       createdDate: new Date().toISOString().split('T')[0],
@@ -211,9 +288,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       products: storeData.products || [],
     };
 
-    const updated = [newStore, ...stores];
+    const updated = [newStore, ...stores.filter((s) => s.slug !== slug)];
     saveStores(updated);
     setCurrentMerchantStore(newStore);
+
+    // Call backend API asynchronously to persist store and register verification request
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('hudisoft_token');
+      if (token) {
+        import('../lib/api').then(({ api }) => {
+          api.createBusinessStore({
+            businessName: newStore.businessName,
+            slug: newStore.slug,
+            tagline: newStore.tagline,
+            description: newStore.bio,
+            logoUrl: newStore.logoUrl,
+            coverImageUrl: newStore.bannerUrl,
+            phone: newStore.phone,
+            whatsappNumber: newStore.whatsappNumber,
+            city: newStore.city,
+            district: newStore.district,
+          }, token)
+          .then((res) => {
+            if (res && res.success && res.data) {
+              // Update id from backend if available
+              setStores((curr) =>
+                curr.map((s) => (s.slug === slug ? { ...s, id: res.data.id } : s))
+              );
+            }
+          })
+          .catch((err) => console.warn('Could not sync store creation to backend:', err));
+        });
+      }
+    }
+
     return newStore;
   };
 
@@ -318,6 +426,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
 
     saveStores(updated);
+
+    // Call backend API asynchronously to create persistent Listing record
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('hudisoft_token');
+      if (token && targetStore) {
+        import('../lib/api').then(({ api }) => {
+          api.createListing({
+            title: newProduct.title,
+            description: newProduct.description,
+            price: newProduct.price,
+            currency: 'USD',
+            categoryId: newProduct.category || 'Women Clothing',
+            verticalType: 'PRODUCT',
+            condition: newProduct.condition || 'NEW',
+            inventoryCount: newProduct.stockQuantity || 1,
+            mediaUrls: newProduct.images,
+            businessId: targetStore.id.startsWith('store-') ? undefined : targetStore.id,
+            city: targetStore.city || 'Garoowe',
+          }, token)
+          .then((res) => {
+            if (res && res.success && res.data) {
+              setStores((curr) =>
+                curr.map((s) => (s.slug === slug ? {
+                  ...s,
+                  products: s.products.map((p) => p.id === newProduct.id ? { ...p, id: res.data.id } : p)
+                } : s))
+              );
+            }
+          })
+          .catch((err) => console.warn('Could not sync product listing to backend:', err));
+        });
+      }
+    }
+
     return newProduct;
   };
 
@@ -430,8 +572,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Aggregated all products from real database and merchant stores
-  const storeProducts = stores.flatMap((s) => s.products);
-  const allProducts = [...liveProducts, ...storeProducts];
+  // Only products from VERIFIED stores appear in global marketplace feeds
+  const verifiedStores = stores.filter((s) => s.isVerified);
+  const pendingStores = stores.filter((s) => !s.isVerified);
+  const verifiedStoreProducts = verifiedStores.flatMap((s) => s.products);
+  const allProducts = [...liveProducts, ...verifiedStoreProducts];
   const popularProducts = allProducts.filter((p) => p.isPopular || (p.rating && p.rating >= 4.7));
   const essentialProducts = allProducts.filter(
     (p) => p.category === 'Phone Essentials' || (p.discountPercent && p.discountPercent >= 30)
@@ -441,11 +586,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     <StoreContext.Provider
       value={{
         stores,
+        verifiedStores,
+        pendingStores,
         currentMerchantStore,
         setCurrentMerchantStore,
         createStore,
         updateStore,
         getStoreBySlug,
+        refreshStores: loadBackendStoresAndListings,
         addStoreCategory,
         deleteStoreCategory,
         addProductToStore,

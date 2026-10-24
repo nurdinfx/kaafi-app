@@ -207,6 +207,27 @@ class ApiService {
   }
 
   // ─────────────────────────────────────────────────────────────
+  // STORES (VERIFIED ONLY FOR PUBLIC BROWSING)
+  // ─────────────────────────────────────────────────────────────
+  Future<List<Map<String, dynamic>>> getStores({String? city, String? search}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (city != null && city.isNotEmpty && city != 'ALL') queryParams['city'] = city;
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      final uri = Uri.parse('$baseUrl/stores').replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+      final res = await http.get(uri, headers: _headers()).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final list = (data['data'] ?? data) as List;
+        return list.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+    } catch (e) {
+      debugPrint('ApiService getStores error: $e');
+    }
+    return [];
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // CURRENT USER
   // ─────────────────────────────────────────────────────────────
   Future<UserModel?> getCurrentUser() async {

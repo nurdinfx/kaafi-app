@@ -7,11 +7,11 @@ import Footer from '../../components/Footer';
 import { useStore } from '../../context/StoreContext';
 
 export default function StoresDirectoryPage() {
-  const { stores } = useStore();
+  const { verifiedStores } = useStore();
   const [filterCity, setFilterCity] = useState('ALL');
   const [search, setSearch] = useState('');
 
-  const filteredStores = stores.filter((s) => {
+  const filteredStores = verifiedStores.filter((s) => {
     const matchCity = filterCity === 'ALL' || s.city.toLowerCase() === filterCity.toLowerCase();
     const matchSearch =
       !search.trim() ||
@@ -86,14 +86,35 @@ export default function StoresDirectoryPage() {
           </div>
         </div>
 
-        {/* Stores Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {filteredStores.map((store) => (
-            <Link
-              key={store.id}
-              href={`/stores/${store.slug}`}
-              className="group relative rounded-3xl overflow-hidden bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-300 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
-            >
+        {/* Stores Grid or Empty Notice */}
+        {filteredStores.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-center text-3xl">
+              🏬
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 font-display">
+              Wali ma jiraan meherado la xaqiijiyay
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Dukaamada cusub waxay sugayaan dib-u-eegista iyo oggolaanshaha maamulka (Admin Verification). Marka la xaqiijiyo, waxay si toos ah uga soo muuqan doonaan halkan.
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/seller/store-builder"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-orange-500 hover:bg-orange-600 shadow-md transition-colors"
+              >
+                <span>✨ Fur Store-kaaga Hadda</span>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {filteredStores.map((store) => (
+              <Link
+                key={store.id}
+                href={`/stores/${store.slug}`}
+                className="group relative rounded-3xl overflow-hidden bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-300 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+              >
               {/* Cover Banner */}
               <div className="relative h-36 w-full overflow-hidden bg-slate-800">
                 <img
@@ -155,7 +176,8 @@ export default function StoresDirectoryPage() {
               </div>
             </Link>
           ))}
-        </div>
+          </div>
+        )}
 
       </div>
 

@@ -33,14 +33,77 @@ export const getStoreBySlug = async (req: Request, res: Response, next: NextFunc
 
     res.json({
       success: true,
-      data: store,
+      data: {
+        ...store,
+        isPendingVerification: !store.isVerified,
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Create Business Store
+// Public: Get all stores with verification filter
+export const getAllStores = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { search, city, verified, includeUnverified } = req.query;
+
+    const where: any = {};
+
+    // Default for public directory: only VERIFIED stores are public
+    if (includeUnverified === 'true') {
+      // allow all
+    } else if (verified === 'false') {
+      where.isVerified = false;
+    } else if (verified === 'all') {
+      // allow all
+    } else {
+      where.isVerified = true;
+    }
+
+    if (search) {
+      const q = String(search).trim();
+      where.OR = [
+        { businessName: { contains: q } },
+        { tagline: { contains: q } },
+        { description: { contains: q } },
+      ];
+    }
+
+    if (city && city !== 'ALL') {
+      where.city = { contains: String(city) };
+    }
+
+    const stores = await prisma.businessProfile.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
+        branches: { where: { isActive: true } },
+        listings: {
+          where: { status: 'ACTIVE' },
+          include: {
+            media: { take: 4, orderBy: { sortOrder: 'asc' } },
+            category: { select: { id: true, name: true, slug: true } },
+          },
+          take: 50,
+        },
+        _count: {
+          select: { listings: true },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: stores,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Create or Update Business Store with Pending Verification
 export const createBusinessStore = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
@@ -49,6 +112,7 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
 
     const {
       businessName,
+      slug: customSlug,
       tagline,
       description,
       logoUrl,
@@ -65,14 +129,15 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
       throw new AppError('Business name is required.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    const baseSlug = businessName
+    const baseSlug = (customSlug || businessName)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
     const slug = `${baseSlug}-${Math.floor(100 + Math.random() * 900)}`;
 
-    const store = await prisma.businessProfile.create({
-      data: {
+    const store = await prisma.businessProfile.upsert({
+      where: { ownerId: req.user.id },
+      create: {
         ownerId: req.user.id,
         businessName,
         slug,
@@ -86,8 +151,45 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
         landmarkAddress: landmarkAddress || null,
         openingHours: openingHours || 'Sat-Thu: 8:00 AM - 9:00 PM',
         licenseNumber: licenseNumber || null,
+        isVerified: false, // Must wait for admin verification before becoming public
+      },
+      update: {
+        businessName,
+        tagline: tagline || undefined,
+        description: description || undefined,
+        logoUrl: logoUrl || undefined,
+        coverImageUrl: coverImageUrl || undefined,
+        phone: phone || undefined,
+        whatsappNumber: whatsappNumber || undefined,
+        city: city || undefined,
+        landmarkAddress: landmarkAddress || undefined,
+        openingHours: openingHours || undefined,
+        licenseNumber: licenseNumber || undefined,
+        // Keep verification pending upon updates until approved
       },
     });
+
+    // Automatically trigger verification request for admin review
+    const existingReq = await prisma.verificationRequest.findFirst({
+      where: {
+        targetId: store.id,
+        targetType: 'BUSINESS',
+        status: 'PENDING',
+      },
+    });
+
+    if (!existingReq) {
+      await prisma.verificationRequest.create({
+        data: {
+          userId: req.user.id,
+          targetType: 'BUSINESS',
+          targetId: store.id,
+          documentType: 'BUSINESS_STORE',
+          documentUrl: logoUrl || coverImageUrl || 'STORE_REQUEST',
+          status: 'PENDING',
+        },
+      });
+    }
 
     // Ensure user has BUSINESS_SELLER role
     const businessRole = await prisma.role.findUnique({ where: { name: 'BUSINESS_SELLER' } });
@@ -109,10 +211,10 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
 
     await logAuditEvent({
       userId: req.user.id,
-      action: 'STORE_CREATED',
+      action: 'STORE_CREATED_PENDING_VERIFICATION',
       entityType: 'BUSINESS',
       entityId: store.id,
-      details: { businessName: store.businessName, slug: store.slug },
+      details: { businessName: store.businessName, slug: store.slug, isVerified: false },
     });
 
     res.status(201).json({

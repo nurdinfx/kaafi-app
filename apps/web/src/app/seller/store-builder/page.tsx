@@ -259,7 +259,8 @@ export default function StoreBuilderPage() {
         district: district.trim(),
       });
       setSelectedStoreSlug(newStore.slug);
-      showToast(t('sb_toast_created', '🎉 Hambalyo! Meheraddaada cusub waa la sameeyay!'));
+      // Store is PENDING verification - admin must approve before it becomes public
+      showToast('⏳ Meheraddaadu waa la sameeyay! Waxay sugaysaa oggolaanshaha adminku. Kadib buu store-kaagu public noqon doonaa.');
     }
   };
 
@@ -385,16 +386,37 @@ export default function StoreBuilderPage() {
 
             {/* Storefront Link Button */}
             {currentStore && (
-              <div className="flex items-center gap-3">
-                <Link
-                  href={`/stores/${currentStore.slug}`}
-                  target="_blank"
-                  className="px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-xl shadow-orange-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2 border border-orange-400/30"
-                >
-                  <span>👁️</span>
-                  <span>{t('sb_btn_view_storefront')}</span>
-                  <span className="text-orange-200">↗</span>
-                </Link>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Verification status badge */}
+                {currentStore.isVerified ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    ✓ Xaqiijisan (Verified)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-bold animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    ⏳ Sugitaan — Admin wuu xaqiijin doonaa
+                  </span>
+                )}
+
+                {/* Only show public storefront link if verified */}
+                {currentStore.isVerified ? (
+                  <Link
+                    href={`/stores/${currentStore.slug}`}
+                    target="_blank"
+                    className="px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 shadow-xl shadow-orange-500/25 transition-all hover:-translate-y-0.5 flex items-center gap-2 border border-orange-400/30"
+                  >
+                    <span>👁️</span>
+                    <span>{t('sb_btn_view_storefront')}</span>
+                    <span className="text-orange-200">↗</span>
+                  </Link>
+                ) : (
+                  <span className="px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm text-slate-500 bg-slate-800/60 border border-slate-700 cursor-not-allowed flex items-center gap-2">
+                    <span>🔒</span>
+                    <span>Dalbaday Xaqiijin — Wali Ma Furan</span>
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -81,6 +81,21 @@ export const getListings = async (req: Request, res: Response, next: NextFunctio
       where.sellerId = String(sellerId);
     }
 
+    // Global public visibility rule:
+    // Listings associated with a business MUST have a VERIFIED business (isVerified: true) to be public.
+    // Dhamaan users-ka (xataa kuwa aan lahayn store) waxay arki karaan kaliya alaabta meheradaha la xaqiijiyay ama dadka caadiga ah.
+    if (req.query.includeUnverified !== 'true') {
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { businessId: null },
+            { business: { isVerified: true } },
+          ],
+        },
+      ];
+    }
+
     const [total, listings] = await Promise.all([
       prisma.listing.count({ where }),
       prisma.listing.findMany({
@@ -262,11 +277,22 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
       slug = `${baseSlug}-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}-${counter++}`;
     }
 
+    // Resolve businessId: if not provided explicitly, auto-link to user's registered businessProfile
+    let resolvedBusinessId = businessId || null;
+    if (!resolvedBusinessId) {
+      const userBusiness = await prisma.businessProfile.findUnique({
+        where: { ownerId: req.user.id },
+      });
+      if (userBusiness) {
+        resolvedBusinessId = userBusiness.id;
+      }
+    }
+
     // Create listing in database atomically
     const listing = await prisma.listing.create({
       data: {
         sellerId: req.user.id,
-        businessId: businessId || null,
+        businessId: resolvedBusinessId,
         branchId: branchId || null,
         categoryId: category.id,
         verticalType: category.verticalType,

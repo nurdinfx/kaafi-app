@@ -685,6 +685,21 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
       },
     });
 
+    // Also update any pending verification requests for this store
+    if (isVerified !== undefined) {
+      await prisma.verificationRequest.updateMany({
+        where: {
+          targetId: id,
+          targetType: 'BUSINESS',
+          status: 'PENDING',
+        },
+        data: {
+          status: isVerified ? 'APPROVED' : 'REJECTED',
+          reviewedAt: new Date(),
+        },
+      });
+    }
+
     // If isActive is toggled, update owner active status (affecting login & visibility)
     if (isActive !== undefined) {
       await prisma.user.update({

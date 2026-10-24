@@ -1652,6 +1652,71 @@ export default function SuperAdminPortal() {
           ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'STORES' && (
             <div className="space-y-4">
+
+              {/* ── PENDING VERIFICATION ALERT BANNER ── */}
+              {stores.filter((s: any) => !s.isVerified).length > 0 && (
+                <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-lg flex-shrink-0">
+                      ⏳
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-amber-400">
+                        Meherado Sugaya Oggolaanshaha — Pending Store Verification
+                      </h3>
+                      <p className="text-[11px] text-amber-400/70">
+                        {stores.filter((s: any) => !s.isVerified).length} store(s) waxay xoog ku sugayaan inaad xaqiijiso si ay dadka ugu muuqdaan.
+                      </p>
+                    </div>
+                    <div className="ml-auto">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        {stores.filter((s: any) => !s.isVerified).length} Pending
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {stores.filter((s: any) => !s.isVerified).map((st: any) => {
+                      const isProcessing = actionInProgress === st.id;
+                      return (
+                        <div key={st.id} className="p-4 rounded-xl bg-[#0d1627] border border-amber-500/20 hover:border-amber-500/40 transition-all">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-white text-sm overflow-hidden flex-shrink-0">
+                              {st.logoUrl ? (
+                                <img src={st.logoUrl} alt={st.businessName} className="w-full h-full object-cover" />
+                              ) : (
+                                st.businessName.charAt(0)
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-white text-xs truncate">{st.businessName}</div>
+                              <div className="text-[10px] font-mono text-amber-400">/{st.slug}</div>
+                              <div className="text-[10px] text-slate-400 truncate">{st.owner?.fullName} · {st.owner?.phoneNumber}</div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleToggleStoreVerification(st.id, false)}
+                              disabled={isProcessing}
+                              className="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30 disabled:opacity-50"
+                            >
+                              {isProcessing ? '⏳' : '✓ Ogolow (Verify)'}
+                            </button>
+                            <button
+                              onClick={() => handleToggleStoreActive(st.id, st.owner?.isActive !== false)}
+                              disabled={isProcessing}
+                              className="px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-rose-600/15 text-rose-400 border-rose-500/25 hover:bg-rose-600/25 disabled:opacity-50"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 rounded-2xl bg-[#0d1627] border border-slate-800 flex flex-wrap gap-3 items-center justify-between">
                 <div className="flex flex-wrap gap-2 items-center">
                   <input

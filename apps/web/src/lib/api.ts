@@ -378,14 +378,32 @@ export const api = {
   },
 
   // ── Stores ───────────────────────────────────────────────────────────────────
+  async getStores(params: { search?: string; city?: string; includeUnverified?: boolean; verified?: string } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
+      });
+      const res = await fetch(`${API_URL}/stores?${query}`, { next: { revalidate: 30 } });
+      const json = await res.json();
+      return json.success ? json.data : [];
+    } catch {
+      return [];
+    }
+  },
+
   async getStore(slug: string) {
     try {
-      const res = await fetch(`${API_URL}/stores/${slug}`, { next: { revalidate: 120 } });
+      const res = await fetch(`${API_URL}/stores/${slug}`, { next: { revalidate: 60 } });
       const json = await res.json();
       return json.success ? json.data : null;
     } catch {
       return null;
     }
+  },
+
+  async getStoreBySlug(slug: string) {
+    return this.getStore(slug);
   },
 
   // ── Buyer Requests ────────────────────────────────────────────────────────────
@@ -677,10 +695,21 @@ export const api = {
   // ── Stores & Business ─────────────────────────────────────────────────────────
   async createBusinessStore(data: {
     businessName: string;
+    slug?: string;
+    tagline?: string;
     description?: string;
-    city?: string;
-    landmark?: string;
+    logoUrl?: string;
+    coverImageUrl?: string;
+    bannerUrl?: string;
+    themeColor?: string;
+    phone?: string;
     whatsappNumber?: string;
+    city?: string;
+    district?: string;
+    landmark?: string;
+    landmarkAddress?: string;
+    openingHours?: string;
+    licenseNumber?: string;
   }, token: string) {
     const res = await fetch(`${API_URL}/stores`, {
       method: 'POST',
@@ -718,7 +747,6 @@ export const api = {
     return res.json();
   },
 
-  // ── Admin Control Center ──────────────────────────────────────────────────────
   async getAdminAnalytics(token: string) {
     try {
       const res = await fetch(`${API_URL}/admin/analytics`, {
