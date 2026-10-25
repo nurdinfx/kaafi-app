@@ -613,6 +613,71 @@ export default function StoreBuilderPage() {
           </div>
         )}
 
+        {/* Store Verification & Public Visibility Status Card */}
+        {currentStore && selectedStoreSlug !== 'new' && (
+          <div
+            className={`mb-8 p-5 rounded-3xl border transition-all ${
+              currentStore.isVerified
+                ? 'bg-emerald-950/30 border-emerald-500/40 shadow-xl shadow-emerald-500/5'
+                : 'bg-amber-950/25 border-amber-500/40 shadow-xl shadow-amber-500/5'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border ${
+                    currentStore.isVerified
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : 'bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse'
+                  }`}
+                >
+                  {currentStore.isVerified ? '✓' : '⏳'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span
+                      className={`text-xs font-black uppercase px-2.5 py-0.5 rounded-full font-mono border ${
+                        currentStore.isVerified
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      }`}
+                    >
+                      {currentStore.isVerified ? 'VERIFIED STORE — LIVE & PUBLIC' : 'PENDING APPROVAL — PRIVATE PREVIEW ONLY'}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">/{currentStore.slug}</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white font-display">
+                    {currentStore.isVerified
+                      ? `Meheradda "${currentStore.businessName}" waa mid Public ah oo Shahaado Leh`
+                      : `Meheradda "${currentStore.businessName}" waxay Sugaysaa Xaqiijinta Maamulka`}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    {currentStore.isVerified
+                      ? 'Store-kaagu wuxuu si toos ah uga muuqdaa suuqa guud, liiska meheradaha, iyo natiijooyinka raadinta. Macaamiishu way arki karaan alaabtaada.'
+                      : 'Dadweynuhu ma arki karaan store-kaaga ama alaabtiisa ilaa Admin-ku ka xaqiijiyo (Admin Verification). Adigu waad sii maamuli kartaa alaabtaada oo aad eegi kartaa Preview-ga gaarka ah.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0 sm:self-center">
+                <a
+                  href={`/stores/${currentStore.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md ${
+                    currentStore.isVerified
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                      : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                  }`}
+                >
+                  <span>{currentStore.isVerified ? '🌐 Booqo Store-ka Live' : '👁️ Daawo Private Preview'}</span>
+                  <span>↗</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── TAB NAVIGATION (TRANSLATED) ── */}
         <div className="flex border-b border-slate-800 mb-8 space-x-4 sm:space-x-8 text-sm font-bold overflow-x-auto">
           <button

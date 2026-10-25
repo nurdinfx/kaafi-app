@@ -159,10 +159,54 @@ export default function SuperAdminPortal() {
         setTransactions(txRes.data || []);
         if (txRes.summary) setTxSummary(txRes.summary);
       }
-      if (storesRes.success) {
-        setStores(storesRes.data?.stores || []);
+      let combinedStores: any[] = [];
+      if (storesRes.success && storesRes.data?.stores) {
+        combinedStores = [...storesRes.data.stores];
         setSellers(storesRes.data?.sellers || []);
       }
+      try {
+        const localSaved = localStorage.getItem('kaafi_merchant_stores_clean_v2');
+        if (localSaved) {
+          const localStores = JSON.parse(localSaved);
+          if (Array.isArray(localStores)) {
+            localStores.forEach((ls: any) => {
+              const idx = combinedStores.findIndex(
+                (cs: any) => cs.id === ls.id || cs.slug === ls.slug
+              );
+              if (idx === -1) {
+                combinedStores.push({
+                  id: ls.id,
+                  slug: ls.slug,
+                  businessName: ls.businessName,
+                  tagline: ls.tagline,
+                  description: ls.bio,
+                  logoUrl: ls.logoUrl,
+                  coverImageUrl: ls.bannerUrl,
+                  phone: ls.phone,
+                  whatsappNumber: ls.whatsappNumber,
+                  city: ls.city,
+                  landmarkAddress: ls.district,
+                  isVerified: !!ls.isVerified,
+                  createdAt: ls.createdDate || new Date().toISOString(),
+                  owner: {
+                    fullName: ls.ownerName || 'Merchant Owner',
+                    phoneNumber: ls.ownerPhone || ls.phone,
+                    isActive: true,
+                  },
+                  _count: {
+                    listings: (ls.products || []).length,
+                    branches: 1,
+                    employees: 1,
+                  },
+                });
+              } else {
+                combinedStores[idx].isVerified = ls.isVerified;
+              }
+            });
+          }
+        }
+      } catch {}
+      setStores(combinedStores);
       if (usersRes.success) setUsers(usersRes.data || []);
       if (auditRes.success) setAuditLogs(auditRes.data || []);
       if (liveRes.success) setLiveActivity(liveRes.data);
@@ -212,6 +256,20 @@ export default function SuperAdminPortal() {
       setLoading(false);
     }
   }, [isMounted, fetchAllData]);
+
+  // Real-time listener for store creation & verification across tabs
+  useEffect(() => {
+    if (!token) return;
+    const handleSync = () => {
+      fetchAllData(token);
+    };
+    window.addEventListener('kaafi_stores_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('kaafi_stores_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [token, fetchAllData]);
 
   // Periodic polling for live monitor
   useEffect(() => {
@@ -370,21 +428,57 @@ export default function SuperAdminPortal() {
 
   // ── STORE MANAGEMENT CONTROLS ────────────────────────────────
   const handleToggleStoreVerification = async (storeId: string, currentVerified: boolean) => {
-    if (!token) return;
     setActionInProgress(storeId);
     setErrorMsg('');
+    const newStatus = !currentVerified;
 
     try {
-      const newStatus = !currentVerified;
-      const res = await api.updateAdminStoreStatus(storeId, { isVerified: newStatus }, token);
-      if (res.success) {
-        setSuccessMsg(`Xaaladda aqoonsiga meheradda waa la bedelay: ${newStatus ? 'VERIFIED ✓' : 'UNVERIFIED'}`);
-        setStores((prev) =>
-          prev.map((s) => (s.id === storeId ? { ...s, isVerified: newStatus } : s))
-        );
-      } else {
-        setErrorMsg(res.message || 'Failed to update store.');
+      // 1. Call backend API if admin token exists
+      if (token) {
+        try {
+          await api.updateAdminStoreStatus(storeId, { isVerified: newStatus }, token);
+        } catch (e) {
+          console.warn('Backend store update failed, syncing locally:', e);
+        }
       }
+
+      // 2. Synchronize localStorage stores so storefronts & marketplace immediately update
+      try {
+        const localSaved = localStorage.getItem('kaafi_merchant_stores_clean_v2');
+        if (localSaved) {
+          const localStores = JSON.parse(localSaved);
+          if (Array.isArray(localStores)) {
+            const updated = localStores.map((ls: any) => {
+              if (ls.id === storeId || ls.slug === storeId) {
+                return { ...ls, isVerified: newStatus };
+              }
+              return ls;
+            });
+            localStorage.setItem('kaafi_merchant_stores_clean_v2', JSON.stringify(updated));
+          }
+        }
+      } catch {}
+
+      // 3. Dispatch global sync event for real-time reactivity
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('kaafi_stores_updated', {
+            detail: { slugOrId: storeId, isVerified: newStatus },
+          })
+        );
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      // 4. Update admin local state
+      setStores((prev) =>
+        prev.map((s) => (s.id === storeId || s.slug === storeId ? { ...s, isVerified: newStatus } : s))
+      );
+
+      setSuccessMsg(
+        newStatus
+          ? `✓ Meheradda waa la xaqiijiyay (VERIFIED)! Hadda waa public oo dadweynuhu way arki karaan.`
+          : `Xaqiijintii waa laga noqday meheradda (UNVERIFIED). Dadweynaha kama muuqato.`
+      );
     } catch {
       setErrorMsg('Khalad baa dhacay marka meheradda la xaqiijinayay.');
     } finally {

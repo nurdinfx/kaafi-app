@@ -72,6 +72,9 @@ export interface MerchantStore {
   rating: number;
   reviewsCount: number;
   createdDate: string;
+  ownerId?: string;
+  ownerName?: string;
+  ownerPhone?: string;
 }
 
 interface StoreContextType {
@@ -82,6 +85,7 @@ interface StoreContextType {
   setCurrentMerchantStore: (store: MerchantStore | null) => void;
   createStore: (storeData: Partial<MerchantStore>) => MerchantStore;
   updateStore: (slug: string, updates: Partial<MerchantStore>) => void;
+  verifyStore: (slugOrId: string, isVerified: boolean) => void;
   getStoreBySlug: (slug: string) => MerchantStore | undefined;
   refreshStores: () => Promise<void>;
   addStoreCategory: (slug: string, categoryName: string) => void;
@@ -238,6 +242,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadBackendStoresAndListings();
+
+    const handleStoresUpdated = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setStores(parsed);
+          }
+        }
+      } catch {}
+    };
+
+    window.addEventListener('kaafi_stores_updated', handleStoresUpdated);
+    window.addEventListener('storage', handleStoresUpdated);
+    return () => {
+      window.removeEventListener('kaafi_stores_updated', handleStoresUpdated);
+      window.removeEventListener('storage', handleStoresUpdated);
+    };
   }, []);
 
   const saveStores = (updated: MerchantStore[]) => {
@@ -260,6 +283,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       `store-${Date.now()}`
     ).replace(/[^a-z0-9-]/g, '');
 
+    let ownerId: string | undefined;
+    let ownerName: string | undefined;
+    let ownerPhone: string | undefined;
+    if (typeof window !== 'undefined') {
+      try {
+        const u = localStorage.getItem('hudisoft_user');
+        if (u) {
+          const parsed = JSON.parse(u);
+          ownerId = parsed.id;
+          ownerName = parsed.fullName;
+          ownerPhone = parsed.phoneNumber;
+        }
+      } catch {}
+    }
+
     const newStore: MerchantStore = {
       id: storeData.id || `store-${Date.now()}`,
       slug,
@@ -276,11 +314,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       city: storeData.city || 'Garoowe',
       district: storeData.district || 'Suuqa Sare',
       whatsappNumber: storeData.whatsappNumber || '+252907000000',
-      phone: storeData.phone || '+252907000000',
+      phone: storeData.phone || ownerPhone || '+252907000000',
       isVerified: false, // CRITICAL: Store is UNVERIFIED/PENDING by default until Admin verifies it!
       rating: 5.0,
       reviewsCount: 1,
       createdDate: new Date().toISOString().split('T')[0],
+      ownerId,
+      ownerName: ownerName || 'Ganacsade',
+      ownerPhone: ownerPhone || storeData.phone,
       categories:
         storeData.categories && storeData.categories.length > 0
           ? storeData.categories
@@ -292,8 +333,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveStores(updated);
     setCurrentMerchantStore(newStore);
 
-    // Call backend API asynchronously to persist store and register verification request
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kaafi_stores_updated'));
       const token = localStorage.getItem('hudisoft_token');
       if (token) {
         import('../lib/api').then(({ api }) => {
@@ -311,7 +352,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }, token)
           .then((res) => {
             if (res && res.success && res.data) {
-              // Update id from backend if available
               setStores((curr) =>
                 curr.map((s) => (s.slug === slug ? { ...s, id: res.data.id } : s))
               );
@@ -325,6 +365,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return newStore;
   };
 
+  const verifyStore = (slugOrId: string, isVerified: boolean) => {
+    const updated = stores.map((s) => {
+      if (s.id === slugOrId || s.slug.toLowerCase() === slugOrId.toLowerCase()) {
+        return { ...s, isVerified };
+      }
+      return s;
+    });
+    saveStores(updated);
+    if (
+      currentMerchantStore &&
+      (currentMerchantStore.id === slugOrId ||
+        currentMerchantStore.slug.toLowerCase() === slugOrId.toLowerCase())
+    ) {
+      setCurrentMerchantStore({ ...currentMerchantStore, isVerified });
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('kaafi_stores_updated', {
+          detail: { slugOrId, isVerified },
+        })
+      );
+      const token = localStorage.getItem('hudisoft_token');
+      const targetStore = stores.find(
+        (s) => s.id === slugOrId || s.slug.toLowerCase() === slugOrId.toLowerCase()
+      );
+      if (token && targetStore) {
+        import('../lib/api').then(({ api }) => {
+          api.updateAdminStoreStatus(targetStore.id, { isVerified }, token).catch(() => {});
+        });
+      }
+    }
+  };
+
   const updateStore = (slug: string, updates: Partial<MerchantStore>) => {
     const updated = stores.map((s) => {
       if (s.slug === slug) {
@@ -335,6 +408,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveStores(updated);
     if (currentMerchantStore?.slug === slug) {
       setCurrentMerchantStore({ ...currentMerchantStore, ...updates });
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kaafi_stores_updated'));
     }
   };
 
@@ -592,6 +668,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setCurrentMerchantStore,
         createStore,
         updateStore,
+        verifyStore,
         getStoreBySlug,
         refreshStores: loadBackendStoresAndListings,
         addStoreCategory,

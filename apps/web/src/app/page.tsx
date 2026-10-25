@@ -28,7 +28,7 @@ const HOME_CATEGORIES = [
 ];
 
 export default function HomePage() {
-  const { stores, popularProducts, essentialProducts } = useStore();
+  const { verifiedStores, popularProducts, essentialProducts } = useStore();
   const { t } = useLanguage();
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
   const [liveCategories, setLiveCategories] = useState<Category[]>([]);
@@ -273,9 +273,9 @@ export default function HomePage() {
           </div>
 
           {/* Stores Grid / Clean Empty State */}
-          {stores.length > 0 ? (
+          {verifiedStores.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {stores.map((store) => (
+              {verifiedStores.map((store) => (
                 <Link
                   key={store.id}
                   href={`/stores/${store.slug}`}
