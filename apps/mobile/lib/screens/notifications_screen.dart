@@ -42,7 +42,7 @@ class NotificationsScreen extends StatelessWidget {
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: notifs.length,
-        separatorBuilder: (_, _) => Divider(
+        separatorBuilder: (_, __) => Divider(
           color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder,
           height: 1,
         ),

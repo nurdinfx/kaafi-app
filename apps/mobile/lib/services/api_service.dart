@@ -228,6 +228,44 @@ class ApiService {
   }
 
   // ─────────────────────────────────────────────────────────────
+  // CREATE STORE
+  // ─────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>?> createStore(Map<String, dynamic> data) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/stores'),
+        headers: _headers(),
+        body: jsonEncode(data),
+      ).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'] ?? body;
+      }
+      debugPrint('ApiService createStore failed: ${res.statusCode} ${res.body}');
+    } catch (e) {
+      debugPrint('ApiService createStore error: $e');
+    }
+    return null;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // GET MY STORE (merchant's own store)
+  // ─────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>?> getMyStore() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/stores/my'), headers: _headers())
+          .timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        return body['data'] ?? body;
+      }
+    } catch (e) {
+      debugPrint('ApiService getMyStore error: $e');
+    }
+    return null;
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // CURRENT USER
   // ─────────────────────────────────────────────────────────────
   Future<UserModel?> getCurrentUser() async {

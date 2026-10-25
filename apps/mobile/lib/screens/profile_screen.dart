@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'create_listing_screen.dart';
 import 'create_request_screen.dart';
+import 'create_store_screen.dart';
 import 'orders_screen.dart';
 import 'stores_screen.dart';
 import 'notifications_screen.dart';
@@ -294,15 +295,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
+            // Auth-aware: show login CTA or My Store management based on auth state
+            if (!ApiService().isAuthenticated) ...[  
+              _buildMenuItem(
+                context,
+                icon: Icons.login_rounded,
+                title: 'Gal / Is-diiwaangeli (Login / Sign Up)',
+                subtitle: 'Gali lambarkaaga Soomaaliya si aad u iibiso ama u dalbato',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+              ),
+            ] else ...[
+              _buildMenuItem(
+                context,
+                icon: Icons.manage_accounts_rounded,
+                title: 'Xisaabtayda (Account)',
+                subtitle: 'Aad u soo gashay — ${ApiService().token?.substring(0, 8) ?? ''}...',
+                onTap: () async {
+                  await ApiService().setToken(null);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Waxaad ka baxday xisaabtaada.')),
+                  );
+                  setState(() {});
+                },
+              ),
+            ],
             _buildMenuItem(
               context,
-              icon: Icons.login_rounded,
-              title: 'Gal / Is-diiwaangeli (Login / Sign Up)',
-              subtitle: 'Gali lambarkaaga Soomaaliya si aad u iibiso ama u dalbato',
+              icon: Icons.store_mall_directory_rounded,
+              title: 'Fur Dukaan Cusub (Open a Store)',
+              subtitle: 'Diiwangeliyo ganacsigaaga — admin xaqiijin ayaa loo baahan',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
-                );
+                if (!ApiService().isAuthenticated) {
+                  // Auth gate: redirect to login first, then to store creation
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AuthScreen(
+                        onSuccess: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CreateStoreScreen(appState: appState),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                } else {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CreateStoreScreen(appState: appState),
+                    ),
+                  );
+                }
               },
             ),
             _buildMenuItem(
@@ -311,6 +360,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Iibi Alaab Cusub (Post Listing)',
               subtitle: 'Kudar baabuur, guri, telefoon ama adeeg',
               onTap: () {
+                if (!ApiService().isAuthenticated) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                  return;
+                }
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => CreateListingScreen(appState: appState)),
                 );
