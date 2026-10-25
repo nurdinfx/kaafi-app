@@ -1,0 +1,78 @@
+services:
+  # ─────────────────────────────────────────────────────────────────
+  # KAAFI API – Express/Prisma Backend
+  # ─────────────────────────────────────────────────────────────────
+  - type: web
+    name: kaafi-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: .
+    buildCommand: >
+      npm install --include=dev &&
+      npm --workspace=services/api run build
+    startCommand: npm --workspace=services/api run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kaafi-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_EXPIRES_IN
+        value: 30d
+      - key: PAYMENT_WEBHOOK_SECRET
+        generateValue: true
+      - key: DEFAULT_COUNTRY
+        value: Somalia
+      - key: DEFAULT_REGION
+        value: Puntland
+      - key: DEFAULT_CITY
+        value: Garoowe
+      - key: SUPPORTED_CURRENCIES
+        value: "USD,SOS"
+      - key: DEFAULT_CURRENCY
+        value: USD
+      - key: DEFAULT_PLATFORM_COMMISSION_PERCENT
+        value: "5.0"
+      - key: DEFAULT_MIN_COMMISSION_USD
+        value: "0.50"
+
+  # ─────────────────────────────────────────────────────────────────
+  # KAAFI WEB – Next.js Frontend
+  # ─────────────────────────────────────────────────────────────────
+  - type: web
+    name: kaafi-app
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: .
+    buildCommand: >
+      npm install --include=dev &&
+      npm --workspace=apps/web run build
+    startCommand: npx next start -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://kaafi-api.onrender.com/api/v1
+
+# ─────────────────────────────────────────────────────────────────
+# MANAGED POSTGRESQL DATABASE
+# ─────────────────────────────────────────────────────────────────
+databases:
+  - name: kaafi-db
+    databaseName: kaafi
+    user: kaafi_admin
+    plan: free
+    region: frankfurt
