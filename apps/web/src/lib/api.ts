@@ -808,6 +808,7 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
+      if (!res.ok) return { success: false, data: [] };
       return await res.json();
     } catch {
       return { success: false, data: [] };
@@ -824,6 +825,7 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
+      if (!res.ok) return { success: false, data: [], summary: { totalVolume: 0, totalCommission: 0, totalCount: 0 }, meta: { total: 0, page: 1, limit: 30 } };
       return await res.json();
     } catch {
       return { success: false, data: [], summary: { totalVolume: 0, totalCommission: 0, totalCount: 0 }, meta: { total: 0, page: 1, limit: 30 } };
@@ -835,12 +837,17 @@ export const api = {
     data: { status?: string; notes?: string; releaseEscrow?: boolean; refundBuyer?: boolean },
     token: string
   ) {
-    const res = await fetch(`${API_URL}/admin/transactions/${id}/status`, {
-      method: 'PATCH',
-      headers: authHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/transactions/${id}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   async getAdminStores(token: string, params: { search?: string; isVerified?: string; city?: string } = {}) {
@@ -853,6 +860,9 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
+      if (!res.ok) {
+        return { success: false, data: { stores: [], sellers: [] }, meta: { totalStores: 0, totalSellers: 0 } };
+      }
       return await res.json();
     } catch {
       return { success: false, data: { stores: [], sellers: [] }, meta: { totalStores: 0, totalSellers: 0 } };
@@ -860,12 +870,17 @@ export const api = {
   },
 
   async updateAdminStoreStatus(id: string, data: { isVerified?: boolean; isActive?: boolean; notes?: string }, token: string) {
-    const res = await fetch(`${API_URL}/admin/stores/${id}/status`, {
-      method: 'PATCH',
-      headers: authHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/stores/${id}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   async getAdminLiveActivity(token: string) {
@@ -874,6 +889,7 @@ export const api = {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
+      if (!res.ok) return { success: false, data: null };
       return await res.json();
     } catch {
       return { success: false, data: null };
@@ -884,12 +900,17 @@ export const api = {
     data: { fullName: string; phoneNumber: string; email?: string; password?: string; roleName: string; city?: string },
     token: string
   ) {
-    const res = await fetch(`${API_URL}/admin/users/create-admin`, {
-      method: 'POST',
-      headers: authHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/users/create-admin`, {
+        method: 'POST',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   // ── Admin: Listing Management ─────────────────────────────────────────────
@@ -898,6 +919,7 @@ export const api = {
       const query = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') query.set(k, String(v)); });
       const res = await fetch(`${API_URL}/admin/manage/listings?${query}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      if (!res.ok) return { success: false, data: [], meta: { total: 0 } };
       return await res.json();
     } catch { return { success: false, data: [], meta: { total: 0 } }; }
   },
@@ -908,35 +930,51 @@ export const api = {
     inventoryCount?: number; isNegotiable?: boolean; city?: string;
     region?: string; landmark?: string; mediaUrls?: string[]; status?: string;
   }, token: string) {
-    const res = await fetch(`${API_URL}/admin/manage/listings`, {
-      method: 'POST',
-      headers: authHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/manage/listings`, {
+        method: 'POST',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   async adminUpdateListing(id: string, data: any, token: string) {
-    const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
-      method: 'PATCH',
-      headers: authHeaders(token),
-      body: JSON.stringify(data),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
+        method: 'PATCH',
+        headers: authHeaders(token),
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   async adminDeleteListing(id: string, token: string) {
-    const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
-      method: 'DELETE',
-      headers: authHeaders(token),
-    });
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}/admin/manage/listings/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(token),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
   },
 
   // ── Admin: Category Management ────────────────────────────────────────────
   async adminGetAllCategories(token: string) {
     try {
       const res = await fetch(`${API_URL}/admin/manage/categories`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+      if (!res.ok) return { success: false, data: [] };
       return await res.json();
     } catch { return { success: false, data: [] }; }
   },

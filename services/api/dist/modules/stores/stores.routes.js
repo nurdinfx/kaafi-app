@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const stores_controller_1 = require("./stores.controller");
+const auth_1 = require("../../middleware/auth");
+const tenant_1 = require("../../middleware/tenant");
+const router = (0, express_1.Router)();
+router.get('/', stores_controller_1.getAllStores);
+router.get('/:slug', stores_controller_1.getStoreBySlug);
+router.post('/', auth_1.authenticate, stores_controller_1.createBusinessStore);
+router.post('/:businessId/branches', auth_1.authenticate, tenant_1.requireBusinessOwnership, stores_controller_1.addStoreBranch);
+router.post('/:businessId/employees', auth_1.authenticate, tenant_1.requireBusinessOwnership, stores_controller_1.addStoreEmployee);
+exports.default = router;

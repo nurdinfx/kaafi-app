@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const logistics_controller_1 = require("./logistics.controller");
+const auth_1 = require("../../middleware/auth");
+const rbac_1 = require("../../middleware/rbac");
+const router = (0, express_1.Router)();
+router.patch('/driver/location', auth_1.authenticate, rbac_1.requireDriver, logistics_controller_1.updateDriverLocation);
+router.get('/jobs/available', auth_1.authenticate, rbac_1.requireDriver, logistics_controller_1.getAvailableJobs);
+router.post('/jobs/:jobId/accept', auth_1.authenticate, rbac_1.requireDriver, logistics_controller_1.acceptDeliveryJob);
+router.post('/jobs/:jobId/complete', auth_1.authenticate, rbac_1.requireDriver, logistics_controller_1.completeProofOfDelivery);
+exports.default = router;

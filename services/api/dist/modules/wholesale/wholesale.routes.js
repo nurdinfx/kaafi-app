@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const wholesale_controller_1 = require("./wholesale.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/rfq', wholesale_controller_1.getWholesaleRFQs);
+router.post('/rfq', auth_1.authenticate, wholesale_controller_1.createWholesaleRFQ);
+router.post('/rfq/:rfqId/quotes', auth_1.authenticate, wholesale_controller_1.submitQuote);
+router.post('/quotes/:quoteId/accept', auth_1.authenticate, wholesale_controller_1.acceptQuote);
+exports.default = router;

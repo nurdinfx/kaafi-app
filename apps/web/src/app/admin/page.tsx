@@ -142,8 +142,45 @@ export default function SuperAdminPortal() {
   const fetchAllData = useCallback(async (authToken: string) => {
     setRefreshing(true);
     setErrorMsg('');
+
+    // 1. ALWAYS load customer stores from local storage first so they are immediately visible!
+    let localCustomerStores: any[] = [];
     try {
-      const [analyticsRes, txRes, storesRes, usersRes, auditRes, liveRes, listingsRes, catsRes] = await Promise.all([
+      const localSaved = localStorage.getItem('kaafi_merchant_stores_clean_v2');
+      if (localSaved) {
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed)) {
+          localCustomerStores = parsed.map((ls: any) => ({
+            id: ls.id,
+            slug: ls.slug,
+            businessName: ls.businessName,
+            tagline: ls.tagline,
+            description: ls.bio,
+            logoUrl: ls.logoUrl,
+            coverImageUrl: ls.bannerUrl,
+            phone: ls.phone,
+            whatsappNumber: ls.whatsappNumber,
+            city: ls.city,
+            landmarkAddress: ls.district,
+            isVerified: !!ls.isVerified,
+            createdAt: ls.createdDate || new Date().toISOString(),
+            owner: {
+              fullName: ls.ownerName || 'Merchant Owner',
+              phoneNumber: ls.ownerPhone || ls.phone,
+              isActive: true,
+            },
+            _count: {
+              listings: (ls.products || []).length,
+              branches: 1,
+              employees: 1,
+            },
+          }));
+        }
+      }
+    } catch {}
+
+    try {
+      const results = await Promise.allSettled([
         api.getAdminAnalytics(authToken),
         api.getAdminTransactions(authToken, { limit: 100 }),
         api.getAdminStores(authToken),
@@ -154,66 +191,52 @@ export default function SuperAdminPortal() {
         api.adminGetAllCategories(authToken),
       ]);
 
-      if (analyticsRes.success) setAnalytics(analyticsRes.data);
-      if (txRes.success) {
+      const analyticsRes = results[0].status === 'fulfilled' ? results[0].value : null;
+      const txRes = results[1].status === 'fulfilled' ? results[1].value : null;
+      const storesRes = results[2].status === 'fulfilled' ? results[2].value : null;
+      const usersRes = results[3].status === 'fulfilled' ? results[3].value : null;
+      const auditRes = results[4].status === 'fulfilled' ? results[4].value : null;
+      const liveRes = results[5].status === 'fulfilled' ? results[5].value : null;
+      const listingsRes = results[6].status === 'fulfilled' ? results[6].value : null;
+      const catsRes = results[7].status === 'fulfilled' ? results[7].value : null;
+
+      if (analyticsRes?.success) setAnalytics(analyticsRes.data);
+      if (txRes?.success) {
         setTransactions(txRes.data || []);
         if (txRes.summary) setTxSummary(txRes.summary);
       }
+
       let combinedStores: any[] = [];
-      if (storesRes.success && storesRes.data?.stores) {
+      if (storesRes?.success && Array.isArray(storesRes.data?.stores)) {
         combinedStores = [...storesRes.data.stores];
         setSellers(storesRes.data?.sellers || []);
       }
-      try {
-        const localSaved = localStorage.getItem('kaafi_merchant_stores_clean_v2');
-        if (localSaved) {
-          const localStores = JSON.parse(localSaved);
-          if (Array.isArray(localStores)) {
-            localStores.forEach((ls: any) => {
-              const idx = combinedStores.findIndex(
-                (cs: any) => cs.id === ls.id || cs.slug === ls.slug
-              );
-              if (idx === -1) {
-                combinedStores.push({
-                  id: ls.id,
-                  slug: ls.slug,
-                  businessName: ls.businessName,
-                  tagline: ls.tagline,
-                  description: ls.bio,
-                  logoUrl: ls.logoUrl,
-                  coverImageUrl: ls.bannerUrl,
-                  phone: ls.phone,
-                  whatsappNumber: ls.whatsappNumber,
-                  city: ls.city,
-                  landmarkAddress: ls.district,
-                  isVerified: !!ls.isVerified,
-                  createdAt: ls.createdDate || new Date().toISOString(),
-                  owner: {
-                    fullName: ls.ownerName || 'Merchant Owner',
-                    phoneNumber: ls.ownerPhone || ls.phone,
-                    isActive: true,
-                  },
-                  _count: {
-                    listings: (ls.products || []).length,
-                    branches: 1,
-                    employees: 1,
-                  },
-                });
-              } else {
-                combinedStores[idx].isVerified = ls.isVerified;
-              }
-            });
-          }
+
+      // Merge local customer stores so they are ALWAYS available in admin
+      localCustomerStores.forEach((ls: any) => {
+        const idx = combinedStores.findIndex(
+          (cs: any) => cs.id === ls.id || cs.slug === ls.slug
+        );
+        if (idx === -1) {
+          combinedStores.push(ls);
+        } else {
+          // If local has updated verified status
+          combinedStores[idx].isVerified = ls.isVerified;
         }
-      } catch {}
+      });
+
       setStores(combinedStores);
-      if (usersRes.success) setUsers(usersRes.data || []);
-      if (auditRes.success) setAuditLogs(auditRes.data || []);
-      if (liveRes.success) setLiveActivity(liveRes.data);
-      if (listingsRes.success) { setAdminListings(listingsRes.data || []); setAdminListingsTotal(listingsRes.meta?.total || 0); }
-      if (catsRes.success) setAdminCategories(catsRes.data || []);
+      if (usersRes?.success) setUsers(usersRes.data || []);
+      if (auditRes?.success) setAuditLogs(auditRes.data || []);
+      if (liveRes?.success) setLiveActivity(liveRes.data);
+      if (listingsRes?.success) {
+        setAdminListings(listingsRes.data || []);
+        setAdminListingsTotal(listingsRes.meta?.total || 0);
+      }
+      if (catsRes?.success) setAdminCategories(catsRes.data || []);
     } catch {
-      setErrorMsg('Khalad baa dhacay marka la soo kicinayay xogta maamulka guud.');
+      // In case of unexpected failure, ensure stores are at least local stores
+      setStores(localCustomerStores);
     } finally {
       setLoading(false);
       setRefreshing(false);

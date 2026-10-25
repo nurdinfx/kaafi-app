@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const escrow_controller_1 = require("./escrow.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticate);
+router.post('/hold', escrow_controller_1.createEscrowHold);
+router.patch('/release/:transactionId', escrow_controller_1.releaseEscrowHold);
+router.get('/:transactionId', escrow_controller_1.getEscrowDetails);
+exports.default = router;

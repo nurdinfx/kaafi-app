@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const trust_controller_1 = require("./trust.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.post('/reviews', auth_1.authenticate, trust_controller_1.createReview);
+router.post('/disputes', auth_1.authenticate, trust_controller_1.openDispute);
+router.post('/verification', auth_1.authenticate, trust_controller_1.submitVerification);
+exports.default = router;

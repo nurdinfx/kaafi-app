@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const disputes_controller_1 = require("./disputes.controller");
+const auth_1 = require("../../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticate);
+router.post('/', disputes_controller_1.openDispute);
+router.patch('/:id/response', disputes_controller_1.submitSellerResponse);
+router.patch('/:id/resolve', disputes_controller_1.resolveDispute);
+router.get('/', disputes_controller_1.getDisputes);
+exports.default = router;
