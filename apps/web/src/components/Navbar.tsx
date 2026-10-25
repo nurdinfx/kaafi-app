@@ -23,12 +23,25 @@ export default function Navbar() {
   const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('hudisoft_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {}
-    }
+    const checkUser = () => {
+      const storedUser = localStorage.getItem('hudisoft_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+    checkUser();
+    window.addEventListener('storage', checkUser);
+    window.addEventListener('auth-change', checkUser);
+    return () => {
+      window.removeEventListener('storage', checkUser);
+      window.removeEventListener('auth-change', checkUser);
+    };
   }, []);
 
   // Close dropdowns on outside click
@@ -127,7 +140,7 @@ export default function Navbar() {
                 🏬 {t('nav_stores')}
               </Link>
               <Link
-                href="/seller/store-builder"
+                href={user ? "/seller/store-builder" : "/auth/login?redirect=/seller/store-builder"}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 transition-all font-bold text-xs"
               >
                 <span>✨</span> {t('nav_open_store')}
@@ -315,7 +328,7 @@ export default function Navbar() {
                           {t('nav_login')} / Sign Up
                         </Link>
                         <Link
-                          href="/seller/store-builder"
+                          href="/auth/login?redirect=/seller/store-builder"
                           onClick={() => setUserDropdown(false)}
                           className="block px-4 py-2.5 hover:bg-orange-50 text-slate-700 font-semibold"
                         >
@@ -357,7 +370,7 @@ export default function Navbar() {
             <Link href="/stores" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 hover:bg-orange-50">
               🏪 {t('nav_stores')}
             </Link>
-            <Link href="/seller/store-builder" onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 bg-orange-500 text-white font-bold rounded-lg text-center">
+            <Link href={user ? "/seller/store-builder" : "/auth/login?redirect=/seller/store-builder"} onClick={() => setMobileMenuOpen(false)} className="block py-2 px-3 bg-orange-500 text-white font-bold rounded-lg text-center">
               🏬 {t('nav_open_store')}
             </Link>
           </div>

@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import { api } from '../../../lib/api';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<'otp' | 'password' | 'register'>('otp');
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect') || searchParams.get('returnUrl') || '/';
+  const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'otp';
+
+  const [tab, setTab] = useState<'otp' | 'password' | 'register'>(initialTab);
 
   const [phone, setPhone] = useState('+252');
   const [otpCode, setOtpCode] = useState('');
@@ -21,6 +25,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const isStoreBuilderRedirect = redirectParam.includes('store-builder');
+
+  const onAuthSuccess = (token: string, user: any) => {
+    localStorage.setItem('hudisoft_token', token);
+    localStorage.setItem('hudisoft_user', JSON.stringify(user));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('auth-change'));
+      window.dispatchEvent(new Event('storage'));
+    }
+    router.push(redirectParam);
+  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,9 +66,7 @@ export default function LoginPage() {
     try {
       const res = await api.verifyOtp(phone, otpCode);
       if (res.success && res.data?.token) {
-        localStorage.setItem('hudisoft_token', res.data.token);
-        localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
-        router.push('/');
+        onAuthSuccess(res.data.token, res.data.user);
       } else {
         setError(res.message || res.error?.message || 'Invalid verification code.');
       }
@@ -71,9 +85,7 @@ export default function LoginPage() {
     try {
       const res = await api.loginWithPassword(phone, password);
       if (res.success && res.data?.token) {
-        localStorage.setItem('hudisoft_token', res.data.token);
-        localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
-        router.push('/');
+        onAuthSuccess(res.data.token, res.data.user);
       } else {
         setError(res.message || res.error?.message || 'Invalid phone or password.');
       }
@@ -92,9 +104,7 @@ export default function LoginPage() {
     try {
       const res = await api.registerUser({ phoneNumber: phone, fullName, city, password });
       if (res.success && res.data?.token) {
-        localStorage.setItem('hudisoft_token', res.data.token);
-        localStorage.setItem('hudisoft_user', JSON.stringify(res.data.user));
-        router.push('/');
+        onAuthSuccess(res.data.token, res.data.user);
       } else {
         setError(res.message || res.error?.message || 'Lambarkaan horey ayaa loogu diiwaangashaday (An account with this phone or email already exists).');
       }
@@ -110,6 +120,18 @@ export default function LoginPage() {
       <Navbar />
 
       <div className="max-w-md mx-auto px-4 py-16">
+        {isStoreBuilderRedirect && (
+          <div className="mb-6 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-200 shadow-xl flex items-start gap-3 animate-slide-up">
+            <span className="text-2xl flex-shrink-0">🏪</span>
+            <div className="text-xs">
+              <p className="font-bold text-orange-400 text-sm">Furashada Store-ka Cusub (Shopify Store)</p>
+              <p className="text-slate-300 mt-1 leading-relaxed">
+                Si aad u furato meheraddaada una maamusho logo-daada, banner-kaaga iyo badeecooyinkaaga, waa qasab inaad marka hore is-diiwaangeliso (Sign Up) ama aad soo gasho (Sign In).
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <img
             src="/dukaami_icon.png"
@@ -321,5 +343,17 @@ export default function LoginPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
@@ -24,6 +24,25 @@ export default function StoreBuilderPage() {
   } = useStore();
 
   const { t, isRTL, dir } = useLanguage();
+
+  // Authentication enforcement: user must be logged in to build or open a store
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_token') : null;
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_user') : null;
+    if (!token || !userStr) {
+      setShowAuthGate(true);
+      setIsAuthChecking(false);
+    } else {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch {}
+      setIsAuthChecking(false);
+    }
+  }, []);
 
   // Active store selected for editing (defaults to first or create new)
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>(stores[0]?.slug || 'new');
@@ -73,6 +92,8 @@ export default function StoreBuilderPage() {
   const [isOptimizingBanner, setIsOptimizingBanner] = useState(false);
   const [showUrlInputMain, setShowUrlInputMain] = useState(false);
   const [showUrlInputExtra, setShowUrlInputExtra] = useState(false);
+  const [showUrlInputLogo, setShowUrlInputLogo] = useState(false);
+  const [showUrlInputBanner, setShowUrlInputBanner] = useState(false);
   const [customExtraUrl, setCustomExtraUrl] = useState('');
 
   // Device file input refs
@@ -161,13 +182,28 @@ export default function StoreBuilderPage() {
     if (!file) return;
     try {
       setIsOptimizingLogo(true);
-      const dataUrl = await optimizeImageFile(file, 400, 400, 0.85);
+      const dataUrl = await optimizeImageFile(file, 500, 500, 0.88);
       setLogoUrl(dataUrl);
     } catch (err: any) {
-      alert(err.message || 'Khalad ayaa dhacay');
+      alert(err.message || 'Khalad ayaa ka dhacay doorashada sawirka logo-ga');
     } finally {
       setIsOptimizingLogo(false);
       if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDropLogo = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingLogo(true);
+      const dataUrl = await optimizeImageFile(file, 500, 500, 0.88);
+      setLogoUrl(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa ka dhacay doorashada sawirka logo-ga');
+    } finally {
+      setIsOptimizingLogo(false);
     }
   };
 
@@ -179,10 +215,25 @@ export default function StoreBuilderPage() {
       const dataUrl = await optimizeImageFile(file, 1600, 600, 0.85);
       setBannerUrl(dataUrl);
     } catch (err: any) {
-      alert(err.message || 'Khalad ayaa dhacay');
+      alert(err.message || 'Khalad ayaa ka dhacay doorashada banner-ka');
     } finally {
       setIsOptimizingBanner(false);
       if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDropBanner = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    try {
+      setIsOptimizingBanner(true);
+      const dataUrl = await optimizeImageFile(file, 1600, 600, 0.85);
+      setBannerUrl(dataUrl);
+    } catch (err: any) {
+      alert(err.message || 'Khalad ayaa ka dhacay doorashada banner-ka');
+    } finally {
+      setIsOptimizingBanner(false);
     }
   };
 
@@ -228,6 +279,13 @@ export default function StoreBuilderPage() {
 
   const handleSaveBrand = (e: React.FormEvent) => {
     e.preventDefault();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_token') : null;
+    if (!token) {
+      alert('Waa qasab inaad marka hore is-diiwaangeliso (Sign Up) ama aad soo gasho (Sign In)!');
+      router.push('/auth/login?redirect=/seller/store-builder');
+      return;
+    }
+
     if (!businessName.trim()) {
       alert(t('sb_label_store_name', 'Fadlan geli magaca ganacsiga!'));
       return;
@@ -359,6 +417,76 @@ export default function StoreBuilderPage() {
 
   const popularCities = ['Garoowe', 'Muqdisho', 'Hargeisa', 'Bosaso', 'Kismaayo', 'Baydhabo'];
 
+  if (isAuthChecking) {
+    return (
+      <main dir={dir} className={`min-h-screen bg-slate-900 text-slate-100 antialiased ${isRTL ? 'font-arabic text-right' : 'text-left'}`}>
+        <Navbar />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400 font-medium">Hubinta akoonkaaga ganacsiga...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  if (showAuthGate) {
+    return (
+      <main dir={dir} className={`min-h-screen bg-slate-900 text-slate-100 antialiased ${isRTL ? 'font-arabic text-right' : 'text-left'}`}>
+        <Navbar />
+
+        <div className="max-w-2xl mx-auto px-4 py-16 sm:py-24 text-center">
+          <div className="p-8 sm:p-12 rounded-3xl bg-slate-950/90 border border-slate-800 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-orange-500/20 to-amber-500/20 border border-orange-500/30 flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-orange-500/10">
+              🏪
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30 mb-4">
+              <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+              Qasab: Akoon ayaa Loo Baahan Yahay
+            </span>
+
+            <h1 className="text-2xl sm:text-3xl font-black text-white font-display mb-3">
+              Fadlan Marka Hore Is-Diiwaangeli ama Soo Gal
+            </h1>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-lg mx-auto mb-8">
+              Si aad u furato meheraddaada cusub (Storefront), uguna darto logo-daada, banner-kaaga iyo badeecooyinkaaga, waa qasab inaad marka hore is-diiwaangeliso (Sign Up) ama aad soo gasho (Sign In).
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+              <Link
+                href="/auth/login?tab=register&redirect=/seller/store-builder"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-xl shadow-orange-500/25 transition-all hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <span>✨</span>
+                <span>Is-Diiwaangeli (Sign Up)</span>
+              </Link>
+
+              <Link
+                href="/auth/login?tab=otp&redirect=/seller/store-builder"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-sm text-slate-200 bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-all hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <span>🔑</span>
+                <span>Gal Akoonkaaga (Sign In)</span>
+              </Link>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-900 flex items-center justify-center gap-2 text-xs text-slate-500">
+              <Link href="/" className="hover:text-slate-400 transition-colors">
+                ← Ku noqo Bogga Hore ee Suqa
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <Footer />
+      </main>
+    );
+  }
+
   return (
     <main dir={dir} className={`min-h-screen bg-slate-900 text-slate-100 antialiased ${isRTL ? 'font-arabic text-right' : 'text-left'}`}>
       <Navbar />
@@ -370,11 +498,20 @@ export default function StoreBuilderPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20 backdrop-blur-md">
-                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                <span>{t('sb_badge_creator')}</span>
-                <span className="text-slate-500">|</span>
-                <span className="text-emerald-400 flex items-center gap-1">{t('sb_badge_private_chat')}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-xs font-bold border border-orange-500/20 backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <span>{t('sb_badge_creator')}</span>
+                  <span className="text-slate-500">|</span>
+                  <span className="text-emerald-400 flex items-center gap-1">{t('sb_badge_private_chat')}</span>
+                </div>
+                {currentUser && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-slate-300">
+                    <span>👤</span>
+                    <span>Ganacsade: <strong className="text-orange-400">{currentUser.fullName?.split(' ')[0] || currentUser.phoneNumber}</strong></span>
+                    <span className="text-emerald-400 text-[10px] font-bold">✓</span>
+                  </div>
+                )}
               </div>
               <h1 className="text-2xl sm:text-4xl font-black font-display tracking-tight text-white">
                 {t('sb_title')}
@@ -647,39 +784,47 @@ export default function StoreBuilderPage() {
                 </div>
               </div>
 
-              {/* Logo & Banner Customization Card */}
+              {/* Logo & Banner Customization Card (Device-First Upload) */}
               <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 backdrop-blur-xl space-y-6">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-                  <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
-                      🖼️
-                    </span>
-                    <span>{t('sb_section_media')}</span>
-                  </h3>
-                  <span className="text-[11px] font-semibold text-slate-400">
-                    {t('sb_section_media_sub')}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white font-display flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                        🖼️
+                      </span>
+                      <span>{t('sb_section_media')}</span>
+                    </h3>
+                    <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                      Ka soo xulo Device-kaaga (Taleefanka ama Computer-ka) sawirka astaanta dukaanka iyo banner-ka dusha sare
+                    </p>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                    <span>📱/💻 Device Upload</span>
                   </span>
                 </div>
 
-                {/* Logo input & presets */}
-                <div className="space-y-3">
+                {/* ── 1. LOGO UPLOAD (FROM DEVICE) ── */}
+                <div className="space-y-3 p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-slate-300">
-                      {t('sb_label_logo_url')}
-                    </label>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-200">
+                        {t('sb_label_logo_url', 'Sawirka Logo-ga (Astaanta Dukaanka)')}
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Astaanta rasmiga ah ee dukaankaaga — ka soo xulo taleefanka (Gallery/Camera) ama kombiyuutarka
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => logoFileRef.current?.click()}
-                      disabled={isOptimizingLogo}
-                      className="px-3 py-1 rounded-xl text-xs font-bold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      onClick={() => setShowUrlInputLogo(!showUrlInputLogo)}
+                      className="text-[11px] text-orange-400 hover:text-orange-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      {isOptimizingLogo ? (
-                        <span className="w-3.5 h-3.5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <span>📁 Ka soo xulo Device-ka</span>
-                      )}
+                      <span>🔗</span>
+                      <span>{showUrlInputLogo ? 'Qari Link' : 'Geli URL'}</span>
                     </button>
                   </div>
+
+                  {/* Hidden Device File Input */}
                   <input
                     ref={logoFileRef}
                     type="file"
@@ -687,25 +832,105 @@ export default function StoreBuilderPage() {
                     onChange={handleLogoFile}
                     className="hidden"
                   />
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
-                  />
+
+                  {/* Logo Device Picker Card / Dropzone */}
+                  {logoUrl ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-md">
+                      <div className="relative group w-20 h-20 rounded-2xl overflow-hidden bg-slate-900 border-2 border-orange-500/80 shadow-lg flex-shrink-0">
+                        <img
+                          src={logoUrl}
+                          alt="Store Logo"
+                          className="w-full h-full object-cover"
+                        />
+                        {isOptimizingLogo && (
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                            <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            Logo Diyaar ah (Active)
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 truncate mt-1">
+                          {logoUrl.startsWith('data:') ? '✓ Sawir toos looga soo doortay Device-kaaga' : logoUrl}
+                        </p>
+
+                        <div className="flex items-center gap-2 mt-3">
+                          <button
+                            type="button"
+                            onClick={() => logoFileRef.current?.click()}
+                            disabled={isOptimizingLogo}
+                            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/20 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02]"
+                          >
+                            <span>📁 Ka soo xulo Device-ka (Beddel)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLogoUrl('')}
+                            className="px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Tirtir Logo-ga"
+                          >
+                            <span>🗑️ Tirtir</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => logoFileRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleDropLogo}
+                      className="border-2 border-dashed border-slate-700 hover:border-orange-500 rounded-2xl p-6 bg-slate-950/60 hover:bg-slate-900 transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 group shadow-inner"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center text-xl border border-orange-500/20 group-hover:scale-110 group-hover:bg-orange-500/20 transition-transform">
+                        {isOptimizingLogo ? (
+                          <span className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          '📁'
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">
+                          {isOptimizingLogo ? 'Sawirka ayaa la farsamaynayaa...' : 'Riix halkan si aad Device-kaaga uga soo xulato Logo-ga'}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Taleefanka (Camera / Gallery) ama Computer-ka · PNG, JPG, WEBP
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Direct URL for Logo */}
+                  {showUrlInputLogo && (
+                    <div className="pt-1 animate-slide-up">
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="Geli link-ga Logo-ga: https://images.unsplash.com/..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Presets */}
                   <div className="flex flex-wrap items-center gap-3 pt-1">
-                    <span className="text-xs text-slate-400 font-medium">{t('sb_logo_presets')}</span>
+                    <span className="text-[11px] text-slate-400 font-medium">{t('sb_logo_presets', 'Ama xulo kuwo diyaar ah:')}</span>
                     <div className="flex items-center gap-2">
                       {logoPresets.map((lp, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => setLogoUrl(lp)}
-                          className={`w-9 h-9 rounded-2xl overflow-hidden border-2 transition-all hover:scale-110 cursor-pointer ${
+                          className={`w-8 h-8 rounded-xl overflow-hidden border-2 transition-all hover:scale-110 cursor-pointer ${
                             logoUrl === lp
                               ? 'border-orange-500 scale-110 ring-2 ring-orange-500/50 shadow-md shadow-orange-500/30'
-                              : 'border-slate-700 opacity-70 hover:opacity-100'
+                              : 'border-slate-700 opacity-60 hover:opacity-100'
                           }`}
                         >
                           <img src={lp} alt="" className="w-full h-full object-cover" />
@@ -715,25 +940,28 @@ export default function StoreBuilderPage() {
                   </div>
                 </div>
 
-                {/* Banner input & presets */}
-                <div className="space-y-3">
+                {/* ── 2. HERO COVER BANNER UPLOAD (FROM DEVICE) ── */}
+                <div className="space-y-3 p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800">
                   <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-slate-300">
-                      {t('sb_label_banner_url')}
-                    </label>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-200">
+                        {t('sb_label_banner_url', 'Sawirka Cover Banner (Dusha Sare ee Storefront-ka)')}
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Ka soo xulo sawir ballaadhan device-kaaga (Mobile / Computer) oo dusha sare ka muuqanaya
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => bannerFileRef.current?.click()}
-                      disabled={isOptimizingBanner}
-                      className="px-3 py-1 rounded-xl text-xs font-bold bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      onClick={() => setShowUrlInputBanner(!showUrlInputBanner)}
+                      className="text-[11px] text-orange-400 hover:text-orange-300 font-semibold transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      {isOptimizingBanner ? (
-                        <span className="w-3.5 h-3.5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <span>📁 Ka soo xulo Device-ka</span>
-                      )}
+                      <span>🔗</span>
+                      <span>{showUrlInputBanner ? 'Qari Link' : 'Geli URL'}</span>
                     </button>
                   </div>
+
+                  {/* Hidden Device File Input */}
                   <input
                     ref={bannerFileRef}
                     type="file"
@@ -741,16 +969,91 @@ export default function StoreBuilderPage() {
                     onChange={handleBannerFile}
                     className="hidden"
                   />
-                  <input
-                    type="url"
-                    value={bannerUrl}
-                    onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900/90 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
-                  />
 
-                  <div className="pt-1">
-                    <div className="text-xs text-slate-400 font-medium mb-2">{t('sb_banner_presets')}</div>
+                  {/* Banner Device Picker Card / Dropzone */}
+                  {bannerUrl ? (
+                    <div className="space-y-2">
+                      <div className="relative group w-full h-40 sm:h-48 rounded-2xl overflow-hidden bg-slate-950 border-2 border-orange-500/80 shadow-xl">
+                        <img
+                          src={bannerUrl}
+                          alt="Cover Banner"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex items-end justify-between p-3.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/60 backdrop-blur-md text-emerald-400 border border-emerald-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            Cover Banner Diyaar ah (Active)
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => bannerFileRef.current?.click()}
+                              disabled={isOptimizingBanner}
+                              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow-lg flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105"
+                            >
+                              <span>📁 Ka soo xulo Device-ka</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBannerUrl('')}
+                              className="w-8 h-8 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold flex items-center justify-center shadow-lg transition-transform hover:scale-105 cursor-pointer"
+                              title="Tirtir Banner-ka"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                        {isOptimizingBanner && (
+                          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                            <span className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 truncate">
+                        {bannerUrl.startsWith('data:') ? '✓ Sawir ballaadhan oo toos looga soo xushay Device-kaaga' : bannerUrl}
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => bannerFileRef.current?.click()}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleDropBanner}
+                      className="border-2 border-dashed border-slate-700 hover:border-orange-500 rounded-2xl p-8 bg-slate-950/60 hover:bg-slate-900 transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2.5 group shadow-inner"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center text-2xl border border-orange-500/20 group-hover:scale-110 group-hover:bg-orange-500/20 transition-transform">
+                        {isOptimizingBanner ? (
+                          <span className="w-6 h-6 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          '🖼️'
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">
+                          {isOptimizingBanner ? 'Banner-ka ayaa la farsamaynayaa...' : 'Riix halkan si aad Device-kaaga uga soo xulato Cover Banner'}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Taleefankaaga (Gallery) ama Computer-ka · Waxaa lagu talinayaa sawir ballaaran (1600x600)
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optional Direct URL for Banner */}
+                  {showUrlInputBanner && (
+                    <div className="pt-1 animate-slide-up">
+                      <input
+                        type="url"
+                        value={bannerUrl}
+                        onChange={(e) => setBannerUrl(e.target.value)}
+                        placeholder="Geli link-ga Banner-ka: https://images.unsplash.com/..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Presets */}
+                  <div className="pt-2">
+                    <div className="text-[11px] text-slate-400 font-medium mb-2">{t('sb_banner_presets', 'Ama xulo banner diyaar ah:')}</div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       {bannerPresets.map((bp, idx) => (
                         <button
@@ -765,7 +1068,7 @@ export default function StoreBuilderPage() {
                         >
                           <img src={bp.url} alt="" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-1.5">
-                            <span className="text-[10px] font-bold text-white truncate drop-shadow-md">
+                            <span className="text-[10px] font-bold text-white drop-shadow-md truncate">
                               {bp.title}
                             </span>
                           </div>
