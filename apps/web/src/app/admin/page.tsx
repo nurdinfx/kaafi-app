@@ -294,15 +294,28 @@ export default function SuperAdminPortal() {
     };
   }, [token, fetchAllData]);
 
-  // Periodic polling for live monitor
+  // Periodic polling for live monitor with safe failure backoff
   useEffect(() => {
     if (!token || !autoRefreshLive) return;
+    let failCount = 0;
     const interval = setInterval(async () => {
       try {
         const liveRes = await api.getAdminLiveActivity(token);
-        if (liveRes.success) setLiveActivity(liveRes.data);
-      } catch {}
-    }, 12000);
+        if (liveRes.success && liveRes.data) {
+          setLiveActivity(liveRes.data);
+          failCount = 0;
+        } else {
+          failCount++;
+          if (failCount >= 2) {
+            // Stop polling to prevent console flood if backend endpoint is not active
+            clearInterval(interval);
+          }
+        }
+      } catch {
+        failCount++;
+        if (failCount >= 2) clearInterval(interval);
+      }
+    }, 15000);
     return () => clearInterval(interval);
   }, [token, autoRefreshLive]);
 

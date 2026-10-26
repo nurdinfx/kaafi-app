@@ -8,9 +8,7 @@ services:
     region: frankfurt
     plan: free
     rootDir: .
-    buildCommand: >
-      npm install --include=dev &&
-      npm --workspace=services/api run build
+    buildCommand: npm install --omit=dev && npm --workspace=services/api run db:generate
     startCommand: npm --workspace=services/api run start
     healthCheckPath: /health
     envVars:

@@ -123,15 +123,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       
       // 1. Fetch public/all stores from backend database
       const dbStores = await api.getStores({ includeUnverified: true });
-      if (Array.isArray(dbStores)) {
-        if (dbStores.length === 0) {
-          // Database was cleared / reset: remove all local stores
-          setStores([]);
-          try {
-            localStorage.removeItem(STORAGE_KEY);
-          } catch {}
-        } else {
-          const mappedStores: MerchantStore[] = dbStores.map((bs: any) => ({
+      if (Array.isArray(dbStores) && dbStores.length > 0) {
+        const mappedStores: MerchantStore[] = dbStores.map((bs: any) => ({
             id: bs.id,
             slug: bs.slug,
             businessName: bs.businessName,

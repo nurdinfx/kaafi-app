@@ -385,6 +385,7 @@ export const api = {
         if (v !== undefined && v !== null && v !== '') query.set(k, String(v));
       });
       const res = await fetch(`${API_URL}/stores?${query}`, { next: { revalidate: 30 } });
+      if (!res.ok) return [];
       const json = await res.json();
       return json.success ? json.data : [];
     } catch {
