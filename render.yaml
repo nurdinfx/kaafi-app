@@ -7,9 +7,9 @@ services:
     runtime: node
     region: frankfurt
     plan: free
-    rootDir: .
-    buildCommand: npm install --omit=dev && npm --workspace=services/api run db:generate
-    startCommand: npm --workspace=services/api run start
+    rootDir: services/api
+    buildCommand: npm install && npx prisma generate
+    startCommand: node dist/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
