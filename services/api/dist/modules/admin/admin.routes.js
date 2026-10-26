@@ -14,6 +14,7 @@ router.get('/orders', admin_controller_1.getTransactionsAdmin); // Orders can us
 router.patch('/orders/:id/status', admin_controller_1.updateTransactionStatusAdmin);
 router.get('/stores', admin_controller_1.getStoresAdmin);
 router.patch('/stores/:id/status', admin_controller_1.updateStoreStatusAdmin);
+router.delete('/stores/:id', admin_controller_1.deleteStoreAdmin);
 router.get('/live-activity', admin_controller_1.getLiveActivityAdmin);
 router.get('/users', admin_controller_1.getUsersAdmin);
 router.post('/users/create-admin', admin_controller_1.createAdminUserAdmin);

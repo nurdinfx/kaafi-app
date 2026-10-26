@@ -884,6 +884,19 @@ export const api = {
     }
   },
 
+  async adminDeleteStore(id: string, token: string) {
+    try {
+      const res = await fetch(`${API_URL}/admin/stores/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(token),
+      });
+      if (!res.ok) return { success: false, message: `Server error: ${res.status}` };
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Failed' };
+    }
+  },
+
   async getAdminLiveActivity(token: string) {
     try {
       const res = await fetch(`${API_URL}/admin/live-activity`, {

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminClearSystemData = exports.adminDeleteCategory = exports.adminUpdateCategory = exports.adminCreateCategory = exports.adminGetCategories = exports.adminDeleteListing = exports.adminUpdateListing = exports.adminCreateListing = exports.adminGetAllListings = exports.createAdminUserAdmin = exports.getLiveActivityAdmin = exports.updateStoreStatusAdmin = exports.getStoresAdmin = exports.updateTransactionStatusAdmin = exports.getTransactionsAdmin = exports.updateCategoryCommissionAdmin = exports.moderateListingAdmin = exports.updateUserStatusAdmin = exports.getUsersAdmin = exports.getAuditLogs = exports.processPayout = exports.reviewVerification = exports.getPlatformAnalytics = void 0;
+exports.adminClearSystemData = exports.adminDeleteCategory = exports.adminUpdateCategory = exports.adminCreateCategory = exports.adminGetCategories = exports.adminDeleteListing = exports.adminUpdateListing = exports.adminCreateListing = exports.adminGetAllListings = exports.createAdminUserAdmin = exports.getLiveActivityAdmin = exports.deleteStoreAdmin = exports.updateStoreStatusAdmin = exports.getStoresAdmin = exports.updateTransactionStatusAdmin = exports.getTransactionsAdmin = exports.updateCategoryCommissionAdmin = exports.moderateListingAdmin = exports.updateUserStatusAdmin = exports.getUsersAdmin = exports.getAuditLogs = exports.processPayout = exports.reviewVerification = exports.getPlatformAnalytics = void 0;
 const db_1 = __importDefault(require("../../db"));
 const errorHandler_1 = require("../../middleware/errorHandler");
 const types_1 = require("../../types");
@@ -677,6 +677,52 @@ const updateStoreStatusAdmin = async (req, res, next) => {
     }
 };
 exports.updateStoreStatusAdmin = updateStoreStatusAdmin;
+// Admin: Permanently Delete a Store and Its Associated Data
+const deleteStoreAdmin = async (req, res, next) => {
+    try {
+        const id = String(req.params.id);
+        const store = await db_1.default.businessProfile.findUnique({
+            where: { id },
+            include: { listings: { select: { id: true } } },
+        });
+        if (!store) {
+            throw new errorHandler_1.AppError('Store not found.', 404, types_1.ErrorCode.NOT_FOUND);
+        }
+        // 1. Delete associated verification requests
+        await db_1.default.verificationRequest.deleteMany({
+            where: {
+                OR: [
+                    { targetId: id },
+                    { userId: store.ownerId, targetType: 'BUSINESS' },
+                ],
+            },
+        });
+        // 2. Cascade delete listings of this store
+        await db_1.default.listing.deleteMany({
+            where: { businessId: id },
+        });
+        // 3. Delete branches & employees
+        await db_1.default.businessBranch.deleteMany({ where: { businessId: id } });
+        await db_1.default.businessEmployee.deleteMany({ where: { businessId: id } });
+        // 4. Delete the business profile
+        await db_1.default.businessProfile.delete({ where: { id } });
+        await (0, audit_1.logAuditEvent)({
+            userId: req.user?.id,
+            action: 'ADMIN_STORE_DELETED',
+            entityType: 'BUSINESS_STORE',
+            entityId: id,
+            details: { storeName: store.businessName, slug: store.slug },
+        });
+        res.json({
+            success: true,
+            message: `Meheradda '${store.businessName}' si rasmi ah ayaa loo tirtiray.`,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.deleteStoreAdmin = deleteStoreAdmin;
 // Admin: Real-time Live Activity Across Systems (Web & App)
 const getLiveActivityAdmin = async (req, res, next) => {
     try {
@@ -837,7 +883,7 @@ exports.adminGetAllListings = adminGetAllListings;
 // Admin: Create a listing directly (no store/seller profile needed — admin adds products)
 const adminCreateListing = async (req, res, next) => {
     try {
-        const { title, description, price, currency = 'USD', categoryId, verticalType = 'PRODUCT', condition = 'NEW', inventoryCount = 1, isNegotiable = false, city = 'Garoowe', region = 'Puntland', country = 'Somalia', district, neighborhood, landmark, mediaUrls = [], status = 'ACTIVE', } = req.body;
+        const { title, description, price, currency = 'USD', categoryId, verticalType = 'PRODUCT', condition = 'NEW', inventoryCount = 1, isNegotiable = false, city = 'Garoowe', region = 'Puntland', country = 'Somalia', district, neighborhood, landmark, businessId, mediaUrls = [], status = 'ACTIVE', } = req.body;
         if (!title || !description || price === undefined || !categoryId) {
             throw new errorHandler_1.AppError('Title, description, price, and categoryId are required.', 400, types_1.ErrorCode.VALIDATION_ERROR);
         }
@@ -855,6 +901,7 @@ const adminCreateListing = async (req, res, next) => {
         const listing = await db_1.default.listing.create({
             data: {
                 sellerId: adminUserId,
+                businessId: businessId || null,
                 categoryId,
                 verticalType,
                 title: title.trim(),

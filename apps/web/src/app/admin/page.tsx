@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { formatPrice, timeAgo } from '../../lib/utils';
+import { useStore } from '../../context/StoreContext';
 
 type AdminTab = 'OVERVIEW' | 'TRANSACTIONS' | 'ORDERS' | 'STORES' | 'LIVE_FEED' | 'USERS' | 'AUDIT' | 'LISTINGS' | 'CATEGORIES' | 'SYSTEM';
 
 export default function SuperAdminPortal() {
   const router = useRouter();
+  const { deleteStore } = useStore();
 
   // Hydration protection
   const [isMounted, setIsMounted] = useState(false);
@@ -542,6 +544,26 @@ export default function SuperAdminPortal() {
       }
     } catch {
       setErrorMsg('Khalad baa dhacay marka meheradda la joojinayay/fasaxayay.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleDeleteStore = async (storeIdOrSlug: string, storeName: string) => {
+    if (!window.confirm(`Ma hubtaa inaad tirtirto meheradda "${storeName}" iyo dhammaan alaabteeda? Tallaabadan dib looma noqon karo.`)) {
+      return;
+    }
+    setActionInProgress(storeIdOrSlug);
+    setErrorMsg('');
+    try {
+      if (token) {
+        await api.adminDeleteStore(storeIdOrSlug, token);
+      }
+      await deleteStore(storeIdOrSlug);
+      setStores((prev) => prev.filter((s: any) => s.id !== storeIdOrSlug && s.slug !== storeIdOrSlug));
+      setSuccessMsg(`Meheradda "${storeName}" si buuxda ayaa loo tirtiray.`);
+    } catch {
+      setErrorMsg('Khalad baa dhacay marka meheradda la tirtirayay.');
     } finally {
       setActionInProgress(null);
     }

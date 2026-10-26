@@ -12,6 +12,7 @@ import {
   updateTransactionStatusAdmin,
   getStoresAdmin,
   updateStoreStatusAdmin,
+  deleteStoreAdmin,
   getLiveActivityAdmin,
   createAdminUserAdmin,
   // New: Listings Management
@@ -42,6 +43,7 @@ router.get('/orders', getTransactionsAdmin); // Orders can use same rich transac
 router.patch('/orders/:id/status', updateTransactionStatusAdmin);
 router.get('/stores', getStoresAdmin);
 router.patch('/stores/:id/status', updateStoreStatusAdmin);
+router.delete('/stores/:id', deleteStoreAdmin);
 router.get('/live-activity', getLiveActivityAdmin);
 router.get('/users', getUsersAdmin);
 router.post('/users/create-admin', createAdminUserAdmin);

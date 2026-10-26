@@ -86,6 +86,7 @@ interface StoreContextType {
   createStore: (storeData: Partial<MerchantStore>) => MerchantStore;
   updateStore: (slug: string, updates: Partial<MerchantStore>) => void;
   verifyStore: (slugOrId: string, isVerified: boolean) => void;
+  deleteStore: (slugOrId: string) => Promise<void>;
   getStoreBySlug: (slug: string) => MerchantStore | undefined;
   refreshStores: () => Promise<void>;
   addStoreCategory: (slug: string, categoryName: string) => void;
@@ -390,6 +391,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteStore = async (slugOrId: string) => {
+    const target = stores.find(
+      (s) => s.id === slugOrId || s.slug.toLowerCase() === slugOrId.toLowerCase()
+    );
+    const updated = stores.filter(
+      (s) => s.id !== slugOrId && s.slug.toLowerCase() !== slugOrId.toLowerCase()
+    );
+    saveStores(updated);
+    if (
+      currentMerchantStore &&
+      (currentMerchantStore.id === slugOrId ||
+        currentMerchantStore.slug.toLowerCase() === slugOrId.toLowerCase())
+    ) {
+      setCurrentMerchantStore(null);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kaafi_stores_updated'));
+      const token = localStorage.getItem('hudisoft_token');
+      if (token && target?.id) {
+        try {
+          const { api } = await import('../lib/api');
+          await api.adminDeleteStore(target.id, token);
+        } catch {}
+      }
+    }
+  };
+
   const updateStore = (slug: string, updates: Partial<MerchantStore>) => {
     const updated = stores.map((s) => {
       if (s.slug === slug) {
@@ -661,6 +689,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         createStore,
         updateStore,
         verifyStore,
+        deleteStore,
         getStoreBySlug,
         refreshStores: loadBackendStoresAndListings,
         addStoreCategory,

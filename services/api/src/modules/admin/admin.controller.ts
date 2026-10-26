@@ -725,6 +725,58 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
   }
 };
 
+// Admin: Permanently Delete a Store and Its Associated Data
+export const deleteStoreAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const store = await prisma.businessProfile.findUnique({
+      where: { id },
+      include: { listings: { select: { id: true } } },
+    });
+
+    if (!store) {
+      throw new AppError('Store not found.', 404, ErrorCode.NOT_FOUND);
+    }
+
+    // 1. Delete associated verification requests
+    await prisma.verificationRequest.deleteMany({
+      where: {
+        OR: [
+          { targetId: id },
+          { userId: store.ownerId, targetType: 'BUSINESS' },
+        ],
+      },
+    });
+
+    // 2. Cascade delete listings of this store
+    await prisma.listing.deleteMany({
+      where: { businessId: id },
+    });
+
+    // 3. Delete branches & employees
+    await prisma.businessBranch.deleteMany({ where: { businessId: id } });
+    await prisma.businessEmployee.deleteMany({ where: { businessId: id } });
+
+    // 4. Delete the business profile
+    await prisma.businessProfile.delete({ where: { id } });
+
+    await logAuditEvent({
+      userId: req.user?.id,
+      action: 'ADMIN_STORE_DELETED',
+      entityType: 'BUSINESS_STORE',
+      entityId: id,
+      details: { storeName: store.businessName, slug: store.slug },
+    });
+
+    res.json({
+      success: true,
+      message: `Meheradda '${store.businessName}' si rasmi ah ayaa loo tirtiray.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Admin: Real-time Live Activity Across Systems (Web & App)
 export const getLiveActivityAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -909,6 +961,7 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
       district,
       neighborhood,
       landmark,
+      businessId,
       mediaUrls = [],
       status = 'ACTIVE',
     } = req.body;
@@ -934,6 +987,7 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
     const listing = await prisma.listing.create({
       data: {
         sellerId: adminUserId,
+        businessId: businessId || null,
         categoryId,
         verticalType,
         title: title.trim(),
