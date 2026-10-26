@@ -57,10 +57,10 @@ const errorHandler = (err, req, res, next) => {
     // Fallback 500 error
     res.status(500).json({
         success: false,
-        message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message || 'Unknown error',
+        message: err.message || 'Internal server error',
         error: {
             code: types_1.ErrorCode.INTERNAL_ERROR,
-            message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message || 'Unknown error',
+            message: err.message || 'Internal server error',
         },
     });
 };

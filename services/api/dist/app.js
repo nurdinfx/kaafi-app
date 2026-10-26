@@ -31,12 +31,21 @@ const createApp = () => {
     const app = (0, express_1.default)();
     // Standard Middlewares
     app.use((0, helmet_1.default)({
-        contentSecurityPolicy: false, // relaxed for dev/embeds
+        contentSecurityPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
     }));
-    app.use((0, cors_1.default)({
-        origin: '*',
+    // Dynamic origin reflection: reflects requesting origin so Access-Control-Allow-Credentials works with https://www.dukaamionline.com
+    const corsMiddleware = (0, cors_1.default)({
+        origin: (_origin, callback) => {
+            callback(null, true);
+        },
         credentials: true,
-    }));
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+        exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    });
+    app.use(corsMiddleware);
+    app.options('*', corsMiddleware);
     app.use(express_1.default.json({ limit: '10mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
     // Health check endpoint

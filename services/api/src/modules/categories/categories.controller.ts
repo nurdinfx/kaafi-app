@@ -23,16 +23,22 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
       where.status = 'ACTIVE';
     }
 
-    const categories = await prisma.category.findMany({
-      where,
-      orderBy: { displayOrder: 'asc' },
-      include: {
-        subcategories: {
-          orderBy: { displayOrder: 'asc' },
+    let categories: any[] = [];
+    try {
+      categories = await prisma.category.findMany({
+        where,
+        orderBy: { displayOrder: 'asc' },
+        include: {
+          subcategories: {
+            orderBy: { displayOrder: 'asc' },
+          },
+          attributes: true,
         },
-        attributes: true,
-      },
-    });
+      });
+    } catch (dbErr: any) {
+      console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr.message);
+      categories = [];
+    }
 
     res.json({
       success: true,

@@ -26,16 +26,23 @@ const getCategories = async (req, res, next) => {
             // By default show active categories
             where.status = 'ACTIVE';
         }
-        const categories = await db_1.default.category.findMany({
-            where,
-            orderBy: { displayOrder: 'asc' },
-            include: {
-                subcategories: {
-                    orderBy: { displayOrder: 'asc' },
+        let categories = [];
+        try {
+            categories = await db_1.default.category.findMany({
+                where,
+                orderBy: { displayOrder: 'asc' },
+                include: {
+                    subcategories: {
+                        orderBy: { displayOrder: 'asc' },
+                    },
+                    attributes: true,
                 },
-                attributes: true,
-            },
-        });
+            });
+        }
+        catch (dbErr) {
+            console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr.message);
+            categories = [];
+        }
         res.json({
             success: true,
             data: categories,

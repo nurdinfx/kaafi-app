@@ -27,12 +27,23 @@ export const createApp = (): Express => {
 
   // Standard Middlewares
   app.use(helmet({
-    contentSecurityPolicy: false, // relaxed for dev/embeds
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
-  app.use(cors({
-    origin: '*',
+
+  // Dynamic origin reflection: reflects requesting origin so Access-Control-Allow-Credentials works with https://www.dukaamionline.com
+  const corsMiddleware = cors({
+    origin: (_origin, callback) => {
+      callback(null, true);
+    },
     credentials: true,
-  }));
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  });
+
+  app.use(corsMiddleware);
+  app.options('*', corsMiddleware);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

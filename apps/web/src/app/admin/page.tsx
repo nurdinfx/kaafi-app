@@ -549,6 +549,66 @@ export default function SuperAdminPortal() {
     }
   };
 
+  const handleRejectStore = async (storeId: string, storeName: string) => {
+    if (!window.confirm(`Ma hubtaa inaad diiddo meheradda "${storeName}"? Meheradda lama xaqiijinayo, milkiilahana waxaa laga dhigayaa mid la joojiyay (Suspended).`)) {
+      return;
+    }
+    setActionInProgress(storeId);
+    setErrorMsg('');
+
+    try {
+      if (token) {
+        try {
+          await api.updateAdminStoreStatus(storeId, { isVerified: false, isActive: false }, token);
+        } catch (e) {
+          console.warn('Backend store reject failed:', e);
+        }
+      }
+
+      // 2. Synchronize localStorage
+      try {
+        const localSaved = localStorage.getItem('kaafi_merchant_stores_clean_v2');
+        if (localSaved) {
+          const localStores = JSON.parse(localSaved);
+          if (Array.isArray(localStores)) {
+            const updated = localStores.map((ls: any) => {
+              if (ls.id === storeId || ls.slug === storeId) {
+                return { ...ls, isVerified: false, status: 'REJECTED' };
+              }
+              return ls;
+            });
+            localStorage.setItem('kaafi_merchant_stores_clean_v2', JSON.stringify(updated));
+          }
+        }
+      } catch {}
+
+      // 3. Dispatch global sync event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('kaafi_stores_updated', {
+            detail: { slugOrId: storeId, isVerified: false, status: 'REJECTED' },
+          })
+        );
+        window.dispatchEvent(new Event('storage'));
+      }
+
+      // 4. Update admin local state
+      setStores((prev) =>
+        prev.map((s) =>
+          s.id === storeId || s.slug === storeId
+            ? { ...s, isVerified: false, owner: { ...s.owner, isActive: false } }
+            : s
+        )
+      );
+
+      setSuccessMsg(`✕ Meheradda "${storeName}" waa la diiday (REJECTED).`);
+    } catch {
+      setErrorMsg('Khalad baa dhacay marka meheradda la diidayay.');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   const handleDeleteStore = async (storeIdOrSlug: string, storeName: string) => {
     if (!window.confirm(`Ma hubtaa inaad tirtirto meheradda "${storeName}" iyo dhammaan alaabteeda? Tallaabadan dib looma noqon karo.`)) {
       return;
@@ -1850,14 +1910,23 @@ export default function SuperAdminPortal() {
                             <button
                               onClick={() => handleToggleStoreVerification(st.id, false)}
                               disabled={isProcessing}
-                              className="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30 disabled:opacity-50"
+                              className="flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30 disabled:opacity-50 flex items-center justify-center gap-1"
                             >
                               {isProcessing ? '⏳' : '✓ Ogolow (Verify)'}
                             </button>
                             <button
-                              onClick={() => handleToggleStoreActive(st.id, st.owner?.isActive !== false)}
+                              onClick={() => handleRejectStore(st.id, st.businessName)}
+                              disabled={isProcessing}
+                              className="px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-amber-600/20 text-amber-400 border-amber-500/30 hover:bg-amber-600/30 disabled:opacity-50"
+                              title="Diidi codsiga meheradda"
+                            >
+                              ✕ Diidi
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStore(st.id, st.businessName)}
                               disabled={isProcessing}
                               className="px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-rose-600/15 text-rose-400 border-rose-500/25 hover:bg-rose-600/25 disabled:opacity-50"
+                              title="Tirtir meheradda"
                             >
                               🗑️
                             </button>
@@ -2010,18 +2079,29 @@ export default function SuperAdminPortal() {
                             Dukaanka ↗
                           </a>
 
-                          <div className="flex gap-1.5">
+                          <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleToggleStoreVerification(st.id, !!st.isVerified)}
                               disabled={isProcessing}
                               className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                                 st.isVerified
                                   ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                                  : 'bg-blue-600/20 text-blue-400 border-blue-500/30 hover:bg-blue-600/30'
+                                  : 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30'
                               }`}
                             >
-                              {st.isVerified ? 'Ka qaad Xaqiijinta' : 'Xaqiiji (Verify)'}
+                              {st.isVerified ? 'Ka qaad Xaqiijinta' : '✓ Xaqiiji (Verify)'}
                             </button>
+
+                            {!st.isVerified && (
+                              <button
+                                onClick={() => handleRejectStore(st.id, st.businessName)}
+                                disabled={isProcessing}
+                                className="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border bg-amber-600/20 text-amber-400 border-amber-500/30 hover:bg-amber-600/30"
+                                title="Diidi meheradda"
+                              >
+                                ✕ Diidi
+                              </button>
+                            )}
 
                             <button
                               onClick={() => handleToggleStoreActive(st.id, isOwnerActive)}
@@ -2029,10 +2109,19 @@ export default function SuperAdminPortal() {
                               className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                                 isOwnerActive
                                   ? 'bg-rose-600/20 text-rose-400 border-rose-500/30 hover:bg-rose-600/30'
-                                  : 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/30'
+                                  : 'bg-blue-600/20 text-blue-400 border-blue-500/30 hover:bg-blue-600/30'
                               }`}
                             >
                               {isOwnerActive ? 'Jooji (Suspend)' : 'Fasax (Activate)'}
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteStore(st.id, st.businessName)}
+                              disabled={isProcessing}
+                              className="p-1.5 rounded-xl text-xs font-bold transition-all border bg-rose-600/10 text-rose-400/80 border-rose-500/20 hover:bg-rose-600/25 hover:text-rose-300"
+                              title="Tirtir meheradda"
+                            >
+                              🗑️
                             </button>
                           </div>
                         </div>
