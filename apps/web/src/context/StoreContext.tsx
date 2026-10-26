@@ -174,7 +174,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedStores));
           } catch {}
         }
-      }
 
       // 2. Fetch all public listings for marketplace feed
       const res = await api.getListings({ limit: 100 });
