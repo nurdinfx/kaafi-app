@@ -258,9 +258,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const savedForSync = localStorage.getItem(STORAGE_KEY);
           if (savedForSync) {
             const localForSync: MerchantStore[] = JSON.parse(savedForSync);
+            const userStr = typeof window !== 'undefined' ? localStorage.getItem('hudisoft_user') : null;
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+
             for (const localStore of localForSync) {
               // Only sync if this store has a real backend ID (not "store-<timestamp>")
               if (!localStore.id || localStore.id.startsWith('store-')) continue;
+              // Only sync if the logged in user owns this store (or is admin)
+              if (currentUser && localStore.ownerId && localStore.ownerId !== currentUser.id && currentUser.email !== 'admin@hudisoft.com') {
+                continue;
+              }
               // Find local-only products (id starts with 'prod-', meaning they were never synced)
               const unsynced = (localStore.products || []).filter(
                 (p) => p.id && p.id.startsWith('prod-')
@@ -645,7 +652,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // Call backend API asynchronously to create persistent Listing record
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('hudisoft_token');
+      const userStr = localStorage.getItem('hudisoft_user');
+      const currentUser = userStr ? JSON.parse(userStr) : null;
       if (token && targetStore) {
+        if (currentUser && targetStore.ownerId && targetStore.ownerId !== currentUser.id && currentUser.email !== 'admin@hudisoft.com') {
+          console.warn('[StoreContext] Cannot add product: not owner of store', targetStore.businessName);
+          return newProduct;
+        }
         import('../lib/api').then(({ api }) => {
           // Convert category display name to slug format for reliable backend lookup
           // e.g. "Women Clothing" → "women-clothing", "Guud" → "guud"

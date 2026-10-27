@@ -22,10 +22,10 @@ const getStoreBySlug = async (req, res, next) => {
                 listings: {
                     where: { status: 'ACTIVE' },
                     include: {
-                        media: { take: 1 },
+                        media: { take: 10, orderBy: { sortOrder: 'asc' } },
                         category: { select: { id: true, name: true, slug: true } },
                     },
-                    take: 50,
+                    take: 100,
                 },
             },
         });

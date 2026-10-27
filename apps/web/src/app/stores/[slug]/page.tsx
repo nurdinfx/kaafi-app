@@ -42,10 +42,9 @@ export default function StorefrontPage({ params }: Props) {
 
     if (contextStore) {
       setIsLoading(false);
-      return;
     }
 
-    // Fallback: Fetch directly from API if context hasn't loaded or store not in local
+    // Always fetch latest store details and products directly from backend DB for real-time freshness
     let isCancelled = false;
     api.getStore(slug).then((res) => {
       if (isCancelled) return;
@@ -70,7 +69,13 @@ export default function StorefrontPage({ params }: Props) {
           ownerId: res.ownerId || res.owner?.id,
           ownerName: res.owner?.fullName,
           ownerPhone: res.owner?.phoneNumber || res.phone,
-          categories: ['Guud', 'Women Clothing', 'New In', 'Best Sellers'],
+          categories: Array.from(
+            new Set([
+              ...(contextStore?.categories || []),
+              ...(res.listings || []).map((l: any) => l.category?.name).filter(Boolean),
+              'Guud',
+            ])
+          ),
           products: (res.listings || []).map((l: any) => ({
             id: l.id,
             title: l.title,
@@ -331,13 +336,15 @@ export default function StorefrontPage({ params }: Props) {
                 <span>{t('btn_chat_seller', 'Kula Hadal Chat-ka (Private Chat)')}</span>
               </Link>
 
-              <Link
-                href="/seller/store-builder"
-                className="px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 transition-colors flex items-center gap-1.5"
-              >
-                <span>⚙️</span>
-                <span>{t('nav_my_store', 'Maamul Store-ka')}</span>
-              </Link>
+              {canPreview && (
+                <Link
+                  href="/seller/store-builder"
+                  className="px-4 py-2.5 rounded-2xl font-bold text-xs sm:text-sm text-white bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 transition-colors flex items-center gap-1.5"
+                >
+                  <span>⚙️</span>
+                  <span>{t('nav_my_store', 'Maamul Store-ka')}</span>
+                </Link>
+              )}
             </div>
           </div>
 

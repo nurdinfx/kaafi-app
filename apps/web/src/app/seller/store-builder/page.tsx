@@ -44,51 +44,75 @@ export default function StoreBuilderPage() {
     }
   }, []);
 
-  // Active store selected for editing (defaults to first or create new)
-  const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>(stores[0]?.slug || 'new');
+  const isUserOwnerOfStore = (s: MerchantStore | null | undefined, user: any) => {
+    if (!s || !user) return false;
+    const normalizePhone = (p?: string) => (p || '').replace(/\D/g, '').replace(/^252/, '');
+    const userRoles = user?.roles || [];
+    const isAdmin =
+      userRoles.includes('SUPER_ADMIN') ||
+      userRoles.includes('FINANCE_ADMIN') ||
+      userRoles.includes('MODERATOR') ||
+      user?.email === 'admin@hudisoft.com' ||
+      user?.phoneNumber === '+252907000001' ||
+      user?.phoneNumber === '+252615000000';
+
+    if (isAdmin) return true;
+
+    return (
+      (user.id && (s.ownerId === user.id || (s as any).owner?.id === user.id)) ||
+      (user.phoneNumber && normalizePhone(s.ownerPhone) === normalizePhone(user.phoneNumber)) ||
+      (user.phoneNumber && normalizePhone(s.phone) === normalizePhone(user.phoneNumber)) ||
+      (user.phoneNumber && normalizePhone(s.whatsappNumber) === normalizePhone(user.phoneNumber))
+    );
+  };
+
+  // Only stores this user owns (or all stores if admin)
+  const myStores = stores.filter((s) => isUserOwnerOfStore(s, currentUser));
+
+  // Active store selected for editing (defaults to user's first store or 'new')
+  const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>('new');
   const [isStartingNew, setIsStartingNew] = useState(false);
   const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'stock'>('brand');
 
-  const currentStore = stores.find((s) => s.slug === selectedStoreSlug) || stores[0];
+  const currentStore = myStores.find((s) => s.slug === selectedStoreSlug) || (selectedStoreSlug !== 'new' && !isStartingNew ? myStores[0] : undefined);
 
   // Brand form state
-  const [businessName, setBusinessName] = useState(currentStore?.businessName || '');
-  const [slug, setSlug] = useState(currentStore?.slug || '');
-  const [tagline, setTagline] = useState(currentStore?.tagline || '');
-  const [bio, setBio] = useState(currentStore?.bio || '');
+  const [businessName, setBusinessName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [bio, setBio] = useState('');
   const [logoUrl, setLogoUrl] = useState(
-    currentStore?.logoUrl ||
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop'
   );
   const [bannerUrl, setBannerUrl] = useState(
-    currentStore?.bannerUrl ||
-      'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'
+    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop'
   );
-  const [themeColor, setThemeColor] = useState(currentStore?.themeColor || '#ea580c');
-  const [city, setCity] = useState(currentStore?.city || 'Garoowe');
-  const [district, setDistrict] = useState(currentStore?.district || '');
+  const [themeColor, setThemeColor] = useState('#ea580c');
+  const [city, setCity] = useState('Garoowe');
+  const [district, setDistrict] = useState('');
 
   // Auto-populate when stores or currentUser load (prevents wiping out data on refresh)
   useEffect(() => {
-    if (!stores || stores.length === 0 || isStartingNew) return;
+    if (!currentUser) return;
+
+    if (isStartingNew) {
+      setSelectedStoreSlug('new');
+      setBusinessName('');
+      setSlug('');
+      setTagline('');
+      setBio('');
+      setCity('Garoowe');
+      setDistrict('');
+      return;
+    }
 
     let targetStore: MerchantStore | undefined;
     if (selectedStoreSlug && selectedStoreSlug !== 'new') {
-      targetStore = stores.find((s) => s.slug === selectedStoreSlug || s.id === selectedStoreSlug);
+      targetStore = myStores.find((s) => s.slug === selectedStoreSlug || s.id === selectedStoreSlug);
     }
 
-    if (!targetStore && currentUser) {
-      targetStore = stores.find(
-        (s) =>
-          (currentUser.id && s.ownerId === currentUser.id) ||
-          (currentUser.phoneNumber && s.ownerPhone === currentUser.phoneNumber) ||
-          (currentUser.phoneNumber && s.phone === currentUser.phoneNumber) ||
-          (currentUser.phoneNumber && s.whatsappNumber === currentUser.phoneNumber)
-      );
-    }
-
-    if (!targetStore && (!selectedStoreSlug || selectedStoreSlug === 'new')) {
-      targetStore = stores[0];
+    if (!targetStore && myStores.length > 0) {
+      targetStore = myStores[0];
     }
 
     if (targetStore) {
@@ -103,6 +127,15 @@ export default function StoreBuilderPage() {
       if (targetStore.city) setCity(targetStore.city);
       if (targetStore.district) setDistrict(targetStore.district);
       if (targetStore.categories?.length) setProdCategory(targetStore.categories[0]);
+    } else {
+      // User has no store yet - start in new store creation mode
+      setSelectedStoreSlug('new');
+      setBusinessName('');
+      setSlug('');
+      setTagline('');
+      setBio('');
+      setCity('Garoowe');
+      setDistrict('');
     }
   }, [stores, currentUser, isStartingNew]);
 
@@ -290,12 +323,12 @@ export default function StoreBuilderPage() {
   const handleSelectStore = (storeSlug: string) => {
     setIsStartingNew(false);
     setSelectedStoreSlug(storeSlug);
-    const s = stores.find((item) => item.slug === storeSlug);
+    const s = myStores.find((item) => item.slug === storeSlug);
     if (s) {
       setBusinessName(s.businessName);
       setSlug(s.slug);
-      setTagline(s.tagline);
-      setBio(s.bio);
+      setTagline(s.tagline || '');
+      setBio(s.bio || '');
       setLogoUrl(s.logoUrl);
       setBannerUrl(s.bannerUrl);
       setThemeColor(s.themeColor);
@@ -316,6 +349,7 @@ export default function StoreBuilderPage() {
     setBannerUrl('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop');
     setCity('Garoowe');
     setDistrict('');
+    setActiveTab('brand');
   };
 
   const handleSaveBrand = (e: React.FormEvent) => {
@@ -332,7 +366,11 @@ export default function StoreBuilderPage() {
       return;
     }
 
-    if (currentStore && selectedStoreSlug !== 'new') {
+    if (currentStore && selectedStoreSlug !== 'new' && !isStartingNew) {
+      if (!isUserOwnerOfStore(currentStore, currentUser)) {
+        alert('Ma lihid awood aad wax kaga beddesho meheraddan!');
+        return;
+      }
       updateStore(currentStore.slug, {
         businessName: businessName.trim(),
         tagline: tagline.trim(),
@@ -356,6 +394,9 @@ export default function StoreBuilderPage() {
         themeColor,
         city,
         district: district.trim(),
+        ownerId: currentUser?.id,
+        ownerPhone: currentUser?.phoneNumber,
+        ownerName: currentUser?.fullName,
       });
       setSelectedStoreSlug(newStore.slug);
       setIsStartingNew(false);
@@ -366,7 +407,16 @@ export default function StoreBuilderPage() {
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim() || !currentStore) return;
+    if (!newCategoryName.trim()) return;
+    if (!currentStore || selectedStoreSlug === 'new') {
+      alert('Fadlan marka hore sameyso oo keydi meheraddaada!');
+      return;
+    }
+    if (!isUserOwnerOfStore(currentStore, currentUser)) {
+      alert('Ma lihid awood aad wax kaga beddesho meheraddan!');
+      return;
+    }
+
     const catName = newCategoryName.trim();
     setAddingCategoryWait(true);
 
@@ -385,7 +435,15 @@ export default function StoreBuilderPage() {
 
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentStore || !prodTitle.trim() || !prodPrice) {
+    if (!currentStore || selectedStoreSlug === 'new') {
+      alert('Fadlan marka hore sameyso oo keydi meheraddaada ka hor inta aadan alaab ku darin!');
+      return;
+    }
+    if (!isUserOwnerOfStore(currentStore, currentUser)) {
+      alert('Ma lihid awood aad alaab ugu darto meheraddan!');
+      return;
+    }
+    if (!prodTitle.trim() || !prodPrice) {
       alert(t('sb_modal_prod_title', 'Fadlan buuxi magaca alaabta iyo qiimaha!'));
       return;
     }
@@ -610,12 +668,18 @@ export default function StoreBuilderPage() {
               <span>🏪</span> {t('sb_label_your_stores')}
             </span>
             <div className="flex items-center gap-2 overflow-x-auto">
-              {stores.map((s) => (
+              {myStores.length === 0 && (
+                <span className="text-xs text-amber-400/90 font-medium whitespace-nowrap bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
+                  Wali ma lihid meherad — Fadlan sameyso meheraddaada koowaad
+                </span>
+              )}
+
+              {myStores.map((s) => (
                 <button
                   key={s.slug}
                   onClick={() => handleSelectStore(s.slug)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border whitespace-nowrap cursor-pointer ${
-                    selectedStoreSlug === s.slug
+                    selectedStoreSlug === s.slug && !isStartingNew
                       ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-400 shadow-md shadow-orange-500/20 scale-[1.02]'
                       : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-850'
                   }`}
@@ -628,7 +692,7 @@ export default function StoreBuilderPage() {
               <button
                 onClick={handleStartNewStore}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border border-dashed transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                  selectedStoreSlug === 'new'
+                  selectedStoreSlug === 'new' || isStartingNew
                     ? 'border-orange-500 text-orange-400 bg-orange-500/10'
                     : 'border-slate-700 text-slate-400 hover:border-orange-500/50 hover:text-orange-300 bg-slate-900/50'
                 }`}
@@ -1303,8 +1367,27 @@ export default function StoreBuilderPage() {
           </form>
         )}
 
+        {/* Prompt to create store first if no store exists */}
+        {activeTab !== 'brand' && (!currentStore || selectedStoreSlug === 'new') && (
+          <div className="max-w-lg mx-auto py-16 px-4 text-center bg-slate-950/80 rounded-3xl border border-slate-800">
+            <div className="text-5xl mb-4">🏪</div>
+            <h3 className="text-lg font-bold text-white mb-2 font-display">
+              Fadlan Marka Hore Sameyso Meheraddaada
+            </h3>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed max-w-sm mx-auto">
+              Si aad ugu darto Qeybaha (Categories) ama Alaabta (Stock), fadlan buuxi macluumaadka guud ee meheraddaada Tab-ka koowaad kadibna keydi.
+            </p>
+            <button
+              onClick={() => setActiveTab('brand')}
+              className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-md"
+            >
+              ← Ku Laabo Branding & General Info
+            </button>
+          </div>
+        )}
+
         {/* ── TAB 2: CATEGORIES MANAGEMENT (COLLECTIONS) ── */}
-        {activeTab === 'categories' && currentStore && (
+        {activeTab === 'categories' && currentStore && selectedStoreSlug !== 'new' && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
               <div className="flex items-center justify-between mb-2">
@@ -1386,7 +1469,7 @@ export default function StoreBuilderPage() {
         )}
 
         {/* ── TAB 3: STOCK / INVENTORY MANAGEMENT (SHEIN STYLE) ── */}
-        {activeTab === 'stock' && currentStore && (
+        {activeTab === 'stock' && currentStore && selectedStoreSlug !== 'new' && (
           <div className="space-y-6">
             <div className="bg-slate-950/80 rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 backdrop-blur-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

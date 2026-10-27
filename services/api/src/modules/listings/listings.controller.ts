@@ -309,6 +309,21 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
       if (userBusiness) {
         resolvedBusinessId = userBusiness.id;
       }
+    } else {
+      // If businessId is provided, verify caller owns this businessProfile (or is admin)
+      const userRoles = (req.user as any).roles || [];
+      const isAdmin = userRoles.some((r: any) =>
+        ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR'].includes(r.role?.name || r)
+      );
+      if (!isAdmin) {
+        const business = await prisma.businessProfile.findUnique({
+          where: { id: resolvedBusinessId },
+          select: { ownerId: true },
+        });
+        if (business && business.ownerId !== req.user.id) {
+          throw new AppError('Unauthorized: You can only add products to your own store.', 403, ErrorCode.FORBIDDEN);
+        }
+      }
     }
 
     // Create listing in database atomically

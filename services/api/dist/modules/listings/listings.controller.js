@@ -251,6 +251,20 @@ const createListing = async (req, res, next) => {
                 resolvedBusinessId = userBusiness.id;
             }
         }
+        else {
+            // If businessId is provided, verify caller owns this businessProfile (or is admin)
+            const userRoles = req.user.roles || [];
+            const isAdmin = userRoles.some((r) => ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR'].includes(r.role?.name || r));
+            if (!isAdmin) {
+                const business = await db_1.default.businessProfile.findUnique({
+                    where: { id: resolvedBusinessId },
+                    select: { ownerId: true },
+                });
+                if (business && business.ownerId !== req.user.id) {
+                    throw new errorHandler_1.AppError('Unauthorized: You can only add products to your own store.', 403, types_1.ErrorCode.FORBIDDEN);
+                }
+            }
+        }
         // Create listing in database atomically
         const listing = await db_1.default.listing.create({
             data: {
