@@ -6,8 +6,9 @@ import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import ProductCard from '../../../components/ProductCard';
 import ProductDetailModal from '../../../components/ProductDetailModal';
-import { useStore, StoreProduct } from '../../../context/StoreContext';
+import { useStore, StoreProduct, MerchantStore } from '../../../context/StoreContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { api } from '../../../lib/api';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -19,7 +20,11 @@ export default function StorefrontPage({ params }: Props) {
   const { getStoreBySlug, verifyStore } = useStore();
   const { t, isRTL, dir } = useLanguage();
 
-  const store = getStoreBySlug(slug);
+  const contextStore = getStoreBySlug(slug);
+  const [apiStore, setApiStore] = useState<MerchantStore | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const store = contextStore || apiStore;
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
@@ -34,7 +39,88 @@ export default function StorefrontPage({ params }: Props) {
       const u = localStorage.getItem('hudisoft_user');
       if (u) setCurrentUser(JSON.parse(u));
     } catch {}
-  }, []);
+
+    if (contextStore) {
+      setIsLoading(false);
+      return;
+    }
+
+    // Fallback: Fetch directly from API if context hasn't loaded or store not in local
+    let isCancelled = false;
+    api.getStore(slug).then((res) => {
+      if (isCancelled) return;
+      if (res) {
+        const mapped: MerchantStore = {
+          id: res.id,
+          slug: res.slug,
+          businessName: res.businessName,
+          tagline: res.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
+          bio: res.description || 'Ku soo dhowow meheraddeena rasmiga ah.',
+          logoUrl: res.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+          bannerUrl: res.coverImageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
+          themeColor: '#ea580c',
+          city: res.city || 'Garoowe',
+          district: res.landmarkAddress || '',
+          whatsappNumber: res.whatsappNumber || '+252907000000',
+          phone: res.phone || '+252907000000',
+          isVerified: !!res.isVerified,
+          rating: res.rating || 5.0,
+          reviewsCount: res.totalReviews || 0,
+          createdDate: res.createdAt ? new Date(res.createdAt).toISOString().split('T')[0] : '2026-01-01',
+          ownerId: res.ownerId || res.owner?.id,
+          ownerName: res.owner?.fullName,
+          ownerPhone: res.owner?.phoneNumber || res.phone,
+          categories: ['Guud', 'Women Clothing', 'New In', 'Best Sellers'],
+          products: (res.listings || []).map((l: any) => ({
+            id: l.id,
+            title: l.title,
+            price: l.price,
+            compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
+            discountPercent: 15,
+            images: l.media?.length ? l.media.map((m: any) => m.url) : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'],
+            category: l.category?.name || 'Guud',
+            stockQuantity: l.inventoryCount ?? 1,
+            sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
+            description: l.description || '',
+            condition: l.condition || 'NEW',
+            storeSlug: res.slug,
+            storeName: res.businessName,
+            isPopular: true,
+            isFeatured: true,
+            rating: 5.0,
+            reviewsCount: 0,
+            reviews: [],
+          })),
+        };
+        setApiStore(mapped);
+      }
+      setIsLoading(false);
+    }).catch(() => {
+      if (!isCancelled) setIsLoading(false);
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [slug, contextStore]);
+
+  if (isLoading && !store) {
+    return (
+      <main className="min-h-screen bg-slate-100 flex flex-col justify-between text-slate-800">
+        <Navbar />
+        <div className="max-w-md mx-auto py-32 text-center px-4">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 font-display">
+            Fadlan sug, meheradda waa la soo gelinayaa...
+          </h2>
+          <p className="text-xs text-slate-500 mt-2">
+            Loading store details and products...
+          </p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   if (!store) {
     return (
@@ -69,12 +155,16 @@ export default function StorefrontPage({ params }: Props) {
     currentUser?.phoneNumber === '+252907000001' ||
     currentUser?.phoneNumber === '+252615000000';
 
+  const normalizePhone = (p?: string) => (p || '').replace(/\D/g, '').replace(/^252/, '');
+
   const isOwner =
     currentUser &&
-    (currentUser.phoneNumber === store.phone ||
-      currentUser.phoneNumber === store.whatsappNumber ||
-      currentUser.id === store.ownerId ||
-      currentUser.phoneNumber === store.ownerPhone);
+    (
+      (currentUser.id && (currentUser.id === store.ownerId || currentUser.id === (store as any).owner?.id)) ||
+      (currentUser.phoneNumber && normalizePhone(currentUser.phoneNumber) === normalizePhone(store.phone)) ||
+      (currentUser.phoneNumber && normalizePhone(currentUser.phoneNumber) === normalizePhone(store.whatsappNumber)) ||
+      (currentUser.phoneNumber && normalizePhone(currentUser.phoneNumber) === normalizePhone(store.ownerPhone))
+    );
 
   const canPreview = isOwner || isAdmin;
 

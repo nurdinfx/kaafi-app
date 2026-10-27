@@ -14,7 +14,7 @@ export const getStoreBySlug = async (req: Request, res: Response, next: NextFunc
         OR: [{ slug }, { id: slug }],
       },
       include: {
-        owner: { select: { id: true, fullName: true, avatarUrl: true } },
+        owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
         branches: { where: { isActive: true } },
         listings: {
           where: { status: 'ACTIVE' },
@@ -132,8 +132,23 @@ export const createBusinessStore = async (req: AuthenticatedRequest, res: Respon
     const baseSlug = (customSlug || businessName)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    const slug = `${baseSlug}-${Math.floor(100 + Math.random() * 900)}`;
+      .replace(/^-+|-+$/g, '') || `store-${Date.now()}`;
+
+    // Check if user already has a store or if slug clashes
+    const existingForOwner = await prisma.businessProfile.findUnique({
+      where: { ownerId: req.user.id },
+    });
+
+    let slug = existingForOwner?.slug || baseSlug;
+    if (!existingForOwner || (customSlug && existingForOwner.slug !== customSlug)) {
+      const clash = await prisma.businessProfile.findFirst({
+        where: {
+          slug: baseSlug,
+          NOT: { ownerId: req.user.id },
+        },
+      });
+      slug = clash ? `${baseSlug}-${Math.floor(100 + Math.random() * 900)}` : baseSlug;
+    }
 
     const store = await prisma.businessProfile.upsert({
       where: { ownerId: req.user.id },

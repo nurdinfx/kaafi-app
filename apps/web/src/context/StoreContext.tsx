@@ -124,57 +124,97 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       
       // 1. Fetch public/all stores from backend database
       const dbStores = await api.getStores({ includeUnverified: true });
-      if (Array.isArray(dbStores) && dbStores.length > 0) {
-        const mappedStores: MerchantStore[] = dbStores.map((bs: any) => ({
+      if (Array.isArray(dbStores)) {
+        let localStores: MerchantStore[] = [];
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) localStores = parsed;
+          }
+        } catch {}
+
+        const mappedDbStores: MerchantStore[] = dbStores.map((bs: any) => {
+          const existingLocal = localStores.find(
+            (ls) => ls.id === bs.id || ls.slug === bs.slug || (bs.ownerId && ls.ownerId === bs.ownerId)
+          );
+
+          const dbProducts: StoreProduct[] = (bs.listings || []).map((l: any) => {
+            const images = (l.media && l.media.length > 0)
+              ? l.media.map((m: any) => m.url)
+              : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
+            return {
+              id: l.id,
+              title: l.title,
+              price: l.price,
+              compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
+              discountPercent: 15,
+              images,
+              category: l.category?.name || 'Guud',
+              stockQuantity: l.inventoryCount ?? 1,
+              sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
+              description: l.description || '',
+              condition: l.condition || 'NEW',
+              storeSlug: bs.slug,
+              storeName: bs.businessName,
+              isPopular: true,
+              isFeatured: true,
+              rating: 5.0,
+              reviewsCount: 0,
+              reviews: [],
+            };
+          });
+
+          // Merge products so custom builder products are preserved
+          const combinedProducts = [...dbProducts];
+          if (existingLocal?.products && Array.isArray(existingLocal.products)) {
+            existingLocal.products.forEach((lp) => {
+              if (!combinedProducts.some((p) => p.id === lp.id || p.title.toLowerCase() === lp.title.toLowerCase())) {
+                combinedProducts.push(lp);
+              }
+            });
+          }
+
+          const categories = existingLocal?.categories && existingLocal.categories.length > 0
+            ? existingLocal.categories
+            : ['Guud', 'Women Clothing', 'New In', 'Best Sellers'];
+
+          return {
             id: bs.id,
             slug: bs.slug,
-            businessName: bs.businessName,
-            tagline: bs.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
-            bio: bs.description || 'Ku soo dhowow meheraddeena rasmiga ah.',
-            logoUrl: bs.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
-            bannerUrl: bs.coverImageUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
-            themeColor: '#ea580c',
-            city: bs.city || 'Garoowe',
-            district: bs.landmarkAddress || '',
-            whatsappNumber: bs.whatsappNumber || '+252907000000',
-            phone: bs.phone || '+252907000000',
+            businessName: bs.businessName || existingLocal?.businessName || 'Meherad',
+            tagline: bs.tagline || existingLocal?.tagline || 'Ganacsi Casri ah oo Ku yaalla Soomaaliya',
+            bio: bs.description || existingLocal?.bio || 'Ku soo dhowow meheraddeena rasmiga ah.',
+            logoUrl: bs.logoUrl || existingLocal?.logoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop',
+            bannerUrl: bs.coverImageUrl || existingLocal?.bannerUrl || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=500&fit=crop',
+            themeColor: existingLocal?.themeColor || '#ea580c',
+            city: bs.city || existingLocal?.city || 'Garoowe',
+            district: bs.landmarkAddress || existingLocal?.district || '',
+            whatsappNumber: bs.whatsappNumber || existingLocal?.whatsappNumber || '+252907000000',
+            phone: bs.phone || existingLocal?.phone || '+252907000000',
             isVerified: !!bs.isVerified,
-            rating: bs.rating || 5.0,
-            reviewsCount: bs.totalReviews || 0,
-            createdDate: bs.createdAt ? new Date(bs.createdAt).toISOString().split('T')[0] : '2026-01-01',
-            categories: ['Guud', 'Women Clothing', 'New In', 'Best Sellers'],
-            products: (bs.listings || []).map((l: any) => {
-              const images = (l.media && l.media.length > 0)
-                ? l.media.map((m: any) => m.url)
-                : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
-              return {
-                id: l.id,
-                title: l.title,
-                price: l.price,
-                compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
-                discountPercent: 15,
-                images,
-                category: l.category?.name || 'Guud',
-                stockQuantity: l.inventoryCount ?? 1,
-                sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
-                description: l.description || '',
-                condition: l.condition || 'NEW',
-                storeSlug: bs.slug,
-                storeName: bs.businessName,
-                isPopular: true,
-                isFeatured: true,
-                rating: 5.0,
-                reviewsCount: 0,
-                reviews: [],
-              };
-            }),
-          }));
+            rating: bs.rating || existingLocal?.rating || 5.0,
+            reviewsCount: bs.totalReviews || existingLocal?.reviewsCount || 0,
+            createdDate: bs.createdAt ? new Date(bs.createdAt).toISOString().split('T')[0] : existingLocal?.createdDate || '2026-01-01',
+            ownerId: bs.ownerId || bs.owner?.id || existingLocal?.ownerId,
+            ownerName: bs.owner?.fullName || existingLocal?.ownerName,
+            ownerPhone: bs.owner?.phoneNumber || existingLocal?.ownerPhone || bs.phone,
+            categories,
+            products: combinedProducts,
+          };
+        });
 
-          setStores(mappedStores);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedStores));
-          } catch {}
-        }
+        // Also preserve any local stores not yet in backend
+        const remainingLocalStores = localStores.filter(
+          (ls) => !mappedDbStores.some((ms) => ms.id === ls.id || ms.slug === ls.slug || (ls.ownerId && ms.ownerId === ls.ownerId))
+        );
+
+        const mergedStores = [...mappedDbStores, ...remainingLocalStores];
+        setStores(mergedStores);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedStores));
+        } catch {}
+      }
 
       // 2. Fetch all public listings for marketplace feed
       const res = await api.getListings({ limit: 100 });
@@ -345,9 +385,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }, token)
           .then((res) => {
             if (res && res.success && res.data) {
-              setStores((curr) =>
-                curr.map((s) => (s.slug === slug ? { ...s, id: res.data.id } : s))
-              );
+              setStores((curr) => {
+                const next = curr.map((s) =>
+                  s.slug === slug
+                    ? {
+                        ...s,
+                        id: res.data.id || s.id,
+                        slug: res.data.slug || s.slug,
+                        isVerified: res.data.isVerified !== undefined ? !!res.data.isVerified : s.isVerified,
+                      }
+                    : s
+                );
+                try {
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+                } catch {}
+                return next;
+              });
             }
           })
           .catch((err) => console.warn('Could not sync store creation to backend:', err));

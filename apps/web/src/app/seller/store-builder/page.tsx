@@ -46,6 +46,7 @@ export default function StoreBuilderPage() {
 
   // Active store selected for editing (defaults to first or create new)
   const [selectedStoreSlug, setSelectedStoreSlug] = useState<string>(stores[0]?.slug || 'new');
+  const [isStartingNew, setIsStartingNew] = useState(false);
   const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'stock'>('brand');
 
   const currentStore = stores.find((s) => s.slug === selectedStoreSlug) || stores[0];
@@ -66,6 +67,44 @@ export default function StoreBuilderPage() {
   const [themeColor, setThemeColor] = useState(currentStore?.themeColor || '#ea580c');
   const [city, setCity] = useState(currentStore?.city || 'Garoowe');
   const [district, setDistrict] = useState(currentStore?.district || '');
+
+  // Auto-populate when stores or currentUser load (prevents wiping out data on refresh)
+  useEffect(() => {
+    if (!stores || stores.length === 0 || isStartingNew) return;
+
+    let targetStore: MerchantStore | undefined;
+    if (selectedStoreSlug && selectedStoreSlug !== 'new') {
+      targetStore = stores.find((s) => s.slug === selectedStoreSlug || s.id === selectedStoreSlug);
+    }
+
+    if (!targetStore && currentUser) {
+      targetStore = stores.find(
+        (s) =>
+          (currentUser.id && s.ownerId === currentUser.id) ||
+          (currentUser.phoneNumber && s.ownerPhone === currentUser.phoneNumber) ||
+          (currentUser.phoneNumber && s.phone === currentUser.phoneNumber) ||
+          (currentUser.phoneNumber && s.whatsappNumber === currentUser.phoneNumber)
+      );
+    }
+
+    if (!targetStore && (!selectedStoreSlug || selectedStoreSlug === 'new')) {
+      targetStore = stores[0];
+    }
+
+    if (targetStore) {
+      setSelectedStoreSlug(targetStore.slug);
+      setBusinessName(targetStore.businessName);
+      setSlug(targetStore.slug);
+      setTagline(targetStore.tagline || '');
+      setBio(targetStore.bio || '');
+      if (targetStore.logoUrl) setLogoUrl(targetStore.logoUrl);
+      if (targetStore.bannerUrl) setBannerUrl(targetStore.bannerUrl);
+      if (targetStore.themeColor) setThemeColor(targetStore.themeColor);
+      if (targetStore.city) setCity(targetStore.city);
+      if (targetStore.district) setDistrict(targetStore.district);
+      if (targetStore.categories?.length) setProdCategory(targetStore.categories[0]);
+    }
+  }, [stores, currentUser, isStartingNew]);
 
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -249,6 +288,7 @@ export default function StoreBuilderPage() {
   };
 
   const handleSelectStore = (storeSlug: string) => {
+    setIsStartingNew(false);
     setSelectedStoreSlug(storeSlug);
     const s = stores.find((item) => item.slug === storeSlug);
     if (s) {
@@ -266,6 +306,7 @@ export default function StoreBuilderPage() {
   };
 
   const handleStartNewStore = () => {
+    setIsStartingNew(true);
     setSelectedStoreSlug('new');
     setBusinessName('');
     setSlug('');
@@ -317,6 +358,7 @@ export default function StoreBuilderPage() {
         district: district.trim(),
       });
       setSelectedStoreSlug(newStore.slug);
+      setIsStartingNew(false);
       // Store is PENDING verification - admin must approve before it becomes public
       showToast('⏳ Meheraddaadu waa la sameeyay! Waxay sugaysaa oggolaanshaha adminku. Kadib buu store-kaagu public noqon doonaa.');
     }
