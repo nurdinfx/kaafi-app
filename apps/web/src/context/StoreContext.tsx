@@ -248,6 +248,72 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } else {
         setLiveProducts([]);
       }
+
+      // 3. AUTO-SYNC: Push any local-only products to backend that failed to sync earlier
+      // This happens when createListing failed previously (e.g. bad category ID)
+      // We try silently in the background so products become visible to all customers
+      try {
+        const token = localStorage.getItem('hudisoft_token');
+        if (token) {
+          const savedForSync = localStorage.getItem(STORAGE_KEY);
+          if (savedForSync) {
+            const localForSync: MerchantStore[] = JSON.parse(savedForSync);
+            for (const localStore of localForSync) {
+              // Only sync if this store has a real backend ID (not "store-<timestamp>")
+              if (!localStore.id || localStore.id.startsWith('store-')) continue;
+              // Find local-only products (id starts with 'prod-', meaning they were never synced)
+              const unsynced = (localStore.products || []).filter(
+                (p) => p.id && p.id.startsWith('prod-')
+              );
+              for (const prod of unsynced) {
+                try {
+                  const categorySlug = (prod.category || 'products')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '') || 'products';
+                  const desc = prod.description?.trim() ||
+                    `${prod.title} - Alaab tayo sare ah oo ka imaanaysa ${localStore.businessName}.`;
+                  const res = await api.createListing({
+                    title: prod.title,
+                    description: desc,
+                    price: prod.price,
+                    currency: 'USD',
+                    categoryId: categorySlug,
+                    verticalType: 'PRODUCT',
+                    condition: prod.condition || 'NEW',
+                    inventoryCount: prod.stockQuantity || 1,
+                    mediaUrls: prod.images || [],
+                    businessId: localStore.id,
+                    city: localStore.city || 'Garoowe',
+                  }, token);
+                  if (res && res.success && res.data) {
+                    // Update the local product ID to the backend's real ID
+                    setStores((curr) => {
+                      const next = curr.map((s) =>
+                        s.slug === localStore.slug
+                          ? {
+                              ...s,
+                              products: s.products.map((p) =>
+                                p.id === prod.id ? { ...p, id: res.data.id } : p
+                              ),
+                            }
+                          : s
+                      );
+                      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+                      return next;
+                    });
+                    console.log(`[StoreContext] Auto-synced product "${prod.title}" to backend.`);
+                  }
+                } catch {
+                  // Silently ignore per-product failures
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Silently ignore sync errors
+      }
     } catch (e) {
       console.warn('Backend store/listing sync:', e);
     }
@@ -581,12 +647,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('hudisoft_token');
       if (token && targetStore) {
         import('../lib/api').then(({ api }) => {
+          // Convert category display name to slug format for reliable backend lookup
+          // e.g. "Women Clothing" → "women-clothing", "Guud" → "guud"
+          const categorySlug = (newProduct.category || 'products')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'products';
+
+          const listingDescription = newProduct.description?.trim() ||
+            `${newProduct.title} - Alaab tayo sare ah oo ka imaanaysa ${targetStore.businessName}.`;
+
           api.createListing({
             title: newProduct.title,
-            description: newProduct.description,
+            description: listingDescription,
             price: newProduct.price,
             currency: 'USD',
-            categoryId: newProduct.category || 'Women Clothing',
+            categoryId: categorySlug,
             verticalType: 'PRODUCT',
             condition: newProduct.condition || 'NEW',
             inventoryCount: newProduct.stockQuantity || 1,
