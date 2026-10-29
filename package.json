@@ -11,7 +11,7 @@
     "prepare-db": "node scripts/prepare-prisma.js",
     "build": "node scripts/prepare-prisma.js && npm --workspace=services/api run build",
     "build:api": "node scripts/prepare-prisma.js && npm --workspace=services/api run build",
-    "start": "node services/api/dist/server.js",
+    "start": "npx prisma db push --schema=services/api/prisma/schema.prisma --accept-data-loss && node services/api/dist/server.js",
     "start:api": "npm --workspace=services/api run start",
     "postinstall": "node scripts/prepare-prisma.js && npm --workspace=services/api run db:generate || true",
     "test": "npm --workspace=services/api run test",
