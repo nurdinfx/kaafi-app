@@ -10,11 +10,14 @@ const startServer = async (): Promise<void> => {
   // Initialize Realtime WebSockets on /ws
   initRealtime(server);
 
-  server.listen(CONFIG.PORT, () => {
+  const port = parseInt(process.env.PORT || String(CONFIG.PORT || 5000), 10);
+  const host = '0.0.0.0';
+
+  server.listen(port, host, () => {
     console.log(`====================================================`);
     console.log(`🚀 HUDI-SOFT CANONICAL BACKEND (Fududeeye App)`);
-    console.log(`🌐 Server running on http://localhost:${CONFIG.PORT}`);
-    console.log(`📡 WebSocket server running on ws://localhost:${CONFIG.PORT}/ws`);
+    console.log(`🌐 Server running on http://${host}:${port}`);
+    console.log(`📡 WebSocket server running on ws://${host}:${port}/ws`);
     console.log(`📍 Launch Market: Garoowe, Puntland, Somalia`);
     console.log(`====================================================`);
   });
