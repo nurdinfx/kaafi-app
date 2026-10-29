@@ -25,6 +25,22 @@ import { errorHandler } from './middleware/errorHandler';
 export const createApp = (): Express => {
   const app = express();
 
+  // Universal CORS & Preflight handler (runs before anything else)
+  app.use((req, res, next) => {
+    const origin = req.headers.origin || '*';
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   // Standard Middlewares
   app.use(helmet({
     contentSecurityPolicy: false,
