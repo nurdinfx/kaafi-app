@@ -6,6 +6,7 @@ const auth_1 = require("../../middleware/auth");
 const tenant_1 = require("../../middleware/tenant");
 const router = (0, express_1.Router)();
 router.get('/', stores_controller_1.getAllStores);
+router.get('/my', auth_1.authenticate, stores_controller_1.getMyStore);
 router.get('/:slug', stores_controller_1.getStoreBySlug);
 router.post('/', auth_1.authenticate, stores_controller_1.createBusinessStore);
 router.post('/:businessId/branches', auth_1.authenticate, tenant_1.requireBusinessOwnership, stores_controller_1.addStoreBranch);

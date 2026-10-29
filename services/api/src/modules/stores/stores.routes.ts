@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { getAllStores, getStoreBySlug, createBusinessStore, addStoreBranch, addStoreEmployee } from './stores.controller';
+import { getAllStores, getStoreBySlug, getMyStore, createBusinessStore, addStoreBranch, addStoreEmployee } from './stores.controller';
 import { authenticate } from '../../middleware/auth';
 import { requireBusinessOwnership } from '../../middleware/tenant';
 
 const router = Router();
 
 router.get('/', getAllStores);
+router.get('/my', authenticate, getMyStore);
 router.get('/:slug', getStoreBySlug);
 router.post('/', authenticate, createBusinessStore);
 router.post('/:businessId/branches', authenticate, requireBusinessOwnership, addStoreBranch);

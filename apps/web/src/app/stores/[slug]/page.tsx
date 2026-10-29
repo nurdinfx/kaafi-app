@@ -24,7 +24,19 @@ export default function StorefrontPage({ params }: Props) {
   const [apiStore, setApiStore] = useState<MerchantStore | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const store = contextStore || apiStore;
+  // Prefer fresh backend API data, falling back to contextStore, and combining products & verification
+  const store: MerchantStore | null = apiStore
+    ? {
+        ...apiStore,
+        isVerified: !!apiStore.isVerified || !!contextStore?.isVerified,
+        products: [
+          ...apiStore.products,
+          ...(contextStore?.products || []).filter(
+            (cp) => !apiStore.products.some((ap) => ap.id === cp.id || ap.title.toLowerCase() === cp.title.toLowerCase())
+          ),
+        ],
+      }
+    : (contextStore || null);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<StoreProduct | null>(null);
@@ -98,6 +110,9 @@ export default function StorefrontPage({ params }: Props) {
           })),
         };
         setApiStore(mapped);
+        if (mapped.isVerified && contextStore && !contextStore.isVerified) {
+          verifyStore(mapped.slug, true);
+        }
       }
       setIsLoading(false);
     }).catch(() => {

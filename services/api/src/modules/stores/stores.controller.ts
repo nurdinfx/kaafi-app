@@ -4,14 +4,55 @@ import { AppError } from '../../middleware/errorHandler';
 import { ErrorCode, AuthenticatedRequest } from '../../types';
 import { logAuditEvent } from '../../middleware/audit';
 
+// Authenticated: Get currently logged-in user's store
+export const getMyStore = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new AppError('Unauthorized', 401, ErrorCode.UNAUTHORIZED);
+    }
+
+    const store = await prisma.businessProfile.findUnique({
+      where: { ownerId: req.user.id },
+      include: {
+        owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
+        branches: { where: { isActive: true } },
+        listings: {
+          include: {
+            media: { take: 10, orderBy: { sortOrder: 'asc' } },
+            category: { select: { id: true, name: true, slug: true } },
+          },
+          take: 100,
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: store
+        ? {
+            ...store,
+            isPendingVerification: !store.isVerified,
+          }
+        : null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Public: Get Store by slug or ID
 export const getStoreBySlug = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const slug = String(req.params.slug);
+    const rawSlug = String(req.params.slug).trim();
+    const cleanSlug = rawSlug.toLowerCase();
 
     const store = await prisma.businessProfile.findFirst({
       where: {
-        OR: [{ slug }, { id: slug }],
+        OR: [
+          { slug: rawSlug },
+          { slug: cleanSlug },
+          { id: rawSlug },
+        ],
       },
       include: {
         owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
@@ -28,7 +69,7 @@ export const getStoreBySlug = async (req: Request, res: Response, next: NextFunc
     });
 
     if (!store) {
-      throw new AppError(`Store '${slug}' not found.`, 404, ErrorCode.NOT_FOUND);
+      throw new AppError(`Store '${rawSlug}' not found.`, 404, ErrorCode.NOT_FOUND);
     }
 
     res.json({

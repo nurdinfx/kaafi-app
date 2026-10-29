@@ -407,6 +407,19 @@ export const api = {
     return this.getStore(slug);
   },
 
+  async getMyStore(token: string) {
+    try {
+      const res = await fetch(`${API_URL}/stores/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      const json = await res.json();
+      return json.success ? json.data : null;
+    } catch {
+      return null;
+    }
+  },
+
   // ── Buyer Requests ────────────────────────────────────────────────────────────
   async getBuyerRequests(params: { categoryId?: string; city?: string; status?: string } = {}): Promise<BuyerRequest[]> {
     try {

@@ -222,8 +222,8 @@ export default function SuperAdminPortal() {
         if (idx === -1) {
           combinedStores.push(ls);
         } else {
-          // If local has updated verified status
-          combinedStores[idx].isVerified = ls.isVerified;
+          // If either backend or local is verified, preserve verified status
+          combinedStores[idx].isVerified = combinedStores[idx].isVerified || ls.isVerified;
         }
       });
 

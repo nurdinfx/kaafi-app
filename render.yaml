@@ -8,7 +8,7 @@ services:
     region: frankfurt
     plan: free
     rootDir: services/api
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: node -e "const fs = require('fs'); const p = 'prisma/schema.prisma'; fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('provider = \"sqlite\"', 'provider = \"postgresql\"'));" && npm install && npx prisma generate && npm run build
     startCommand: npx prisma db push --accept-data-loss && node dist/server.js
     healthCheckPath: /health
     envVars:

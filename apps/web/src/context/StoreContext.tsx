@@ -122,8 +122,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     try {
       const { api } = await import('../lib/api');
       
-      // 1. Fetch public/all stores from backend database
-      const dbStores = await api.getStores({ includeUnverified: true });
+      // 1. Fetch all stores from backend database (includeUnverified so owner can see their own pending store).
+      // The marketplace and storefronts gate visibility by isVerified on the frontend.
+      const dbStores = await api.getStores({ verified: 'all' });
       if (Array.isArray(dbStores)) {
         let localStores: MerchantStore[] = [];
         try {
@@ -350,15 +351,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loadBackendStoresAndListings();
 
     const handleStoresUpdated = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setStores(parsed);
-          }
-        }
-      } catch {}
+      // Always re-fetch from backend so verification state is accurate after admin actions
+      loadBackendStoresAndListings();
     };
 
     window.addEventListener('kaafi_stores_updated', handleStoresUpdated);
@@ -685,12 +679,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }, token)
           .then((res) => {
             if (res && res.success && res.data) {
-              setStores((curr) =>
-                curr.map((s) => (s.slug === slug ? {
+              setStores((curr) => {
+                const next = curr.map((s) => (s.slug === slug ? {
                   ...s,
                   products: s.products.map((p) => p.id === newProduct.id ? { ...p, id: res.data.id } : p)
-                } : s))
-              );
+                } : s));
+                try {
+                  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+                } catch {}
+                return next;
+              });
             }
           })
           .catch((err) => console.warn('Could not sync product listing to backend:', err));
@@ -813,8 +811,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Only products from VERIFIED stores appear in global marketplace feeds
   const verifiedStores = stores.filter((s) => s.isVerified);
   const pendingStores = stores.filter((s) => !s.isVerified);
+  // Only include products from verified stores from the context (liveProducts from backend API already only contains verified-business listings)
   const verifiedStoreProducts = verifiedStores.flatMap((s) => s.products);
-  const allProducts = [...liveProducts, ...verifiedStoreProducts];
+  // Deduplicate: prefer liveProducts (fresh from backend) and skip any context duplicates
+  const liveProductIds = new Set(liveProducts.map((p) => p.id));
+  const dedupedStoreProducts = verifiedStoreProducts.filter((p) => !liveProductIds.has(p.id));
+  const allProducts = [...liveProducts, ...dedupedStoreProducts];
   const popularProducts = allProducts.filter((p) => p.isPopular || (p.rating && p.rating >= 4.7));
   const essentialProducts = allProducts.filter(
     (p) => p.category === 'Phone Essentials' || (p.discountPercent && p.discountPercent >= 30)

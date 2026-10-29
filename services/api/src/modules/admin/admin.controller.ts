@@ -94,6 +94,19 @@ export const reviewVerification = async (req: AuthenticatedRequest, res: Respons
           where: { id: verification.targetId },
           data: { isVerified: true },
         });
+
+        // Automatically verify and activate all listings belonging to this business so they are public
+        try {
+          await prisma.listing.updateMany({
+            where: { businessId: verification.targetId },
+            data: {
+              status: 'ACTIVE',
+              verificationStatus: 'VERIFIED',
+            },
+          });
+        } catch (lErr: any) {
+          console.warn('[Review Verification] Listing update failed:', lErr?.message);
+        }
       }
     }
 
@@ -666,11 +679,14 @@ export const getStoresAdmin = async (req: AuthenticatedRequest, res: Response, n
 // Admin: Toggle Store Verification, Suspend/Activate, or Moderate Store
 export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const id = String(req.params.id);
+    const rawId = String(req.params.id).trim();
+    const cleanId = rawId.toLowerCase();
     const { isVerified, isActive, notes } = req.body;
 
-    const store = await prisma.businessProfile.findUnique({
-      where: { id },
+    const store = await prisma.businessProfile.findFirst({
+      where: {
+        OR: [{ id: rawId }, { slug: rawId }, { slug: cleanId }],
+      },
       include: { owner: true },
     });
 
@@ -679,7 +695,7 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
     }
 
     const updated = await prisma.businessProfile.update({
-      where: { id },
+      where: { id: store.id },
       data: {
         ...(isVerified !== undefined ? { isVerified: !!isVerified } : {}),
       },
@@ -690,7 +706,7 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
       try {
         await prisma.verificationRequest.updateMany({
           where: {
-            targetId: id,
+            targetId: store.id,
             targetType: 'BUSINESS',
             status: 'PENDING',
           },
@@ -701,6 +717,29 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
         });
       } catch (verErr: any) {
         console.warn('[Store Status] Non-critical verification request update failed:', verErr?.message);
+      }
+
+      // CRITICAL: When admin verifies a store, all products (listings) of that store
+      // MUST ALSO be verified and active so the public can see them immediately!
+      try {
+        if (isVerified) {
+          await prisma.listing.updateMany({
+            where: { businessId: store.id },
+            data: {
+              status: 'ACTIVE',
+              verificationStatus: 'VERIFIED',
+            },
+          });
+        } else {
+          await prisma.listing.updateMany({
+            where: { businessId: store.id },
+            data: {
+              verificationStatus: 'UNVERIFIED',
+            },
+          });
+        }
+      } catch (listErr: any) {
+        console.warn('[Store Status] Listing verification update failed:', listErr?.message);
       }
     }
 
@@ -721,7 +760,7 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
         userId: req.user?.id,
         action: 'ADMIN_STORE_UPDATED',
         entityType: 'BUSINESS_STORE',
-        entityId: id,
+        entityId: store.id,
         details: { storeName: store.businessName, isVerified, isActive, notes },
       });
     } catch {}

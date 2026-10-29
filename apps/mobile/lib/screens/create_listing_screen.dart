@@ -41,6 +41,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
     setState(() => _isSubmitting = true);
 
+    String categorySlug = 'electronics';
+    if (_verticalType == 'VEHICLE') categorySlug = 'vehicles';
+    if (_verticalType == 'REAL_ESTATE') categorySlug = 'real-estate';
+    if (_verticalType == 'SERVICE') categorySlug = 'services';
+
     final data = {
       'title': _titleController.text.trim(),
       'description': _descController.text.trim(),
@@ -49,6 +54,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       'condition': _condition,
       'isNegotiable': _isNegotiable,
       'verticalType': _verticalType,
+      'categoryId': categorySlug,
       'city': _selectedCity,
       'media': [
         {'url': _imageUrlController.text.trim(), 'mediaType': 'IMAGE', 'sortOrder': 0}

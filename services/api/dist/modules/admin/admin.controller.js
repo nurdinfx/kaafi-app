@@ -84,6 +84,19 @@ const reviewVerification = async (req, res, next) => {
                     where: { id: verification.targetId },
                     data: { isVerified: true },
                 });
+                // Automatically verify and activate all listings belonging to this business so they are public
+                try {
+                    await db_1.default.listing.updateMany({
+                        where: { businessId: verification.targetId },
+                        data: {
+                            status: 'ACTIVE',
+                            verificationStatus: 'VERIFIED',
+                        },
+                    });
+                }
+                catch (lErr) {
+                    console.warn('[Review Verification] Listing update failed:', lErr?.message);
+                }
             }
         }
         await (0, audit_1.logAuditEvent)({
@@ -624,17 +637,20 @@ exports.getStoresAdmin = getStoresAdmin;
 // Admin: Toggle Store Verification, Suspend/Activate, or Moderate Store
 const updateStoreStatusAdmin = async (req, res, next) => {
     try {
-        const id = String(req.params.id);
+        const rawId = String(req.params.id).trim();
+        const cleanId = rawId.toLowerCase();
         const { isVerified, isActive, notes } = req.body;
-        const store = await db_1.default.businessProfile.findUnique({
-            where: { id },
+        const store = await db_1.default.businessProfile.findFirst({
+            where: {
+                OR: [{ id: rawId }, { slug: rawId }, { slug: cleanId }],
+            },
             include: { owner: true },
         });
         if (!store) {
             throw new errorHandler_1.AppError('Store not found.', 404, types_1.ErrorCode.NOT_FOUND);
         }
         const updated = await db_1.default.businessProfile.update({
-            where: { id },
+            where: { id: store.id },
             data: {
                 ...(isVerified !== undefined ? { isVerified: !!isVerified } : {}),
             },
@@ -644,7 +660,7 @@ const updateStoreStatusAdmin = async (req, res, next) => {
             try {
                 await db_1.default.verificationRequest.updateMany({
                     where: {
-                        targetId: id,
+                        targetId: store.id,
                         targetType: 'BUSINESS',
                         status: 'PENDING',
                     },
@@ -656,6 +672,30 @@ const updateStoreStatusAdmin = async (req, res, next) => {
             }
             catch (verErr) {
                 console.warn('[Store Status] Non-critical verification request update failed:', verErr?.message);
+            }
+            // CRITICAL: When admin verifies a store, all products (listings) of that store
+            // MUST ALSO be verified and active so the public can see them immediately!
+            try {
+                if (isVerified) {
+                    await db_1.default.listing.updateMany({
+                        where: { businessId: store.id },
+                        data: {
+                            status: 'ACTIVE',
+                            verificationStatus: 'VERIFIED',
+                        },
+                    });
+                }
+                else {
+                    await db_1.default.listing.updateMany({
+                        where: { businessId: store.id },
+                        data: {
+                            verificationStatus: 'UNVERIFIED',
+                        },
+                    });
+                }
+            }
+            catch (listErr) {
+                console.warn('[Store Status] Listing verification update failed:', listErr?.message);
             }
         }
         // If isActive is toggled, update owner active status (affecting login & visibility)
@@ -675,7 +715,7 @@ const updateStoreStatusAdmin = async (req, res, next) => {
                 userId: req.user?.id,
                 action: 'ADMIN_STORE_UPDATED',
                 entityType: 'BUSINESS_STORE',
-                entityId: id,
+                entityId: store.id,
                 details: { storeName: store.businessName, isVerified, isActive, notes },
             });
         }

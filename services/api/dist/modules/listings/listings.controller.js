@@ -182,24 +182,25 @@ const createListing = async (req, res, next) => {
         customAttributes = [], 
         // Vertical Specific payloads
         vehicleData, propertyData, serviceData, } = req.body;
-        if (!title || !description || price === undefined || !categoryId) {
-            throw new errorHandler_1.AppError('Title, description, price, and categoryId are required.', 400, types_1.ErrorCode.VALIDATION_ERROR);
+        if (!title || !description || price === undefined) {
+            throw new errorHandler_1.AppError('Title, description, and price are required.', 400, types_1.ErrorCode.VALIDATION_ERROR);
         }
+        const targetCategoryQuery = categoryId || (req.body.verticalType ? String(req.body.verticalType).toLowerCase() : 'electronics');
         // Verify category exists with attributes (support ID, slug, normalized slug, or display name)
-        const normalizedCatQuery = categoryId.replace(/^cat-/, '');
+        const normalizedCatQuery = String(targetCategoryQuery).replace(/^cat-/, '');
         // Convert display name like "Women Clothing" → "women-clothing" for slug matching
-        const nameAsSlug = categoryId
+        const nameAsSlug = String(targetCategoryQuery)
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '');
         let category = await db_1.default.category.findFirst({
             where: {
                 OR: [
-                    { id: categoryId },
-                    { slug: categoryId },
+                    { id: targetCategoryQuery },
+                    { slug: targetCategoryQuery },
                     { slug: normalizedCatQuery },
                     { slug: nameAsSlug },
-                    { name: { equals: categoryId, mode: 'insensitive' } },
+                    { name: targetCategoryQuery },
                 ],
             },
             include: { attributes: true },
@@ -243,6 +244,9 @@ const createListing = async (req, res, next) => {
         }
         // Resolve businessId: if not provided explicitly, auto-link to user's registered businessProfile
         let resolvedBusinessId = businessId || null;
+        if (resolvedBusinessId && (resolvedBusinessId.startsWith('store-') || resolvedBusinessId === 'undefined')) {
+            resolvedBusinessId = null;
+        }
         if (!resolvedBusinessId) {
             const userBusiness = await db_1.default.businessProfile.findUnique({
                 where: { ownerId: req.user.id },
@@ -252,17 +256,31 @@ const createListing = async (req, res, next) => {
             }
         }
         else {
-            // If businessId is provided, verify caller owns this businessProfile (or is admin)
-            const userRoles = req.user.roles || [];
-            const isAdmin = userRoles.some((r) => ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR'].includes(r.role?.name || r));
-            if (!isAdmin) {
-                const business = await db_1.default.businessProfile.findUnique({
-                    where: { id: resolvedBusinessId },
-                    select: { ownerId: true },
-                });
-                if (business && business.ownerId !== req.user.id) {
+            // Find business by id or slug
+            const business = await db_1.default.businessProfile.findFirst({
+                where: {
+                    OR: [{ id: resolvedBusinessId }, { slug: resolvedBusinessId }],
+                },
+                select: { id: true, ownerId: true },
+            });
+            if (business) {
+                resolvedBusinessId = business.id;
+                const userRoles = req.user.roles || [];
+                const isAdmin = userRoles.some((r) => ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR'].includes(r.role?.name || r));
+                if (!isAdmin && business.ownerId !== req.user.id) {
                     throw new errorHandler_1.AppError('Unauthorized: You can only add products to your own store.', 403, types_1.ErrorCode.FORBIDDEN);
                 }
+            }
+        }
+        // Determine verification status: if parent business is already verified, product is automatically verified!
+        let listingVerificationStatus = 'UNVERIFIED';
+        if (resolvedBusinessId) {
+            const parentBusiness = await db_1.default.businessProfile.findUnique({
+                where: { id: resolvedBusinessId },
+                select: { isVerified: true },
+            });
+            if (parentBusiness?.isVerified) {
+                listingVerificationStatus = 'VERIFIED';
             }
         }
         // Create listing in database atomically
@@ -294,6 +312,7 @@ const createListing = async (req, res, next) => {
                 latitude: latitude ? parseFloat(latitude) : null,
                 longitude: longitude ? parseFloat(longitude) : null,
                 status: 'ACTIVE',
+                verificationStatus: listingVerificationStatus,
                 // Media (supports both mediaUrls and media array)
                 media: {
                     create: (Array.isArray(mediaUrls) && mediaUrls.length > 0

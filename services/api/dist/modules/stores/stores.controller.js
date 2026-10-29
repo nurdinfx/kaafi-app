@@ -3,18 +3,58 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addStoreEmployee = exports.addStoreBranch = exports.createBusinessStore = exports.getAllStores = exports.getStoreBySlug = void 0;
+exports.addStoreEmployee = exports.addStoreBranch = exports.createBusinessStore = exports.getAllStores = exports.getStoreBySlug = exports.getMyStore = void 0;
 const db_1 = __importDefault(require("../../db"));
 const errorHandler_1 = require("../../middleware/errorHandler");
 const types_1 = require("../../types");
 const audit_1 = require("../../middleware/audit");
+// Authenticated: Get currently logged-in user's store
+const getMyStore = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            throw new errorHandler_1.AppError('Unauthorized', 401, types_1.ErrorCode.UNAUTHORIZED);
+        }
+        const store = await db_1.default.businessProfile.findUnique({
+            where: { ownerId: req.user.id },
+            include: {
+                owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
+                branches: { where: { isActive: true } },
+                listings: {
+                    include: {
+                        media: { take: 10, orderBy: { sortOrder: 'asc' } },
+                        category: { select: { id: true, name: true, slug: true } },
+                    },
+                    take: 100,
+                },
+            },
+        });
+        res.json({
+            success: true,
+            data: store
+                ? {
+                    ...store,
+                    isPendingVerification: !store.isVerified,
+                }
+                : null,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.getMyStore = getMyStore;
 // Public: Get Store by slug or ID
 const getStoreBySlug = async (req, res, next) => {
     try {
-        const slug = String(req.params.slug);
+        const rawSlug = String(req.params.slug).trim();
+        const cleanSlug = rawSlug.toLowerCase();
         const store = await db_1.default.businessProfile.findFirst({
             where: {
-                OR: [{ slug }, { id: slug }],
+                OR: [
+                    { slug: rawSlug },
+                    { slug: cleanSlug },
+                    { id: rawSlug },
+                ],
             },
             include: {
                 owner: { select: { id: true, fullName: true, phoneNumber: true, avatarUrl: true } },
@@ -30,7 +70,7 @@ const getStoreBySlug = async (req, res, next) => {
             },
         });
         if (!store) {
-            throw new errorHandler_1.AppError(`Store '${slug}' not found.`, 404, types_1.ErrorCode.NOT_FOUND);
+            throw new errorHandler_1.AppError(`Store '${rawSlug}' not found.`, 404, types_1.ErrorCode.NOT_FOUND);
         }
         res.json({
             success: true,
