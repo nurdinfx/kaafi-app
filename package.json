@@ -8,15 +8,20 @@
     "dev:web": "npm --workspace=apps/web run dev",
     "dev:mobile": "cd apps/mobile && flutter run",
     "dev": "npm --workspace=services/api run dev",
-    "build": "npm run build --workspaces --if-present",
-    "build:api": "npm --workspace=services/api run build",
+    "prepare-db": "node scripts/prepare-prisma.js",
+    "build": "node scripts/prepare-prisma.js && npm --workspace=services/api run build",
+    "build:api": "node scripts/prepare-prisma.js && npm --workspace=services/api run build",
+    "start": "node services/api/dist/server.js",
     "start:api": "npm --workspace=services/api run start",
-    "postinstall": "npm --workspace=services/api run db:generate || true",
+    "postinstall": "node scripts/prepare-prisma.js && npm --workspace=services/api run db:generate || true",
     "test": "npm --workspace=services/api run test",
     "test:e2e": "npm --workspace=services/api run test:e2e",
-    "db:generate": "npm --workspace=services/api run db:generate",
-    "db:push": "npm --workspace=services/api run db:push",
+    "db:generate": "node scripts/prepare-prisma.js && npm --workspace=services/api run db:generate",
+    "db:push": "node scripts/prepare-prisma.js && npm --workspace=services/api run db:push",
     "db:seed": "npm --workspace=services/api run db:seed"
+  },
+  "prisma": {
+    "schema": "services/api/prisma/schema.prisma"
   },
   "workspaces": [
     "services/*",
