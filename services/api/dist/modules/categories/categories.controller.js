@@ -19,11 +19,11 @@ const getCategories = async (req, res, next) => {
         if (parentOnly === 'true') {
             where.parentId = null;
         }
+        // Note: 'status' column may not exist in older DB schemas — we try with it first, fallback without
         if (status) {
             where.status = String(status).toUpperCase();
         }
         else if (includePending !== 'true') {
-            // By default show active categories
             where.status = 'ACTIVE';
         }
         let categories = [];
@@ -40,8 +40,26 @@ const getCategories = async (req, res, next) => {
             });
         }
         catch (dbErr) {
-            console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr.message);
-            categories = [];
+            // Fallback: production DB may not have 'status' column — retry without it
+            console.warn('[Categories] Query with status filter failed, retrying without status filter:', dbErr.message);
+            const whereWithoutStatus = { ...where };
+            delete whereWithoutStatus.status;
+            try {
+                categories = await db_1.default.category.findMany({
+                    where: whereWithoutStatus,
+                    orderBy: { displayOrder: 'asc' },
+                    include: {
+                        subcategories: {
+                            orderBy: { displayOrder: 'asc' },
+                        },
+                        attributes: true,
+                    },
+                });
+            }
+            catch (dbErr2) {
+                console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr2.message);
+                categories = [];
+            }
         }
         res.json({
             success: true,

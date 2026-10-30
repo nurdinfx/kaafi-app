@@ -36,4 +36,6 @@ router.patch('/manage/categories/:id', admin_controller_1.adminUpdateCategory);
 router.delete('/manage/categories/:id', admin_controller_1.adminDeleteCategory);
 // ── Admin: System Data Clear / Wipe ─────────────────────────────────────────
 router.post('/system/clear-data', admin_controller_1.adminClearSystemData);
+// ── Admin: Seed Default Categories (safe upsert) ─────────────────────────────
+router.post('/system/seed-categories', admin_controller_1.adminSeedCategories);
 exports.default = router;

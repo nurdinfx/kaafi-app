@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminClearSystemData = exports.adminDeleteCategory = exports.adminUpdateCategory = exports.adminCreateCategory = exports.adminGetCategories = exports.adminDeleteListing = exports.adminUpdateListing = exports.adminCreateListing = exports.adminGetAllListings = exports.createAdminUserAdmin = exports.getLiveActivityAdmin = exports.deleteStoreAdmin = exports.updateStoreStatusAdmin = exports.getStoresAdmin = exports.updateTransactionStatusAdmin = exports.getTransactionsAdmin = exports.updateCategoryCommissionAdmin = exports.moderateListingAdmin = exports.updateUserStatusAdmin = exports.getUsersAdmin = exports.getAuditLogs = exports.processPayout = exports.reviewVerification = exports.getPlatformAnalytics = void 0;
+exports.adminSeedCategories = exports.adminClearSystemData = exports.adminDeleteCategory = exports.adminUpdateCategory = exports.adminCreateCategory = exports.adminGetCategories = exports.adminDeleteListing = exports.adminUpdateListing = exports.adminCreateListing = exports.adminGetAllListings = exports.createAdminUserAdmin = exports.getLiveActivityAdmin = exports.deleteStoreAdmin = exports.updateStoreStatusAdmin = exports.getStoresAdmin = exports.updateTransactionStatusAdmin = exports.getTransactionsAdmin = exports.updateCategoryCommissionAdmin = exports.moderateListingAdmin = exports.updateUserStatusAdmin = exports.getUsersAdmin = exports.getAuditLogs = exports.processPayout = exports.reviewVerification = exports.getPlatformAnalytics = void 0;
 const db_1 = __importDefault(require("../../db"));
 const errorHandler_1 = require("../../middleware/errorHandler");
 const types_1 = require("../../types");
@@ -1376,3 +1376,58 @@ const adminClearSystemData = async (req, res, next) => {
     }
 };
 exports.adminClearSystemData = adminClearSystemData;
+// Admin: Seed default categories into the production database (safe upsert — never deletes)
+const adminSeedCategories = async (req, res, next) => {
+    try {
+        const categoriesData = [
+            { name: 'Dharka Dumarka & Fashion', slug: 'fashion', verticalType: 'PRODUCT', icon: '👗', displayOrder: 1 },
+            { name: 'Telefoonnada & Electronics', slug: 'electronics', verticalType: 'PRODUCT', icon: '📱', displayOrder: 2 },
+            { name: 'Gaadiidka & Baabuurta', slug: 'vehicles', verticalType: 'VEHICLE', icon: '🚗', displayOrder: 3 },
+            { name: 'Guryaha & Dhulka', slug: 'real-estate', verticalType: 'REAL_ESTATE', icon: '🏢', displayOrder: 4 },
+            { name: 'Dhul & Boosas', slug: 'land', verticalType: 'LAND', icon: '📐', displayOrder: 5 },
+            { name: 'Qalabka Guriga & Jikada', slug: 'home-living', verticalType: 'PRODUCT', icon: '🏠', displayOrder: 6 },
+            { name: 'Caafimaadka & Qurxinta', slug: 'health-beauty', verticalType: 'PRODUCT', icon: '✨', displayOrder: 7 },
+            { name: 'Caruurta & Ciyaarta', slug: 'kids', verticalType: 'PRODUCT', icon: '🧸', displayOrder: 8 },
+            { name: 'Adeegyada & Xirfadaha', slug: 'services', verticalType: 'SERVICE', icon: '🛠', displayOrder: 9 },
+            { name: 'Ganacsiga Jumlada', slug: 'wholesale', verticalType: 'WHOLESALE', icon: '🏭', displayOrder: 10 },
+            { name: 'Alaabta Guud', slug: 'general', verticalType: 'PRODUCT', icon: '📦', displayOrder: 11 },
+        ];
+        const results = [];
+        for (const cat of categoriesData) {
+            try {
+                // Try upsert with isActive field (supported in current schema)
+                const category = await db_1.default.category.upsert({
+                    where: { slug: cat.slug },
+                    create: {
+                        name: cat.name,
+                        slug: cat.slug,
+                        verticalType: cat.verticalType,
+                        icon: cat.icon,
+                        displayOrder: cat.displayOrder,
+                        isActive: true,
+                    },
+                    update: {
+                        name: cat.name,
+                        verticalType: cat.verticalType,
+                        icon: cat.icon,
+                        displayOrder: cat.displayOrder,
+                        isActive: true,
+                    },
+                });
+                results.push({ slug: cat.slug, id: category.id, action: 'upserted' });
+            }
+            catch (catErr) {
+                results.push({ slug: cat.slug, error: catErr.message });
+            }
+        }
+        res.json({
+            success: true,
+            message: `${results.filter(r => !r.error).length} categories seeded successfully.`,
+            data: results,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.adminSeedCategories = adminSeedCategories;

@@ -27,6 +27,8 @@ import {
   adminDeleteCategory,
   // New: System Data Clear
   adminClearSystemData,
+  // New: Seed Categories
+  adminSeedCategories,
 } from './admin.controller';
 import { authenticate } from '../../middleware/auth';
 import { requireAdmin } from '../../middleware/rbac';
@@ -68,6 +70,9 @@ router.delete('/manage/categories/:id', adminDeleteCategory);
 
 // ── Admin: System Data Clear / Wipe ─────────────────────────────────────────
 router.post('/system/clear-data', adminClearSystemData);
+
+// ── Admin: Seed Default Categories (safe upsert) ─────────────────────────────
+router.post('/system/seed-categories', adminSeedCategories);
 
 export default router;
 

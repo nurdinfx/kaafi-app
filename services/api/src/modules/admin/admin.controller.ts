@@ -798,7 +798,7 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
         entityId: store.id,
         details: { storeName: store.businessName, isVerified, isActive, notes },
       });
-    } catch {}
+    } catch { }
 
     res.json({
       success: true,
@@ -1461,6 +1461,61 @@ export const adminClearSystemData = async (req: AuthenticatedRequest, res: Respo
       success: true,
       message: `Nidaamka waa la nadiifiyay (${clearType}). Dhammaan xogta ku xusan ayaa la tirtiri.`,
       data: { clearType, results },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin: Seed default categories into the production database (safe upsert — never deletes)
+export const adminSeedCategories = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const categoriesData = [
+      { name: 'Dharka Dumarka & Fashion', slug: 'fashion', verticalType: 'PRODUCT', icon: '👗', displayOrder: 1 },
+      { name: 'Telefoonnada & Electronics', slug: 'electronics', verticalType: 'PRODUCT', icon: '📱', displayOrder: 2 },
+      { name: 'Gaadiidka & Baabuurta', slug: 'vehicles', verticalType: 'VEHICLE', icon: '🚗', displayOrder: 3 },
+      { name: 'Guryaha & Dhulka', slug: 'real-estate', verticalType: 'REAL_ESTATE', icon: '🏢', displayOrder: 4 },
+      { name: 'Dhul & Boosas', slug: 'land', verticalType: 'LAND', icon: '📐', displayOrder: 5 },
+      { name: 'Qalabka Guriga & Jikada', slug: 'home-living', verticalType: 'PRODUCT', icon: '🏠', displayOrder: 6 },
+      { name: 'Caafimaadka & Qurxinta', slug: 'health-beauty', verticalType: 'PRODUCT', icon: '✨', displayOrder: 7 },
+      { name: 'Caruurta & Ciyaarta', slug: 'kids', verticalType: 'PRODUCT', icon: '🧸', displayOrder: 8 },
+      { name: 'Adeegyada & Xirfadaha', slug: 'services', verticalType: 'SERVICE', icon: '🛠', displayOrder: 9 },
+      { name: 'Ganacsiga Jumlada', slug: 'wholesale', verticalType: 'WHOLESALE', icon: '🏭', displayOrder: 10 },
+      { name: 'Alaabta Guud', slug: 'general', verticalType: 'PRODUCT', icon: '📦', displayOrder: 11 },
+    ];
+
+    const results: any[] = [];
+    for (const cat of categoriesData) {
+      try {
+        // Try upsert with isActive field (supported in current schema)
+        const category = await prisma.category.upsert({
+          where: { slug: cat.slug },
+          create: {
+            name: cat.name,
+            slug: cat.slug,
+            verticalType: cat.verticalType as any,
+            icon: cat.icon,
+            displayOrder: cat.displayOrder,
+            isActive: true,
+          },
+          update: {
+            name: cat.name,
+            verticalType: cat.verticalType as any,
+            icon: cat.icon,
+            displayOrder: cat.displayOrder,
+            isActive: true,
+          },
+        });
+        results.push({ slug: cat.slug, id: category.id, action: 'upserted' });
+      } catch (catErr: any) {
+        results.push({ slug: cat.slug, error: catErr.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `${results.filter(r => !r.error).length} categories seeded successfully.`,
+      data: results,
     });
   } catch (error) {
     next(error);

@@ -16,10 +16,10 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
     if (parentOnly === 'true') {
       where.parentId = null;
     }
+    // Note: 'status' column may not exist in older DB schemas — we try with it first, fallback without
     if (status) {
       where.status = String(status).toUpperCase();
     } else if (includePending !== 'true') {
-      // By default show active categories
       where.status = 'ACTIVE';
     }
 
@@ -36,8 +36,25 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
         },
       });
     } catch (dbErr: any) {
-      console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr.message);
-      categories = [];
+      // Fallback: production DB may not have 'status' column — retry without it
+      console.warn('[Categories] Query with status filter failed, retrying without status filter:', dbErr.message);
+      const whereWithoutStatus = { ...where };
+      delete whereWithoutStatus.status;
+      try {
+        categories = await prisma.category.findMany({
+          where: whereWithoutStatus,
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            subcategories: {
+              orderBy: { displayOrder: 'asc' },
+            },
+            attributes: true,
+          },
+        });
+      } catch (dbErr2: any) {
+        console.warn('[Categories] Could not fetch from database, returning empty list:', dbErr2.message);
+        categories = [];
+      }
     }
 
     res.json({
