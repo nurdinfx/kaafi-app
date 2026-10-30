@@ -969,17 +969,43 @@ exports.adminGetAllListings = adminGetAllListings;
 // Admin: Create a listing directly (no store/seller profile needed — admin adds products)
 const adminCreateListing = async (req, res, next) => {
     try {
-        const { title, description, price, currency = 'USD', categoryId, verticalType = 'PRODUCT', condition = 'NEW', inventoryCount = 1, isNegotiable = false, city = 'Garoowe', region = 'Puntland', country = 'Somalia', district, neighborhood, landmark, businessId, mediaUrls = [], status = 'ACTIVE', } = req.body;
-        if (!title || !description || price === undefined || !categoryId) {
-            throw new errorHandler_1.AppError('Title, description, price, and categoryId are required.', 400, types_1.ErrorCode.VALIDATION_ERROR);
+        const { title, description, price, currency = 'USD', categoryId, categorySlug, verticalType = 'PRODUCT', condition = 'NEW', inventoryCount = 1, isNegotiable = false, city = 'Garoowe', region = 'Puntland', country = 'Somalia', district, neighborhood, landmark, businessId, storeSlug, mediaUrls = [], status = 'ACTIVE', } = req.body;
+        if (!title || !description || price === undefined) {
+            throw new errorHandler_1.AppError('Title, description, and price are required.', 400, types_1.ErrorCode.VALIDATION_ERROR);
         }
-        const category = await db_1.default.category.findUnique({ where: { id: categoryId } });
+        // Resolve category: support id, slug, or find first available
+        let category = null;
+        if (categoryId) {
+            category = await db_1.default.category.findFirst({ where: { OR: [{ id: categoryId }, { slug: categoryId }] } });
+        }
+        else if (categorySlug) {
+            category = await db_1.default.category.findFirst({ where: { slug: categorySlug } });
+        }
+        // Fallback: use any first available category
         if (!category) {
-            throw new errorHandler_1.AppError('Category not found.', 404, types_1.ErrorCode.NOT_FOUND);
+            category = await db_1.default.category.findFirst({ orderBy: { createdAt: 'asc' } });
+        }
+        if (!category) {
+            // If still no category, create a default one
+            category = await db_1.default.category.create({
+                data: {
+                    name: 'General',
+                    slug: 'general',
+                    verticalType: 'PRODUCT',
+                    displayOrder: 0,
+                },
+            });
         }
         const adminUserId = req.user?.id;
         if (!adminUserId) {
             throw new errorHandler_1.AppError('Admin user ID not found in token.', 401, types_1.ErrorCode.UNAUTHORIZED);
+        }
+        // Resolve businessId via storeSlug if needed
+        let resolvedBusinessId = businessId || null;
+        if (!resolvedBusinessId && storeSlug) {
+            const biz = await db_1.default.businessProfile.findFirst({ where: { slug: storeSlug } });
+            if (biz)
+                resolvedBusinessId = biz.id;
         }
         // Generate unique slug
         const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -987,8 +1013,8 @@ const adminCreateListing = async (req, res, next) => {
         const listing = await db_1.default.listing.create({
             data: {
                 sellerId: adminUserId,
-                businessId: businessId || null,
-                categoryId,
+                businessId: resolvedBusinessId,
+                categoryId: category.id,
                 verticalType,
                 title: title.trim(),
                 slug,
@@ -1038,11 +1064,11 @@ const adminCreateListing = async (req, res, next) => {
     }
 };
 exports.adminCreateListing = adminCreateListing;
-// Admin: Update a listing
+// Admin: Update a listing (supports businessId, verificationStatus, categoryId and all fields)
 const adminUpdateListing = async (req, res, next) => {
     try {
         const id = String(req.params.id);
-        const { title, description, price, status, inventoryCount, isNegotiable, city, landmark, mediaUrls } = req.body;
+        const { title, description, price, status, inventoryCount, isNegotiable, city, landmark, mediaUrls, businessId, verificationStatus, categoryId } = req.body;
         const existing = await db_1.default.listing.findUnique({ where: { id } });
         if (!existing)
             throw new errorHandler_1.AppError('Listing not found.', 404, types_1.ErrorCode.NOT_FOUND);
@@ -1063,6 +1089,13 @@ const adminUpdateListing = async (req, res, next) => {
             updateData.city = city;
         if (landmark)
             updateData.landmark = landmark;
+        // Admin can reassign listing to a store
+        if (businessId !== undefined)
+            updateData.businessId = businessId || null;
+        if (verificationStatus)
+            updateData.verificationStatus = verificationStatus;
+        if (categoryId)
+            updateData.categoryId = categoryId;
         const updated = await db_1.default.listing.update({
             where: { id },
             data: updateData,

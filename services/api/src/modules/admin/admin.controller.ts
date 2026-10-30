@@ -1035,6 +1035,7 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
       price,
       currency = 'USD',
       categoryId,
+      categorySlug,
       verticalType = 'PRODUCT',
       condition = 'NEW',
       inventoryCount = 1,
@@ -1046,22 +1047,48 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
       neighborhood,
       landmark,
       businessId,
+      storeSlug,
       mediaUrls = [],
       status = 'ACTIVE',
     } = req.body;
 
-    if (!title || !description || price === undefined || !categoryId) {
-      throw new AppError('Title, description, price, and categoryId are required.', 400, ErrorCode.VALIDATION_ERROR);
+    if (!title || !description || price === undefined) {
+      throw new AppError('Title, description, and price are required.', 400, ErrorCode.VALIDATION_ERROR);
     }
 
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    // Resolve category: support id, slug, or find first available
+    let category: any = null;
+    if (categoryId) {
+      category = await prisma.category.findFirst({ where: { OR: [{ id: categoryId }, { slug: categoryId }] } });
+    } else if (categorySlug) {
+      category = await prisma.category.findFirst({ where: { slug: categorySlug } });
+    }
+    // Fallback: use any first available category
     if (!category) {
-      throw new AppError('Category not found.', 404, ErrorCode.NOT_FOUND);
+      category = await prisma.category.findFirst({ orderBy: { createdAt: 'asc' } });
+    }
+    if (!category) {
+      // If still no category, create a default one
+      category = await prisma.category.create({
+        data: {
+          name: 'General',
+          slug: 'general',
+          verticalType: 'PRODUCT',
+          displayOrder: 0,
+        },
+      });
     }
 
     const adminUserId = req.user?.id;
     if (!adminUserId) {
       throw new AppError('Admin user ID not found in token.', 401, ErrorCode.UNAUTHORIZED);
+    }
+
+    // Resolve businessId via storeSlug if needed
+    let resolvedBusinessId = businessId || null;
+    if (!resolvedBusinessId && storeSlug) {
+      const biz = await prisma.businessProfile.findFirst({ where: { slug: storeSlug } });
+      if (biz) resolvedBusinessId = biz.id;
     }
 
     // Generate unique slug
@@ -1071,8 +1098,8 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
     const listing = await prisma.listing.create({
       data: {
         sellerId: adminUserId,
-        businessId: businessId || null,
-        categoryId,
+        businessId: resolvedBusinessId,
+        categoryId: category.id,
         verticalType,
         title: title.trim(),
         slug,
@@ -1123,11 +1150,11 @@ export const adminCreateListing = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-// Admin: Update a listing
+// Admin: Update a listing (supports businessId, verificationStatus, categoryId and all fields)
 export const adminUpdateListing = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = String(req.params.id);
-    const { title, description, price, status, inventoryCount, isNegotiable, city, landmark, mediaUrls } = req.body;
+    const { title, description, price, status, inventoryCount, isNegotiable, city, landmark, mediaUrls, businessId, verificationStatus, categoryId } = req.body;
 
     const existing = await prisma.listing.findUnique({ where: { id } });
     if (!existing) throw new AppError('Listing not found.', 404, ErrorCode.NOT_FOUND);
@@ -1141,6 +1168,10 @@ export const adminUpdateListing = async (req: AuthenticatedRequest, res: Respons
     if (isNegotiable !== undefined) updateData.isNegotiable = !!isNegotiable;
     if (city) updateData.city = city;
     if (landmark) updateData.landmark = landmark;
+    // Admin can reassign listing to a store
+    if (businessId !== undefined) updateData.businessId = businessId || null;
+    if (verificationStatus) updateData.verificationStatus = verificationStatus;
+    if (categoryId) updateData.categoryId = categoryId;
 
     const updated = await prisma.listing.update({
       where: { id },
