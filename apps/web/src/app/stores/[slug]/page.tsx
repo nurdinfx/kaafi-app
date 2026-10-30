@@ -245,9 +245,21 @@ export default function StorefrontPage({ params }: Props) {
   }
 
   // Filter products by category and search query
-  const filteredProducts = store.products.filter((p) => {
-    const matchCat = selectedCategory === 'ALL' || p.category === selectedCategory;
-    const matchSearch = !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase());
+  const displayCategories = Array.from(
+    new Set([
+      ...(store?.categories || []),
+      ...(store?.products || []).map((p) => p.category).filter(Boolean),
+    ])
+  );
+
+  const filteredProducts = (store?.products || []).filter((p) => {
+    const matchCat =
+      selectedCategory === 'ALL' ||
+      (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
+    const matchSearch =
+      !searchQuery.trim() ||
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -390,8 +402,10 @@ export default function StorefrontPage({ params }: Props) {
                 Dhammaan Alaabta ({store.products.length})
               </button>
 
-              {store.categories.map((cat) => {
-                const count = store.products.filter((p) => p.category === cat).length;
+              {displayCategories.map((cat) => {
+                const count = (store?.products || []).filter(
+                  (p) => p.category && p.category.toLowerCase() === cat.toLowerCase()
+                ).length;
                 return (
                   <button
                     key={cat}

@@ -639,13 +639,36 @@ const updateStoreStatusAdmin = async (req, res, next) => {
     try {
         const rawId = String(req.params.id).trim();
         const cleanId = rawId.toLowerCase();
-        const { isVerified, isActive, notes } = req.body;
-        const store = await db_1.default.businessProfile.findFirst({
+        const { isVerified, isActive, notes, slug: bodySlug, businessName, phone, city } = req.body;
+        const querySlug = bodySlug || rawId;
+        const cleanSlug = String(querySlug).toLowerCase();
+        let store = await db_1.default.businessProfile.findFirst({
             where: {
-                OR: [{ id: rawId }, { slug: rawId }, { slug: cleanId }],
+                OR: [
+                    { id: rawId },
+                    { slug: rawId },
+                    { slug: cleanId },
+                    { slug: querySlug },
+                    { slug: cleanSlug },
+                ],
             },
             include: { owner: true },
         });
+        if (!store && isVerified) {
+            // Store was registered locally and admin is approving it. Auto-persist to database!
+            const finalSlug = cleanSlug.replace(/[^a-z0-9-]/g, '') || `store-${Date.now()}`;
+            store = await db_1.default.businessProfile.create({
+                data: {
+                    ownerId: req.user.id,
+                    businessName: businessName || rawId,
+                    slug: finalSlug,
+                    phone: phone || '+252907000000',
+                    city: city || 'Garoowe',
+                    isVerified: true,
+                },
+                include: { owner: true },
+            });
+        }
         if (!store) {
             throw new errorHandler_1.AppError('Store not found.', 404, types_1.ErrorCode.NOT_FOUND);
         }
@@ -678,7 +701,12 @@ const updateStoreStatusAdmin = async (req, res, next) => {
             try {
                 if (isVerified) {
                     await db_1.default.listing.updateMany({
-                        where: { businessId: store.id },
+                        where: {
+                            OR: [
+                                { businessId: store.id },
+                                { business: { slug: store.slug } },
+                            ],
+                        },
                         data: {
                             status: 'ACTIVE',
                             verificationStatus: 'VERIFIED',
@@ -687,7 +715,12 @@ const updateStoreStatusAdmin = async (req, res, next) => {
                 }
                 else {
                     await db_1.default.listing.updateMany({
-                        where: { businessId: store.id },
+                        where: {
+                            OR: [
+                                { businessId: store.id },
+                                { business: { slug: store.slug } },
+                            ],
+                        },
                         data: {
                             verificationStatus: 'UNVERIFIED',
                         },

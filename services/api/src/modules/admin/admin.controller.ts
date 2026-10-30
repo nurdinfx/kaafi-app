@@ -681,14 +681,39 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
   try {
     const rawId = String(req.params.id).trim();
     const cleanId = rawId.toLowerCase();
-    const { isVerified, isActive, notes } = req.body;
+    const { isVerified, isActive, notes, slug: bodySlug, businessName, phone, city } = req.body;
 
-    const store = await prisma.businessProfile.findFirst({
+    const querySlug = bodySlug || rawId;
+    const cleanSlug = String(querySlug).toLowerCase();
+
+    let store = await prisma.businessProfile.findFirst({
       where: {
-        OR: [{ id: rawId }, { slug: rawId }, { slug: cleanId }],
+        OR: [
+          { id: rawId },
+          { slug: rawId },
+          { slug: cleanId },
+          { slug: querySlug },
+          { slug: cleanSlug },
+        ],
       },
       include: { owner: true },
     });
+
+    if (!store && isVerified) {
+      // Store was registered locally and admin is approving it. Auto-persist to database!
+      const finalSlug = cleanSlug.replace(/[^a-z0-9-]/g, '') || `store-${Date.now()}`;
+      store = await prisma.businessProfile.create({
+        data: {
+          ownerId: req.user!.id,
+          businessName: businessName || rawId,
+          slug: finalSlug,
+          phone: phone || '+252907000000',
+          city: city || 'Garoowe',
+          isVerified: true,
+        },
+        include: { owner: true },
+      });
+    }
 
     if (!store) {
       throw new AppError('Store not found.', 404, ErrorCode.NOT_FOUND);
@@ -724,7 +749,12 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
       try {
         if (isVerified) {
           await prisma.listing.updateMany({
-            where: { businessId: store.id },
+            where: {
+              OR: [
+                { businessId: store.id },
+                { business: { slug: store.slug } },
+              ],
+            },
             data: {
               status: 'ACTIVE',
               verificationStatus: 'VERIFIED',
@@ -732,7 +762,12 @@ export const updateStoreStatusAdmin = async (req: AuthenticatedRequest, res: Res
           });
         } else {
           await prisma.listing.updateMany({
-            where: { businessId: store.id },
+            where: {
+              OR: [
+                { businessId: store.id },
+                { business: { slug: store.slug } },
+              ],
+            },
             data: {
               verificationStatus: 'UNVERIFIED',
             },

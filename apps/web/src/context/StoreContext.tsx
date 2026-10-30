@@ -250,9 +250,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setLiveProducts([]);
       }
 
-      // 3. AUTO-SYNC: Push any local-only products to backend that failed to sync earlier
-      // This happens when createListing failed previously (e.g. bad category ID)
-      // We try silently in the background so products become visible to all customers
+      // 3. AUTO-SYNC: Push any local-only stores and products to backend
+      // Ensures that stores and products created on the frontend are persisted to the database
+      // so any visitor (guest on any browser) can see them immediately!
       try {
         const token = localStorage.getItem('hudisoft_token');
         if (token) {
@@ -263,16 +263,47 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             const currentUser = userStr ? JSON.parse(userStr) : null;
 
             for (const localStore of localForSync) {
-              // Only sync if this store has a real backend ID (not "store-<timestamp>")
-              if (!localStore.id || localStore.id.startsWith('store-')) continue;
+              // Ensure store exists on backend
+              let backendStoreId = localStore.id;
+              if (!backendStoreId || backendStoreId.startsWith('store-')) {
+                try {
+                  const checkStore = await api.getStore(localStore.slug);
+                  if (checkStore && checkStore.id) {
+                    backendStoreId = checkStore.id;
+                    localStore.id = checkStore.id;
+                  } else {
+                    const createRes = await api.createBusinessStore({
+                      businessName: localStore.businessName,
+                      slug: localStore.slug,
+                      tagline: localStore.tagline,
+                      description: localStore.bio,
+                      logoUrl: localStore.logoUrl,
+                      coverImageUrl: localStore.bannerUrl,
+                      phone: localStore.phone,
+                      whatsappNumber: localStore.whatsappNumber,
+                      city: localStore.city,
+                      district: localStore.district,
+                    }, token);
+                    if (createRes && createRes.success && createRes.data) {
+                      backendStoreId = createRes.data.id;
+                      localStore.id = createRes.data.id;
+                    }
+                  }
+                } catch (storeSyncErr) {
+                  console.warn('[StoreContext] Could not sync store to backend:', storeSyncErr);
+                }
+              }
+
               // Only sync if the logged in user owns this store (or is admin)
               if (currentUser && localStore.ownerId && localStore.ownerId !== currentUser.id && currentUser.email !== 'admin@hudisoft.com') {
                 continue;
               }
-              // Find local-only products (id starts with 'prod-', meaning they were never synced)
+
+              // Find local products that have temporary IDs or were not synced yet
               const unsynced = (localStore.products || []).filter(
-                (p) => p.id && p.id.startsWith('prod-')
+                (p) => p.id && (p.id.startsWith('prod-') || p.id.startsWith('local-'))
               );
+
               for (const prod of unsynced) {
                 try {
                   const categorySlug = (prod.category || 'products')
@@ -291,7 +322,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                     condition: prod.condition || 'NEW',
                     inventoryCount: prod.stockQuantity || 1,
                     mediaUrls: prod.images || [],
-                    businessId: localStore.id,
+                    businessId: backendStoreId && !backendStoreId.startsWith('store-') ? backendStoreId : undefined,
+                    storeSlug: localStore.slug,
                     city: localStore.city || 'Garoowe',
                   }, token);
                   if (res && res.success && res.data) {
@@ -301,6 +333,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                         s.slug === localStore.slug
                           ? {
                               ...s,
+                              id: backendStoreId || s.id,
                               products: s.products.map((p) =>
                                 p.id === prod.id ? { ...p, id: res.data.id } : p
                               ),
@@ -505,7 +538,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
       if (token && targetStore) {
         import('../lib/api').then(({ api }) => {
-          api.updateAdminStoreStatus(targetStore.id, { isVerified }, token).catch(() => {});
+          const storeIdentifier = (targetStore.slug && !targetStore.slug.startsWith('store-'))
+            ? targetStore.slug
+            : targetStore.id;
+          api.updateAdminStoreStatus(storeIdentifier, {
+            isVerified,
+            slug: targetStore.slug,
+            businessName: targetStore.businessName,
+            phone: targetStore.phone,
+            city: targetStore.city,
+          }, token).catch(() => {});
         });
       }
     }
@@ -675,6 +717,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             inventoryCount: newProduct.stockQuantity || 1,
             mediaUrls: newProduct.images,
             businessId: targetStore.id.startsWith('store-') ? undefined : targetStore.id,
+            storeSlug: targetStore.slug,
             city: targetStore.city || 'Garoowe',
           }, token)
           .then((res) => {

@@ -883,7 +883,19 @@ export const api = {
     }
   },
 
-  async updateAdminStoreStatus(id: string, data: { isVerified?: boolean; isActive?: boolean; notes?: string }, token: string) {
+  async updateAdminStoreStatus(
+    id: string,
+    data: {
+      isVerified?: boolean;
+      isActive?: boolean;
+      notes?: string;
+      slug?: string;
+      businessName?: string;
+      phone?: string;
+      city?: string;
+    },
+    token: string
+  ) {
     try {
       const res = await fetch(`${API_URL}/admin/stores/${id}/status`, {
         method: 'PATCH',

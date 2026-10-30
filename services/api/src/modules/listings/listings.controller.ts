@@ -302,49 +302,42 @@ export const createListing = async (req: AuthenticatedRequest, res: Response, ne
       slug = `${baseSlug}-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}-${counter++}`;
     }
 
-    // Resolve businessId: if not provided explicitly, auto-link to user's registered businessProfile
-    let resolvedBusinessId = businessId || null;
-    if (resolvedBusinessId && (resolvedBusinessId.startsWith('store-') || resolvedBusinessId === 'undefined')) {
-      resolvedBusinessId = null;
+    // Resolve businessId: support explicit ID, store slug, or user's registered businessProfile
+    const targetBusinessQuery = businessId || req.body.storeSlug;
+    let resolvedBusinessId: string | null = null;
+    let listingVerificationStatus = 'UNVERIFIED';
+
+    if (targetBusinessQuery && !String(targetBusinessQuery).startsWith('store-') && targetBusinessQuery !== 'undefined') {
+      const cleanSlug = String(targetBusinessQuery).toLowerCase();
+      const business = await prisma.businessProfile.findFirst({
+        where: {
+          OR: [
+            { id: String(targetBusinessQuery) },
+            { slug: String(targetBusinessQuery) },
+            { slug: cleanSlug },
+          ],
+        },
+        select: { id: true, ownerId: true, isVerified: true },
+      });
+
+      if (business) {
+        resolvedBusinessId = business.id;
+        if (business.isVerified) {
+          listingVerificationStatus = 'VERIFIED';
+        }
+      }
     }
 
     if (!resolvedBusinessId) {
       const userBusiness = await prisma.businessProfile.findUnique({
         where: { ownerId: req.user.id },
+        select: { id: true, isVerified: true },
       });
       if (userBusiness) {
         resolvedBusinessId = userBusiness.id;
-      }
-    } else {
-      // Find business by id or slug
-      const business = await prisma.businessProfile.findFirst({
-        where: {
-          OR: [{ id: resolvedBusinessId }, { slug: resolvedBusinessId }],
-        },
-        select: { id: true, ownerId: true },
-      });
-
-      if (business) {
-        resolvedBusinessId = business.id;
-        const userRoles = (req.user as any).roles || [];
-        const isAdmin = userRoles.some((r: any) =>
-          ['SUPER_ADMIN', 'FINANCE_ADMIN', 'MODERATOR'].includes(r.role?.name || r)
-        );
-        if (!isAdmin && business.ownerId !== req.user.id) {
-          throw new AppError('Unauthorized: You can only add products to your own store.', 403, ErrorCode.FORBIDDEN);
+        if (userBusiness.isVerified) {
+          listingVerificationStatus = 'VERIFIED';
         }
-      }
-    }
-
-    // Determine verification status: if parent business is already verified, product is automatically verified!
-    let listingVerificationStatus = 'UNVERIFIED';
-    if (resolvedBusinessId) {
-      const parentBusiness = await prisma.businessProfile.findUnique({
-        where: { id: resolvedBusinessId },
-        select: { isVerified: true },
-      });
-      if (parentBusiness?.isVerified) {
-        listingVerificationStatus = 'VERIFIED';
       }
     }
 

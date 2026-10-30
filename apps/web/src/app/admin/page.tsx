@@ -224,6 +224,12 @@ export default function SuperAdminPortal() {
         } else {
           // If either backend or local is verified, preserve verified status
           combinedStores[idx].isVerified = combinedStores[idx].isVerified || ls.isVerified;
+          // Ensure listings count reflects the highest between local and backend
+          combinedStores[idx]._count = {
+            listings: Math.max(combinedStores[idx]._count?.listings || 0, ls._count?.listings || 0),
+            branches: combinedStores[idx]._count?.branches || 1,
+            employees: combinedStores[idx]._count?.employees || 1,
+          };
         }
       });
 
@@ -471,10 +477,21 @@ export default function SuperAdminPortal() {
     const newStatus = !currentVerified;
 
     try {
+      const targetStore = stores.find((s) => s.id === storeId || s.slug === storeId);
+      const storeIdentifier = (targetStore && targetStore.slug && !targetStore.slug.startsWith('store-'))
+        ? targetStore.slug
+        : storeId;
+
       // 1. Call backend API if admin token exists
       if (token) {
         try {
-          await api.updateAdminStoreStatus(storeId, { isVerified: newStatus }, token);
+          await api.updateAdminStoreStatus(storeIdentifier, {
+            isVerified: newStatus,
+            slug: targetStore?.slug,
+            businessName: targetStore?.businessName,
+            phone: targetStore?.phone,
+            city: targetStore?.city,
+          }, token);
         } catch (e) {
           console.warn('Backend store update failed, syncing locally:', e);
         }
