@@ -22,7 +22,8 @@ export default function RequestDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const apiUrl = (rawUrl && !rawUrl.includes('kaafi-api.onrender.com')) ? rawUrl : (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'https://dukaamionline-1.onrender.com/api/v1' : (rawUrl || 'http://localhost:5000/api/v1'));
     fetch(`${apiUrl}/requests/${id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -47,7 +48,8 @@ export default function RequestDetailPage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const apiUrl = (rawUrl && !rawUrl.includes('kaafi-api.onrender.com')) ? rawUrl : (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'https://dukaamionline-1.onrender.com/api/v1' : (rawUrl || 'http://localhost:5000/api/v1'));
       const res = await fetch(`${apiUrl}/offers`, {
         method: 'POST',
         headers: {
