@@ -4,13 +4,7 @@ import { CONFIG } from './config';
 import { initRealtime } from './realtime';
 import prisma from './db';
 
-const startServer = async (): Promise<void> => {
-  const app = createApp();
-  const server = http.createServer(app);
-
-  // Initialize Realtime WebSockets on /ws
-  initRealtime(server);
-
+const runBackgroundAutoHeal = async (): Promise<void> => {
   // Self-healing database check & auto-migration for PostgreSQL (Render/Supabase)
   try {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'ACTIVE';`);
@@ -73,17 +67,32 @@ const startServer = async (): Promise<void> => {
   } catch (syncErr: any) {
     console.warn('[DB] Store auto-heal notice:', syncErr?.message);
   }
+};
+
+const startServer = async (): Promise<void> => {
+  const app = createApp();
+  const server = http.createServer(app);
+
+  // Initialize Realtime WebSockets on /ws
+  initRealtime(server);
 
   const port = parseInt(process.env.PORT || String(CONFIG.PORT || 5000), 10);
-  const host = '0.0.0.0';
 
-  server.listen(port, host, () => {
+  // Bind to 0.0.0.0 and listen immediately so Render port scan passes instantly
+  server.listen(port, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(`🚀 HUDI-SOFT CANONICAL BACKEND (Fududeeye App)`);
-    console.log(`🌐 Server running on http://${host}:${port}`);
-    console.log(`📡 WebSocket server running on ws://${host}:${port}/ws`);
+    console.log(`🌐 Server running on port ${port}`);
+    console.log(`📡 WebSocket server running on /ws`);
     console.log(`📍 Launch Market: Garoowe, Puntland, Somalia`);
     console.log(`====================================================`);
+
+    // Run auto-healing in background after port is open
+    runBackgroundAutoHeal().catch((err) => console.error('[AutoHeal Error]', err));
+  });
+
+  server.on('error', (err: any) => {
+    console.error('[Server Listen Error]:', err);
   });
 };
 

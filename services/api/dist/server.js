@@ -8,11 +8,7 @@ const app_1 = __importDefault(require("./app"));
 const config_1 = require("./config");
 const realtime_1 = require("./realtime");
 const db_1 = __importDefault(require("./db"));
-const startServer = async () => {
-    const app = (0, app_1.default)();
-    const server = http_1.default.createServer(app);
-    // Initialize Realtime WebSockets on /ws
-    (0, realtime_1.initRealtime)(server);
+const runBackgroundAutoHeal = async () => {
     // Self-healing database check & auto-migration for PostgreSQL (Render/Supabase)
     try {
         await db_1.default.$executeRawUnsafe(`ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'ACTIVE';`);
@@ -76,15 +72,26 @@ const startServer = async () => {
     catch (syncErr) {
         console.warn('[DB] Store auto-heal notice:', syncErr?.message);
     }
+};
+const startServer = async () => {
+    const app = (0, app_1.default)();
+    const server = http_1.default.createServer(app);
+    // Initialize Realtime WebSockets on /ws
+    (0, realtime_1.initRealtime)(server);
     const port = parseInt(process.env.PORT || String(config_1.CONFIG.PORT || 5000), 10);
-    const host = '0.0.0.0';
-    server.listen(port, host, () => {
+    // Bind to 0.0.0.0 and listen immediately so Render port scan passes instantly
+    server.listen(port, '0.0.0.0', () => {
         console.log(`====================================================`);
         console.log(`🚀 HUDI-SOFT CANONICAL BACKEND (Fududeeye App)`);
-        console.log(`🌐 Server running on http://${host}:${port}`);
-        console.log(`📡 WebSocket server running on ws://${host}:${port}/ws`);
+        console.log(`🌐 Server running on port ${port}`);
+        console.log(`📡 WebSocket server running on /ws`);
         console.log(`📍 Launch Market: Garoowe, Puntland, Somalia`);
         console.log(`====================================================`);
+        // Run auto-healing in background after port is open
+        runBackgroundAutoHeal().catch((err) => console.error('[AutoHeal Error]', err));
+    });
+    server.on('error', (err) => {
+        console.error('[Server Listen Error]:', err);
     });
 };
 startServer().catch((err) => {

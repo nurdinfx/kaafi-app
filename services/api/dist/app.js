@@ -62,15 +62,27 @@ const createApp = () => {
     app.options('*', corsMiddleware);
     app.use(express_1.default.json({ limit: '10mb' }));
     app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
-    // Health check endpoint
-    app.get('/health', (req, res) => {
-        res.json({
+    // Root & Health check endpoints (essential for Render / Cloud port scanners)
+    app.get('/', (_req, res) => {
+        res.status(200).json({
             status: 'UP',
             service: 'HUDI-SOFT CANONICAL API (Fududeeye App)',
             timestamp: new Date().toISOString(),
             launchMarket: 'Garoowe, Puntland, Somalia',
             version: '1.0.0',
         });
+    });
+    app.get('/health', (_req, res) => {
+        res.status(200).json({
+            status: 'UP',
+            service: 'HUDI-SOFT CANONICAL API (Fududeeye App)',
+            timestamp: new Date().toISOString(),
+            launchMarket: 'Garoowe, Puntland, Somalia',
+            version: '1.0.0',
+        });
+    });
+    app.get('/healthz', (_req, res) => {
+        res.status(200).send('OK');
     });
     // Canonical Versioned API Routes (/api/v1)
     const apiV1 = express_1.default.Router();
