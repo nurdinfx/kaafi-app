@@ -43,9 +43,6 @@ export default function CartDrawer() {
     window.open(url, '_blank');
   };
 
-  const freeShippingThreshold = 50;
-  const progressPercent = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
-
   return (
     <div className="fixed inset-0 z-50 overflow-hidden animate-fade-in">
       {/* Backdrop */}
@@ -80,28 +77,6 @@ export default function CartDrawer() {
             >
               ✕
             </button>
-          </div>
-
-          {/* Free Shipping bar */}
-          <div className="bg-orange-50 px-5 py-2.5 border-b border-orange-100">
-            <div className="flex items-center justify-between text-xs text-slate-600 mb-1 font-medium">
-              <span>
-                {subtotal >= freeShippingThreshold ? (
-                  <span className="text-emerald-600 font-bold">🎉 Hambalyo! Waxaad heshay Gaarsiin Bilaash ah</span>
-                ) : (
-                  <span>
-                    Ku dar <strong className="text-orange-600 font-bold">${(freeShippingThreshold - subtotal).toFixed(2)}</strong> si aad u hesho Gaarsiin Bilaash ah
-                  </span>
-                )}
-              </span>
-              <span className="font-bold text-orange-600">{progressPercent}%</span>
-            </div>
-            <div className="w-full bg-orange-200/60 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-orange-500 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
           </div>
 
           {/* Cart items list */}
@@ -245,16 +220,14 @@ export default function CartDrawer() {
                     <span>-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm font-bold text-slate-500 text-[11px]">
                   <span>Gaarsiinta:</span>
-                  <span className="font-semibold text-emerald-600">
-                    {subtotal >= freeShippingThreshold ? 'Bilaash (Free)' : '$2.00'}
-                  </span>
+                  <span className="text-slate-400 italic">Admin ayaa go'aaminaya</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-200">
                   <span>Wadarta Guud:</span>
                   <span className="text-orange-600">
-                    ${(finalTotal + (subtotal >= freeShippingThreshold ? 0 : 2)).toFixed(2)}
+                    ${finalTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -284,23 +257,23 @@ export default function CartDrawer() {
 
               {/* Action Buttons */}
               <div className="space-y-2 pt-1">
-                {/* Direct WhatsApp Order */}
+                {/* Direct WhatsApp Order (quick – opens WA immediately) */}
                 <button
                   onClick={handleWhatsAppCheckout}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-transform hover:-translate-y-0.5"
                 >
                   <span className="text-lg">💬</span>
-                  Ku Dalbo WhatsApp (Direct Order)
+                  Ku Dalbo WhatsApp (Toos ah)
                 </button>
 
-                {/* Web Checkout */}
+                {/* Full WhatsApp checkout form (address + details first) */}
                 <Link
                   href="/checkout"
                   onClick={() => setIsCartOpen(false)}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-md transition-transform hover:-translate-y-0.5"
                 >
                   <span>🛒</span>
-                  Gudub Lacag Bixinta (Checkout)
+                  Xaqiiji Cinwaanka & Gudbi (Checkout)
                 </Link>
               </div>
 

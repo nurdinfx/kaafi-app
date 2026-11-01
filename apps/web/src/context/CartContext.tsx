@@ -119,32 +119,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const finalTotal = Math.max(0, subtotal - discountAmount);
 
   const generateWhatsAppOrderUrl = (customerName = '', customerCity = 'Garoowe') => {
-    let text = `*DALABKA SHANTA (DUKAAMIONLINE)*\n\n`;
-    text += `Asc! Waxaan rabaa inaan dalbado alaabtan soo socota:\n`;
-    text += `────────────────────\n`;
+    let text = `*🛒 DALABKA CUSUB – DUKAAMIONLINE*\n\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `*📦 ALAABTA SOO DOORTAY:*\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
 
     items.forEach((item, index) => {
       text += `${index + 1}. *${item.title}*\n`;
-      text += `   - Cadadka: ${item.quantity} xabbo\n`;
-      text += `   - Qiimaha: $${(item.price * item.quantity).toFixed(2)}`;
+      text += `   • Cadadka: ${item.quantity} xabbo\n`;
+      text += `   • Qiimaha: $${(item.price * item.quantity).toFixed(2)}`;
       if (item.selectedColor) text += ` | Midab: ${item.selectedColor}`;
       if (item.selectedSize) text += ` | Cabbir: ${item.selectedSize}`;
-      if (item.storeName) text += ` (Store: ${item.storeName})`;
+      if (item.storeName) text += `\n   • Store: ${item.storeName}`;
       text += `\n`;
     });
 
-    text += `────────────────────\n`;
-    text += `*Wadarta Guud: $${finalTotal.toFixed(2)}*\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `*💰 LACAGTA:*\n`;
+    text += `   Qiimaha Alaabta: $${subtotal.toFixed(2)}\n`;
     if (discountAmount > 0) {
-      text += `*Qiimo Dhimis: -$${discountAmount.toFixed(2)} (${discountCode})*\n`;
+      text += `   Qiimo Dhimis (${discountCode}): -$${discountAmount.toFixed(2)}\n`;
     }
-    if (customerName) text += `*Magaca Macmiilka:* ${customerName}\n`;
-    text += `*Magaalada & Goobta:* ${customerCity}\n`;
-    text += `*Habka Lacag Bixinta:* EVC Plus / eDahab / Sahal / Zaad\n\n`;
-    text += `Fadlan ii xaqiiji dalabkayga iyo xilliga la ii keenayo. Mahadsanidiin!`;
+    text += `   *WADARTA GUUD: $${finalTotal.toFixed(2)}*\n`;
 
-    // Standard WhatsApp merchant support number
-    const waNumber = '252904530260';
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `*👤 MACMIILKA:*\n`;
+    if (customerName) text += `   Magaca: ${customerName}\n`;
+    text += `   Magaalada: ${customerCity}\n`;
+
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `*💳 LACAG BIXINTA:*\n`;
+    text += `   EVC Plus / eDahab / Sahal / Zaad\n`;
+    text += `   (Admin-ku wuxuu kuu soo shegi doonaa numberka lacagta loo diro)\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `Fadlan xaqiiji dalabkayga. Mahadsanidiin! 🙏`;
+
+    // WhatsApp order number
+    const waNumber = '252905288883';
     return `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`;
   };
 

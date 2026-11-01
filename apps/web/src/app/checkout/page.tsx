@@ -5,8 +5,86 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import { api, Listing, Wallet } from '../../lib/api';
+import { api, Listing } from '../../lib/api';
 import { formatPrice } from '../../lib/utils';
+import { useCart } from '../../context/CartContext';
+
+// WhatsApp order number
+const WA_NUMBER = '252905288883';
+
+function buildWhatsAppMessage(opts: {
+  items: Array<{
+    title: string;
+    quantity: number;
+    price: number;
+    selectedColor?: string;
+    selectedSize?: string;
+    storeName?: string;
+  }>;
+  subtotal: number;
+  discountCode?: string;
+  discountAmount?: number;
+  customerName: string;
+  customerPhone: string;
+  deliveryCity: string;
+  deliveryDistrict: string;
+  deliveryLandmark: string;
+  fulfillmentType: string;
+}): string {
+  const fulfillmentLabel =
+    opts.fulfillmentType === 'DRIVER_DELIVERY'
+      ? 'Gaarsiin Toos ah (Driver)'
+      : opts.fulfillmentType === 'CUSTOMER_PICKUP'
+      ? 'Soo Qaadasho (Pickup)'
+      : 'Iibiyaha Keenaya (Seller Delivery)';
+
+  let text = `*DALAB CUSUB - DUKAAMIONLINE*\n\n`;
+  text += `--------------------\n`;
+  text += `*ALAABTA LA DALBADAY:*\n`;
+  text += `--------------------\n`;
+
+  opts.items.forEach((item, i) => {
+    text += `${i + 1}. *${item.title}*\n`;
+    text += `   - Cadadka: ${item.quantity} xabbo\n`;
+    text += `   - Qiimaha: $${(item.price * item.quantity).toFixed(2)}`;
+    if (item.selectedColor) text += ` | Midab: ${item.selectedColor}`;
+    if (item.selectedSize) text += ` | Cabbir: ${item.selectedSize}`;
+    if (item.storeName) text += ` (Store: ${item.storeName})`;
+    text += `\n`;
+  });
+
+  text += `--------------------\n`;
+  text += `*LACAGTA:*\n`;
+  text += `Qiimaha Alaabta: $${opts.subtotal.toFixed(2)}\n`;
+  if (opts.discountAmount && opts.discountAmount > 0) {
+    text += `Qiimo Dhimis (${opts.discountCode}): -$${opts.discountAmount.toFixed(2)}\n`;
+    const afterDiscount = Math.max(0, opts.subtotal - opts.discountAmount);
+    text += `*Wadarta Alaabta: $${afterDiscount.toFixed(2)}*\n`;
+  } else {
+    text += `*Wadarta Alaabta: $${opts.subtotal.toFixed(2)}*\n`;
+  }
+  text += `Gaarsiinta: Waxaa lagu heshiinayaa wicitaanka\n`;
+
+  text += `--------------------\n`;
+  text += `*MACMIILKA:*\n`;
+  text += `Magaca: ${opts.customerName || '(Lama bixin)'}\n`;
+  text += `Taleefanka: ${opts.customerPhone}\n`;
+
+  text += `--------------------\n`;
+  text += `*CINWAANKA GAARSIINTA:*\n`;
+  text += `Magaalada: ${opts.deliveryCity}\n`;
+  if (opts.deliveryDistrict) text += `Xaafadda: ${opts.deliveryDistrict}\n`;
+  if (opts.deliveryLandmark) text += `Calaamadda: ${opts.deliveryLandmark}\n`;
+  text += `Habka: ${fulfillmentLabel}\n`;
+
+  text += `--------------------\n`;
+  text += `*LACAG BIXINTA:*\n`;
+  text += `EVC Plus / Sahal / ZAAD / eDahab\n`;
+  text += `(Fadlan waxaad lacagta ku soo dirtaa lambarka shaqaaluhu kuusheegaan markay ku soo wacaan)\n\n`;
+  text += `Fadlan ii xaqiiji dalabkayga. Mahadsanidiin!`;
+
+  return text;
+}
 
 function CheckoutContent() {
   const router = useRouter();
@@ -14,55 +92,48 @@ function CheckoutContent() {
   const listingId = searchParams.get('listingId');
   const qtyParam = parseInt(searchParams.get('qty') || '1', 10);
 
+  const {
+    items: cartItems,
+    subtotal: cartSubtotal,
+    discountAmount,
+    discountCode,
+    finalTotal: cartFinalTotal,
+    clearCart,
+  } = useCart();
+
   const [listing, setListing] = useState<Listing | null>(null);
   const [quantity, setQuantity] = useState(qtyParam > 0 ? qtyParam : 1);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!!listingId);
+  const [error, setError] = useState('');
 
-  const [fulfillmentType, setFulfillmentType] = useState<'CUSTOMER_PICKUP' | 'DRIVER_DELIVERY' | 'SELLER_DELIVERY'>('DRIVER_DELIVERY');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('+252');
+  const [fulfillmentType, setFulfillmentType] = useState<
+    'CUSTOMER_PICKUP' | 'DRIVER_DELIVERY' | 'SELLER_DELIVERY'
+  >('DRIVER_DELIVERY');
   const [deliveryCity, setDeliveryCity] = useState('Garoowe');
   const [deliveryDistrict, setDeliveryDistrict] = useState('');
   const [deliveryLandmark, setDeliveryLandmark] = useState('');
-  const [recipientPhone, setRecipientPhone] = useState('+252');
-
-  const [paymentProvider, setPaymentProvider] = useState<'EVC_PLUS' | 'ZAAD' | 'SAHAL' | 'WALLET'>('EVC_PLUS');
-  const [payerPhone, setPayerPhone] = useState('+252');
-
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('hudisoft_token');
-    const storedUser = localStorage.getItem('hudisoft_user');
-
-    if (!savedToken) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-      return;
-    }
-
-    setToken(savedToken);
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        setCurrentUser(u);
-        if (u.phoneNumber) {
-          setRecipientPhone(u.phoneNumber);
-          setPayerPhone(u.phoneNumber);
-        }
-      } catch {}
-    }
-
-    api.getMyWallet(savedToken).then(setWallet);
+    try {
+      const stored = localStorage.getItem('hudisoft_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u.phoneNumber) setCustomerPhone(u.phoneNumber);
+        if (u.name || u.fullName) setCustomerName(u.name || u.fullName);
+      }
+    } catch {}
 
     if (listingId) {
       loadListing(listingId);
     } else {
       setLoading(false);
-      setError('Alaab lama dooran (No listing selected for checkout).');
+      if (cartItems.length === 0) {
+        setError('Shantada waxba kuma jiraan. Fadlan wax ka dooro suuqa.');
+      }
     }
-  }, [listingId, router]);
+  }, [listingId]);
 
   const loadListing = async (id: string) => {
     setLoading(true);
@@ -81,77 +152,50 @@ function CheckoutContent() {
     }
   };
 
-  const deliveryFee = fulfillmentType === 'DRIVER_DELIVERY' ? 2.5 : 0.0;
-  const subtotal = (listing?.price || 0) * quantity;
-  const totalAmount = subtotal + deliveryFee;
+  const buildOrderItems = () => {
+    if (listing) {
+      return [{ title: listing.title, quantity, price: listing.price }];
+    }
+    return cartItems.map((i) => ({
+      title: i.title,
+      quantity: i.quantity,
+      price: i.price,
+      selectedColor: i.selectedColor,
+      selectedSize: i.selectedSize,
+      storeName: i.storeName,
+    }));
+  };
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+  const handleWhatsAppOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !listing) return;
-
-    if (quantity > listing.inventoryCount) {
-      setError(`Tirada aad rabto (${quantity}) way ka badan tahay xaddiga keydka yaalla (${listing.inventoryCount}).`);
+    const items = buildOrderItems();
+    if (items.length === 0) {
+      setError('Wax alaab ah lama dooran.');
       return;
     }
 
-    if (paymentProvider === 'WALLET' && (wallet?.balance || 0) < totalAmount) {
-      setError(`Haraagaaga jeebka (${formatPrice(wallet?.balance || 0)}) kuma filna dalabkan ($${totalAmount}).`);
-      return;
-    }
+    const subtotal = listing
+      ? (listing.price || 0) * quantity
+      : cartFinalTotal;
 
-    setSubmitting(true);
-    setError('');
+    const message = buildWhatsAppMessage({
+      items,
+      subtotal,
+      discountCode,
+      discountAmount: listing ? 0 : discountAmount,
+      customerName,
+      customerPhone,
+      deliveryCity,
+      deliveryDistrict,
+      deliveryLandmark,
+      fulfillmentType,
+    });
 
-    try {
-      // 1. Create Transaction in Backend
-      const txRes = await api.createTransaction(
-        {
-          items: [
-            {
-              listingId: listing.id,
-              quantity,
-            },
-          ],
-          fulfillmentType,
-          deliveryCity,
-          deliveryDistrict: deliveryDistrict || undefined,
-          deliveryLandmark: deliveryLandmark || undefined,
-          recipientPhone,
-        },
-        token
-      );
+    const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
 
-      if (!txRes.success || !txRes.data) {
-        setError(txRes.message || 'Dalabka lama abuuri karin.');
-        setSubmitting(false);
-        return;
-      }
-
-      const createdTx = txRes.data;
-
-      // 2. Initiate Payment (Mobile Money or Wallet)
-      const payRes = await api.initiatePayment(
-        {
-          transactionId: createdTx.id,
-          provider: paymentProvider,
-          payerPhone: paymentProvider === 'WALLET' ? undefined : payerPhone,
-          amount: totalAmount,
-          currency: listing.currency,
-        },
-        token
-      );
-
-      if (payRes.success) {
-        // Redirect to order detail page
-        router.push(`/orders/${createdTx.id}`);
-      } else {
-        // Transaction created, but payment needs follow up
-        router.push(`/orders/${createdTx.id}`);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Khalad lama filaan ah ayaa dhacay.');
-    } finally {
-      setSubmitting(false);
+    if (!listing) {
+      clearCart();
     }
   };
 
@@ -168,21 +212,45 @@ function CheckoutContent() {
     );
   }
 
+  const isCartMode = !listing;
+  const displaySubtotal = isCartMode ? cartSubtotal : (listing?.price || 0) * quantity;
+  const displayFinalTotal = isCartMode ? cartFinalTotal : (listing?.price || 0) * quantity;
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#050c15' }}>
       <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
         <div className="mb-6">
-          <Link href={listing?.slug ? `/listing/${listing.slug}` : '/listings'} className="text-xs text-blue-400 hover:text-blue-300">
+          <Link
+            href={listing?.slug ? `/listing/${listing.slug}` : '/listings'}
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
             ← Ku noqo Alaabta (Back)
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-black text-white mt-2" style={{ fontFamily: 'Outfit, sans-serif' }}>
+          <h1
+            className="text-2xl sm:text-3xl font-black text-white mt-2"
+            style={{ fontFamily: 'Outfit, sans-serif' }}
+          >
             Dhameystirka Dalabka (Checkout)
           </h1>
           <p className="text-sm mt-1" style={{ color: '#94b4d0' }}>
-            Si nabad ah ugu bixi mobile money ama jeebkaaga Fududeeye
+            Dalabkaaga waxaa toos loogu gudbinayaa WhatsApp-ka shaqalaha
           </p>
+        </div>
+
+        <div
+          className="flex items-start gap-3 p-4 rounded-xl mb-6"
+          style={{ background: 'rgba(37,211,102,0.10)', border: '1px solid rgba(37,211,102,0.25)' }}
+        >
+          <span className="text-2xl flex-shrink-0">💬</span>
+          <div>
+            <p className="text-sm font-bold text-emerald-300">Habka Tooska ah ee WhatsApp</p>
+            <p className="text-xs mt-0.5" style={{ color: '#94b4d0' }}>
+              Markaad riixdo badhanka WhatsApp, dalabkaagu wuxuu u tagayaa shaqaalaha.
+              Waxay ku soo wici doonaan si ay kuugu sheegaan lambarka lacagta loogu soo diro iyo xaqiijinta gaarsiinta.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -194,13 +262,15 @@ function CheckoutContent() {
           </div>
         )}
 
-        <form onSubmit={handleSubmitOrder}>
+        <form onSubmit={handleWhatsAppOrder}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Col: Fulfillment & Payment Details */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Step 1: Fulfillment Type */}
+              {/* Step 1: Fulfillment */}
               <div className="glass-card p-6">
-                <h2 className="text-base font-bold text-white mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                <h2
+                  className="text-base font-bold text-white mb-4"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
                   1. Habka Gaarsiinta (Fulfillment)
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -208,17 +278,17 @@ function CheckoutContent() {
                     {
                       id: 'DRIVER_DELIVERY',
                       title: '🚚 Gaarsiin Toos ah',
-                      subtitle: 'Darawal baa kuugu keenaya goobtaada ($2.50 fee)',
+                      subtitle: 'Darawal baa kuugu keenaya goobtaada',
                     },
                     {
                       id: 'CUSTOMER_PICKUP',
                       title: '🏪 Soo Qaadasho',
-                      subtitle: 'Dukaanka/Iibiyaha ka doon ($0.00)',
+                      subtitle: 'Dukaanka/Xarunta ka doon',
                     },
                     {
                       id: 'SELLER_DELIVERY',
                       title: '📦 Iibiyaha Keenaya',
-                      subtitle: 'Heshiis toos ah oo iibiyaha ah ($0.00)',
+                      subtitle: 'Heshiis toos ah oo iibiyaha ah',
                     },
                   ].map((opt) => (
                     <div
@@ -243,14 +313,46 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* Step 2: Address & Contact */}
+              {/* Step 2: Contact Details */}
               <div className="glass-card p-6">
-                <h2 className="text-base font-bold text-white mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  2. Cinwaanka & Taleefanka (Delivery Details)
+                <h2
+                  className="text-base font-bold text-white mb-4"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
+                  2. Xogtaada &amp; Goobta Gaarsiinta
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-blue-300 block mb-1">Magaalada (City)</label>
+                    <label className="text-xs font-semibold text-blue-300 block mb-1">
+                      Magacaaga (Full Name)
+                    </label>
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Magacaaga oo buuxa"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-blue-300 block mb-1">
+                      Taleefankaaga (Phone Number) *
+                    </label>
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="+25290xxxxxxx"
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-blue-300 block mb-1">
+                      Magaalada (City)
+                    </label>
                     <select
                       value={deliveryCity}
                       onChange={(e) => setDeliveryCity(e.target.value)}
@@ -261,115 +363,89 @@ function CheckoutContent() {
                       <option value="Qardho">Qardho (Puntland)</option>
                       <option value="Mogadishu">Muqdisho (Banaadir)</option>
                       <option value="Hargeisa">Hargeysa (Somaliland)</option>
+                      <option value="Kismaayo">Kismaayo (Jubbada)</option>
+                      <option value="Baydhabo">Baydhabo (Koonfur Galbeed)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-blue-300 block mb-1">Xaafadda / District</label>
+                    <label className="text-xs font-semibold text-blue-300 block mb-1">
+                      Xaafadda / District
+                    </label>
                     <input
                       type="text"
                       value={deliveryDistrict}
                       onChange={(e) => setDeliveryDistrict(e.target.value)}
                       placeholder="e.g. Hodan, Waaberi, Israac"
-                      required
                       className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none"
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-blue-300 block mb-1">Calaamad / Landmark</label>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-blue-300 block mb-1">
+                      Calaamad / Landmark
+                    </label>
                     <input
                       type="text"
                       value={deliveryLandmark}
                       onChange={(e) => setDeliveryLandmark(e.target.value)}
-                      placeholder="e.g. Hotelka gadaashiisa, Laamiga dhinaciisa"
-                      required
+                      placeholder="e.g. Ka soo horjeedka Masjidka, Laamiga agtiisa"
                       className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-blue-300 block mb-1">Taleefanka Qaataha</label>
-                    <input
-                      type="tel"
-                      value={recipientPhone}
-                      onChange={(e) => setRecipientPhone(e.target.value)}
-                      placeholder="+25261XXXXXXX"
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none font-mono"
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Step 3: Payment Method */}
+              {/* Step 3: Payment instructions */}
               <div className="glass-card p-6">
-                <h2 className="text-base font-bold text-white mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                  3. Habka Lacag-bixinta (Payment Method)
+                <h2
+                  className="text-base font-bold text-white mb-3"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
+                  3. Habka Lacag-bixinta (Payment Info)
                 </h2>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  {[
-                    { id: 'EVC_PLUS', label: 'EVC Plus', desc: 'Hormuud' },
-                    { id: 'ZAAD', label: 'ZAAD', desc: 'Telesom' },
-                    { id: 'SAHAL', label: 'SAHAL', desc: 'Golis' },
-                    {
-                      id: 'WALLET',
-                      label: 'Fududeeye Wallet',
-                      desc: wallet ? `$${wallet.balance.toFixed(2)}` : '$0.00',
-                    },
-                  ].map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => setPaymentProvider(p.id as any)}
-                      className="p-3 rounded-xl border cursor-pointer text-center transition-all"
-                      style={{
-                        background:
-                          paymentProvider === p.id
-                            ? 'rgba(12, 143, 226, 0.2)'
-                            : 'rgba(15, 32, 64, 0.4)',
-                        borderColor:
-                          paymentProvider === p.id ? '#0c8fe2' : 'rgba(255, 255, 255, 0.08)',
-                      }}
-                    >
-                      <div className="text-sm font-bold text-white">{p.label}</div>
-                      <div className="text-[11px] mt-0.5" style={{ color: '#94b4d0' }}>
-                        {p.desc}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {paymentProvider !== 'WALLET' && (
-                  <div>
-                    <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Lambarka Mobile Money ee lacagta laga jarayo
-                    </label>
-                    <input
-                      type="tel"
-                      value={payerPhone}
-                      onChange={(e) => setPayerPhone(e.target.value)}
-                      placeholder="+25261XXXXXXX"
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white bg-blue-950/60 border border-white/10 outline-none font-mono"
-                    />
+                <div
+                  className="rounded-xl p-4 space-y-2"
+                  style={{ background: 'rgba(15,32,64,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Waxaad ku bixin kartaa adeegyada lacag-bixinta mobaylka:
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1 pb-1">
+                    <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">📱 EVC Plus</span>
+                    <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">💰 SAHAL</span>
+                    <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">💳 ZAAD</span>
+                    <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">💵 eDahab</span>
                   </div>
-                )}
+                  <p className="text-xs text-emerald-400 font-medium pt-2">
+                    ✓ Ma jiro kharash gaarsiin ah oo hadda toos loogu darayo halkan.
+                    Shaqaalaha ayaa kugu soo wacaya lambarkaaga si ay kuu siiyaan lambarka lacagta loogu soo hagaajinayo iyo faahfaahinta gaarsiinta.
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Right Col: Order Summary & Pay Button */}
+            {/* Right column: Summary */}
             <div className="space-y-6">
               <div className="glass-card p-6">
-                <h3 className="text-base font-bold text-white mb-4" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                <h3
+                  className="text-base font-bold text-white mb-4"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
+                >
                   Dulmar Guud (Order Summary)
                 </h3>
 
                 {listing && (
-                  <div className="flex gap-3 pb-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                  <div
+                    className="flex gap-3 pb-4 border-b"
+                    style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                  >
                     <div
                       className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl font-bold"
-                      style={{ background: 'rgba(15,32,64,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
+                      style={{
+                        background: 'rgba(15,32,64,0.8)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                      }}
                     >
                       📦
                     </div>
@@ -385,61 +461,100 @@ function CheckoutContent() {
                   </div>
                 )}
 
-                {/* Quantity adjuster */}
-                <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                  <span className="text-xs text-slate-300 font-medium">Tirada (Quantity):</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
-                    >
-                      -
-                    </button>
-                    <span className="text-sm font-bold text-white px-2">{quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => setQuantity(Math.min(listing?.inventoryCount || 99, quantity + 1))}
-                      className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
-                    >
-                      +
-                    </button>
+                {listing && (
+                  <div
+                    className="flex items-center justify-between py-3 border-b"
+                    style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                  >
+                    <span className="text-xs text-slate-300 font-medium">Tirada (Quantity):</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
+                      >
+                        -
+                      </button>
+                      <span className="text-sm font-bold text-white px-2">{quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setQuantity(Math.min(listing?.inventoryCount || 99, quantity + 1))
+                        }
+                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Cost lines */}
-                <div className="space-y-2 py-4 border-b text-xs" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                {isCartMode && cartItems.length > 0 && (
+                  <div
+                    className="space-y-2 pb-4 border-b"
+                    style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                  >
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex justify-between text-xs">
+                        <span className="text-slate-300 truncate max-w-[65%]">
+                          {item.title}{' '}
+                          <span className="text-blue-400">x{item.quantity}</span>
+                        </span>
+                        <span className="text-white font-semibold">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div
+                  className="space-y-2 py-4 border-b text-xs"
+                  style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                >
                   <div className="flex justify-between" style={{ color: '#94b4d0' }}>
                     <span>Qiimaha Alaabta (Subtotal):</span>
-                    <span className="font-semibold text-white">{formatPrice(subtotal, listing?.currency)}</span>
+                    <span className="font-semibold text-white">
+                      ${displaySubtotal.toFixed(2)}
+                    </span>
                   </div>
-                  <div className="flex justify-between" style={{ color: '#94b4d0' }}>
-                    <span>Gaarsiinta (Delivery fee):</span>
-                    <span className="font-semibold text-white">{formatPrice(deliveryFee, listing?.currency)}</span>
-                  </div>
+                  {isCartMode && discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span>Qiimo Dhimis ({discountCode}):</span>
+                      <span className="font-semibold">-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-center pt-4 mb-6">
-                  <span className="text-sm font-bold text-white">Wadarta Guud:</span>
-                  <span className="text-xl font-black text-emerald-400" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                    {formatPrice(totalAmount, listing?.currency)}
+                  <span className="text-sm font-bold text-white">Wadarta Alaabta:</span>
+                  <span
+                    className="text-xl font-black text-emerald-400"
+                    style={{ fontFamily: 'Outfit, sans-serif' }}
+                  >
+                    ${displayFinalTotal.toFixed(2)}
                   </span>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white shadow-lg transition-all"
+                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                   style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    boxShadow: '0 4px 16px rgba(16,185,129,0.3)',
+                    background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                    boxShadow: '0 4px 16px rgba(37,211,102,0.35)',
                   }}
                 >
-                  {submitting ? 'Dalabka waa la dirayaa...' : `Xaqiiji & Bixi (${formatPrice(totalAmount, listing?.currency)})`}
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.698.083-2.121-.508-1.74-.723-2.883-2.483-2.971-2.6-.088-.117-.71-1.002-.71-1.914 0-.912.478-1.36.648-1.543.17-.183.371-.228.495-.228.125 0 .25.002.359.006.115.006.269-.044.421.322.156.376.533 1.303.58 1.398.047.095.078.207.016.332-.063.125-.094.204-.187.314-.094.11-.198.246-.282.33-.094.094-.192.197-.082.386.11.189.489.807 1.05 1.306.724.644 1.334.843 1.523.937.189.094.3.08.411-.048.112-.128.477-.557.604-.748.127-.191.254-.159.427-.095.174.064 1.1.518 1.29.613.19.095.317.143.364.223.048.08.048.463-.096.868zM12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.66 1.436 5.176L2 22l4.982-1.393A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.143a8.106 8.106 0 01-4.223-1.182l-.303-.18-3.053.854.819-2.991-.197-.319A8.104 8.104 0 1112 20.143z" />
+                  </svg>
+                  Gudbi Dalabka WhatsApp (${displayFinalTotal.toFixed(2)})
                 </button>
 
-                <div className="flex items-center gap-2 justify-center mt-3 text-[11px]" style={{ color: '#6287a2' }}>
-                  <span>🔒 Escrow Protected & Verified</span>
+                <div
+                  className="flex items-center gap-2 justify-center mt-3 text-[11px]"
+                  style={{ color: '#6287a2' }}
+                >
+                  <span>💬 Fariinta dalabkaaga oo dhamaystiran ayaa u furmaysa WhatsApp</span>
                 </div>
               </div>
             </div>
@@ -456,7 +571,10 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center text-white" style={{ background: '#050c15' }}>
+        <div
+          className="min-h-screen flex items-center justify-center text-white"
+          style={{ background: '#050c15' }}
+        >
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       }
