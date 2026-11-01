@@ -8,6 +8,7 @@ import Footer from '../../components/Footer';
 import { api, Listing } from '../../lib/api';
 import { formatPrice } from '../../lib/utils';
 import { useCart } from '../../context/CartContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // WhatsApp order number
 const WA_NUMBER = '252905288883';
@@ -91,6 +92,7 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const listingId = searchParams.get('listingId');
   const qtyParam = parseInt(searchParams.get('qty') || '1', 10);
+  const { t, isRTL, dir } = useLanguage();
 
   const {
     items: cartItems,
@@ -130,7 +132,7 @@ function CheckoutContent() {
     } else {
       setLoading(false);
       if (cartItems.length === 0) {
-        setError('Shantada waxba kuma jiraan. Fadlan wax ka dooro suuqa.');
+        setError(t('cart_empty_title', 'Shantada waxba kuma jiraan. Fadlan wax ka dooro suuqa.'));
       }
     }
   }, [listingId]);
@@ -217,7 +219,7 @@ function CheckoutContent() {
   const displayFinalTotal = isCartMode ? cartFinalTotal : (listing?.price || 0) * quantity;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#050c15' }}>
+    <div dir={dir} className="min-h-screen flex flex-col" style={{ background: '#050c15' }}>
       <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
@@ -226,16 +228,16 @@ function CheckoutContent() {
             href={listing?.slug ? `/listing/${listing.slug}` : '/listings'}
             className="text-xs text-blue-400 hover:text-blue-300"
           >
-            ← Ku noqo Alaabta (Back)
+            {t('checkout_back')}
           </Link>
           <h1
             className="text-2xl sm:text-3xl font-black text-white mt-2"
             style={{ fontFamily: 'Outfit, sans-serif' }}
           >
-            Dhameystirka Dalabka (Checkout)
+            {t('checkout_title')}
           </h1>
           <p className="text-sm mt-1" style={{ color: '#94b4d0' }}>
-            Dalabkaaga waxaa toos loogu gudbinayaa WhatsApp-ka shaqalaha
+            {t('checkout_subtitle')}
           </p>
         </div>
 
@@ -245,10 +247,9 @@ function CheckoutContent() {
         >
           <span className="text-2xl flex-shrink-0">💬</span>
           <div>
-            <p className="text-sm font-bold text-emerald-300">Habka Tooska ah ee WhatsApp</p>
+            <p className="text-sm font-bold text-emerald-300">{t('checkout_notice_title')}</p>
             <p className="text-xs mt-0.5" style={{ color: '#94b4d0' }}>
-              Markaad riixdo badhanka WhatsApp, dalabkaagu wuxuu u tagayaa shaqaalaha.
-              Waxay ku soo wici doonaan si ay kuugu sheegaan lambarka lacagta loogu soo diro iyo xaqiijinta gaarsiinta.
+              {t('checkout_notice_desc')}
             </p>
           </div>
         </div>
@@ -271,24 +272,24 @@ function CheckoutContent() {
                   className="text-base font-bold text-white mb-4"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  1. Habka Gaarsiinta (Fulfillment)
+                  {t('checkout_step1_title')}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
                     {
                       id: 'DRIVER_DELIVERY',
-                      title: '🚚 Gaarsiin Toos ah',
-                      subtitle: 'Darawal baa kuugu keenaya goobtaada',
+                      title: t('checkout_opt_driver'),
+                      subtitle: t('checkout_opt_driver_sub'),
                     },
                     {
                       id: 'CUSTOMER_PICKUP',
-                      title: '🏪 Soo Qaadasho',
-                      subtitle: 'Dukaanka/Xarunta ka doon',
+                      title: t('checkout_opt_pickup'),
+                      subtitle: t('checkout_opt_pickup_sub'),
                     },
                     {
                       id: 'SELLER_DELIVERY',
-                      title: '📦 Iibiyaha Keenaya',
-                      subtitle: 'Heshiis toos ah oo iibiyaha ah',
+                      title: t('checkout_opt_seller'),
+                      subtitle: t('checkout_opt_seller_sub'),
                     },
                   ].map((opt) => (
                     <div
@@ -319,12 +320,12 @@ function CheckoutContent() {
                   className="text-base font-bold text-white mb-4"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  2. Xogtaada &amp; Goobta Gaarsiinta
+                  {t('checkout_step2_title')}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Magacaaga (Full Name)
+                      {t('checkout_label_name')}
                     </label>
                     <input
                       type="text"
@@ -337,7 +338,7 @@ function CheckoutContent() {
 
                   <div>
                     <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Taleefankaaga (Phone Number) *
+                      {t('checkout_label_phone')}
                     </label>
                     <input
                       type="tel"
@@ -351,7 +352,7 @@ function CheckoutContent() {
 
                   <div>
                     <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Magaalada (City)
+                      {t('checkout_label_city')}
                     </label>
                     <select
                       value={deliveryCity}
@@ -370,7 +371,7 @@ function CheckoutContent() {
 
                   <div>
                     <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Xaafadda / District
+                      {t('checkout_label_district')}
                     </label>
                     <input
                       type="text"
@@ -383,7 +384,7 @@ function CheckoutContent() {
 
                   <div className="sm:col-span-2">
                     <label className="text-xs font-semibold text-blue-300 block mb-1">
-                      Calaamad / Landmark
+                      {t('checkout_label_landmark')}
                     </label>
                     <input
                       type="text"
@@ -402,14 +403,14 @@ function CheckoutContent() {
                   className="text-base font-bold text-white mb-3"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  3. Habka Lacag-bixinta (Payment Info)
+                  {t('checkout_step3_title')}
                 </h2>
                 <div
                   className="rounded-xl p-4 space-y-2"
                   style={{ background: 'rgba(15,32,64,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Waxaad ku bixin kartaa adeegyada lacag-bixinta mobaylka:
+                    {t('checkout_payment_note')}
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1 pb-1">
                     <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">📱 EVC Plus</span>
@@ -418,8 +419,7 @@ function CheckoutContent() {
                     <span className="px-3 py-1 bg-blue-900/40 text-blue-300 rounded-lg text-xs font-bold border border-blue-700/30">💵 eDahab</span>
                   </div>
                   <p className="text-xs text-emerald-400 font-medium pt-2">
-                    ✓ Ma jiro kharash gaarsiin ah oo hadda toos loogu darayo halkan.
-                    Shaqaalaha ayaa kugu soo wacaya lambarkaaga si ay kuu siiyaan lambarka lacagta loogu soo hagaajinayo iyo faahfaahinta gaarsiinta.
+                    {t('checkout_payment_call_note')}
                   </p>
                 </div>
               </div>
@@ -432,7 +432,7 @@ function CheckoutContent() {
                   className="text-base font-bold text-white mb-4"
                   style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  Dulmar Guud (Order Summary)
+                  {t('checkout_summary_title')}
                 </h3>
 
                 {listing && (
@@ -455,7 +455,7 @@ function CheckoutContent() {
                         {formatPrice(listing.price, listing.currency)} x {quantity}
                       </div>
                       <div className="text-[11px] text-emerald-400 mt-1">
-                        Stock yaalla: {listing.inventoryCount} xabbo
+                        Stock: {listing.inventoryCount}
                       </div>
                     </div>
                   </div>
@@ -466,12 +466,12 @@ function CheckoutContent() {
                     className="flex items-center justify-between py-3 border-b"
                     style={{ borderColor: 'rgba(255,255,255,0.06)' }}
                   >
-                    <span className="text-xs text-slate-300 font-medium">Tirada (Quantity):</span>
+                    <span className="text-xs text-slate-300 font-medium">{t('checkout_qty_label')}</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
+                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center cursor-pointer"
                       >
                         -
                       </button>
@@ -481,7 +481,7 @@ function CheckoutContent() {
                         onClick={() =>
                           setQuantity(Math.min(listing?.inventoryCount || 99, quantity + 1))
                         }
-                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center"
+                        className="w-7 h-7 rounded-lg bg-blue-950/80 border border-white/10 text-white font-bold flex items-center justify-center cursor-pointer"
                       >
                         +
                       </button>
@@ -513,21 +513,21 @@ function CheckoutContent() {
                   style={{ borderColor: 'rgba(255,255,255,0.06)' }}
                 >
                   <div className="flex justify-between" style={{ color: '#94b4d0' }}>
-                    <span>Qiimaha Alaabta (Subtotal):</span>
+                    <span>{t('checkout_subtotal_label')}</span>
                     <span className="font-semibold text-white">
                       ${displaySubtotal.toFixed(2)}
                     </span>
                   </div>
                   {isCartMode && discountAmount > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>Qiimo Dhimis ({discountCode}):</span>
+                      <span>{t('checkout_discount_label')} ({discountCode}):</span>
                       <span className="font-semibold">-${discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex justify-between items-center pt-4 mb-6">
-                  <span className="text-sm font-bold text-white">Wadarta Alaabta:</span>
+                  <span className="text-sm font-bold text-white">{t('checkout_total_label')}</span>
                   <span
                     className="text-xl font-black text-emerald-400"
                     style={{ fontFamily: 'Outfit, sans-serif' }}
@@ -538,7 +538,7 @@ function CheckoutContent() {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                  className="w-full py-3.5 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 cursor-pointer"
                   style={{
                     background: 'linear-gradient(135deg, #25D366, #128C7E)',
                     boxShadow: '0 4px 16px rgba(37,211,102,0.35)',
@@ -547,14 +547,14 @@ function CheckoutContent() {
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.698.083-2.121-.508-1.74-.723-2.883-2.483-2.971-2.6-.088-.117-.71-1.002-.71-1.914 0-.912.478-1.36.648-1.543.17-.183.371-.228.495-.228.125 0 .25.002.359.006.115.006.269-.044.421.322.156.376.533 1.303.58 1.398.047.095.078.207.016.332-.063.125-.094.204-.187.314-.094.11-.198.246-.282.33-.094.094-.192.197-.082.386.11.189.489.807 1.05 1.306.724.644 1.334.843 1.523.937.189.094.3.08.411-.048.112-.128.477-.557.604-.748.127-.191.254-.159.427-.095.174.064 1.1.518 1.29.613.19.095.317.143.364.223.048.08.048.463-.096.868zM12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.66 1.436 5.176L2 22l4.982-1.393A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.143a8.106 8.106 0 01-4.223-1.182l-.303-.18-3.053.854.819-2.991-.197-.319A8.104 8.104 0 1112 20.143z" />
                   </svg>
-                  Gudbi Dalabka WhatsApp (${displayFinalTotal.toFixed(2)})
+                  {t('checkout_btn_submit')} (${displayFinalTotal.toFixed(2)})
                 </button>
 
                 <div
                   className="flex items-center gap-2 justify-center mt-3 text-[11px]"
                   style={{ color: '#6287a2' }}
                 >
-                  <span>💬 Fariinta dalabkaaga oo dhamaystiran ayaa u furmaysa WhatsApp</span>
+                  <span>{t('checkout_footer_note')}</span>
                 </div>
               </div>
             </div>

@@ -1,23 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function FloatingWhatsApp() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const { t, isRTL, dir } = useLanguage();
 
   const phoneNumber = '252905288883'; // Customer service number
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = message.trim() || 'Asc! Waxaan rabaa inaan wax ka weydiiyo adeegyada iyo alaabta DukaamiOnline.';
+    const defaultMsg = 'Asc! Waxaan rabaa inaan wax ka weydiiyo adeegyada iyo alaabta DukaamiOnline.';
+    const text = message.trim() || defaultMsg;
     const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     setIsOpen(false);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <div dir={dir} className={`fixed bottom-6 ${isRTL ? 'left-6 items-start' : 'right-6 items-end'} z-40 flex flex-col`}>
       {/* Quick Chat Popup */}
       {isOpen && (
         <div className="mb-3 w-80 rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-slide-up text-slate-800">
@@ -28,13 +31,13 @@ export default function FloatingWhatsApp() {
                 💬
               </div>
               <div>
-                <h4 className="font-bold text-sm leading-tight">DukaamiOnline WhatsApp Support</h4>
-                <p className="text-[11px] text-emerald-100">Khadka tooska ah • Jawaab degdeg ah</p>
+                <h4 className="font-bold text-sm leading-tight">{t('wa_support_title')}</h4>
+                <p className="text-[11px] text-emerald-100">{t('wa_support_status')}</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white text-lg font-bold"
+              className="text-white/80 hover:text-white text-lg font-bold cursor-pointer"
             >
               ✕
             </button>
@@ -42,23 +45,23 @@ export default function FloatingWhatsApp() {
 
           {/* Body */}
           <div className="p-4 bg-emerald-50/50 space-y-3">
-            <div className="bg-white p-3 rounded-xl rounded-tl-none shadow-xs text-xs text-slate-700 border border-slate-100">
-              Asc! Ku soo dhowow xarunta macaamiisha ee DukaamiOnline. Maxaan maanta kugu caawinnaa?
+            <div className="bg-white p-3 rounded-xl rounded-tl-none shadow-xs text-xs text-slate-700 border border-slate-100 leading-relaxed">
+              {t('wa_greeting')}
             </div>
 
             <form onSubmit={handleSendMessage} className="space-y-2">
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Qor fariintaada halkan..."
+                placeholder={t('wa_msg_placeholder')}
                 rows={2}
-                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:border-emerald-500 bg-white"
+                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:border-emerald-500 bg-white text-slate-800"
               />
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-colors"
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-colors cursor-pointer"
               >
-                <span>Furo WhatsApp</span>
+                <span>{t('wa_btn_open')}</span>
                 <span>→</span>
               </button>
             </form>
@@ -69,9 +72,9 @@ export default function FloatingWhatsApp() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative group w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+        className="relative group w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer"
         aria-label="WhatsApp Support"
-        title="Nala soo xiriir WhatsApp"
+        title={t('wa_button_title')}
       >
         {/* Pulse wave ring */}
         <span className="absolute -inset-1 rounded-full bg-[#25D366] opacity-40 animate-ping pointer-events-none" />

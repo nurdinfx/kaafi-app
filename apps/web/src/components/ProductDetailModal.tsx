@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { StoreProduct, ProductReview, useStore } from '../context/StoreContext';
 import { useCart } from '../context/CartContext';
@@ -21,7 +21,7 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
     product?.colorVariants?.[0]?.name || product?.colors?.[0] || 'White'
   );
   const [selectedSize, setSelectedSize] = useState<string>(
-    product?.sizes?.[2] || product?.sizes?.[0] || '8 (S)'
+    product?.sizes?.[0] || ''
   );
   const [quantity, setQuantity] = useState(1);
   const [addedToast, setAddedToast] = useState(false);
@@ -37,6 +37,16 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
   const [reviewColor, setReviewColor] = useState(selectedColor);
   const [reviewSize, setReviewSize] = useState(selectedSize);
   const [reviewSubmittedToast, setReviewSubmittedToast] = useState(false);
+
+  // Sync state whenever product changes
+  useEffect(() => {
+    if (product) {
+      setSelectedColor(product.colorVariants?.[0]?.name || product.colors?.[0] || 'White');
+      setSelectedSize(product.sizes?.[0] || '');
+      setSelectedImageIndex(0);
+      setQuantity(1);
+    }
+  }, [product]);
 
   if (!product) return null;
 
@@ -287,45 +297,49 @@ export default function ProductDetailModal({ product, onClose }: ProductDetailMo
                 </div>
 
                 {/* ── SHEIN SIZE SELECTOR ── */}
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800">{t('shein_size_label', 'Size')}</span>
-                      <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold border border-slate-200">
-                        {t('shein_uk_size', 'UK Size')} ▾
-                      </span>
-                    </div>
-                    <button type="button" className="text-slate-500 hover:text-black font-semibold flex items-center gap-1">
-                      <span>📏</span>
-                      <span>{t('shein_size_guide', 'Size Guide')}</span>
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {(product.sizes && product.sizes.length > 0
-                      ? product.sizes
-                      : ['4 (XXS)', '6 (XS)', '8 (S)', '10 (M)', '12/14 (L)', '16 (XL)', '18 (XXL)']
-                    ).map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => setSelectedSize(sz)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                          selectedSize === sz
-                            ? 'bg-black text-white border-black shadow-md'
-                            : 'bg-white text-slate-800 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
-                        }`}
-                      >
-                        {sz}
+                {/* ── SIZES (Dynamic from Seller) ── */}
+                {product.sizes && product.sizes.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{t('shein_size_label', 'Size')}</span>
+                        {selectedSize && (
+                          <span className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold border border-slate-200">
+                            {selectedSize}
+                          </span>
+                        )}
+                      </div>
+                      <button type="button" className="text-slate-500 hover:text-black font-semibold flex items-center gap-1">
+                        <span>📏</span>
+                        <span>{t('shein_size_guide', 'Size Guide')}</span>
                       </button>
-                    ))}
-                  </div>
+                    </div>
 
-                  <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
-                    <span className="hover:underline cursor-pointer">{t('shein_not_your_size', 'Not your size? Tell me your size')} &gt;</span>
-                    <span className="text-emerald-700 font-medium">✓ {selectedSize} {t('shein_eligible_delivery', 'eligible for Est. 3 Working Days')}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {product.sizes.map((sz) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setSelectedSize(sz)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            selectedSize === sz
+                              ? 'bg-black text-white border-black shadow-md'
+                              : 'bg-white text-slate-800 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedSize && (
+                      <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
+                        <span className="hover:underline cursor-pointer">{t('shein_not_your_size', 'Not your size? Tell me your size')} &gt;</span>
+                        <span className="text-emerald-700 font-medium">✓ {selectedSize} {t('shein_eligible_delivery', 'eligible for Est. 3 Working Days')}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 {/* ── QUANTITY & ADD TO CART (SHEIN BIG BLACK BAR) ── */}
                 <div className="mt-5 pt-3 border-t border-slate-100 space-y-3">

@@ -113,6 +113,48 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'kaafi_merchant_stores_clean_v2';
 
+export function parseProductMeta(rawDescription?: string): {
+  description: string;
+  sizes?: string[];
+  colors?: string[];
+  colorVariants?: { name: string; isHot?: boolean; image?: string }[];
+  sku?: string;
+  compareAtPrice?: number;
+} {
+  if (!rawDescription) return { description: '' };
+  const metaMatch = rawDescription.match(/<!--META:([\s\S]*?)-->/);
+  if (!metaMatch) return { description: rawDescription };
+  try {
+    const meta = JSON.parse(metaMatch[1]);
+    const cleanDesc = rawDescription.replace(/<!--META:[\s\S]*?-->/, '').trim();
+    return {
+      description: cleanDesc,
+      sizes: Array.isArray(meta.sizes) ? meta.sizes : undefined,
+      colors: Array.isArray(meta.colors) ? meta.colors : undefined,
+      colorVariants: Array.isArray(meta.colorVariants) ? meta.colorVariants : undefined,
+      sku: meta.sku,
+      compareAtPrice: typeof meta.compareAtPrice === 'number' ? meta.compareAtPrice : undefined,
+    };
+  } catch {
+    return { description: rawDescription };
+  }
+}
+
+export function buildProductDescriptionWithMeta(
+  desc: string,
+  meta: {
+    sizes?: string[];
+    colors?: string[];
+    colorVariants?: any[];
+    sku?: string;
+    compareAtPrice?: number;
+  }
+): string {
+  const clean = (desc || '').replace(/<!--META:[\s\S]*?-->/, '').trim();
+  const trailer = `\n\n<!--META:${JSON.stringify(meta)}-->`;
+  return clean + trailer;
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [stores, setStores] = useState<MerchantStore[]>([]);
   const [currentMerchantStore, setCurrentMerchantStore] = useState<MerchantStore | null>(null);
@@ -141,37 +183,62 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           );
 
           const dbProducts: StoreProduct[] = (bs.listings || []).map((l: any) => {
+            const meta = parseProductMeta(l.description);
+            const localMatch = existingLocal?.products?.find(
+              (p: any) => p.id === l.id || p.title.toLowerCase() === l.title.toLowerCase()
+            );
+
             const images = (l.media && l.media.length > 0)
               ? l.media.map((m: any) => m.url)
               : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
+
+            const sizes = meta.sizes || localMatch?.sizes || (Array.isArray(l.sizes) ? l.sizes : undefined);
+            const colors = meta.colors || localMatch?.colors || (Array.isArray(l.colors) ? l.colors : undefined);
+            const colorVariants = meta.colorVariants || localMatch?.colorVariants || l.colorVariants;
+
             return {
               id: l.id,
               title: l.title,
               price: l.price,
-              compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
+              compareAtPrice: meta.compareAtPrice || localMatch?.compareAtPrice || Math.round(l.price * 1.15 * 100) / 100,
               discountPercent: 15,
               images,
-              category: l.category?.name || 'Guud',
-              stockQuantity: l.inventoryCount ?? 1,
-              sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
-              description: l.description || '',
+              category: l.category?.name || localMatch?.category || 'Guud',
+              stockQuantity: l.inventoryCount ?? localMatch?.stockQuantity ?? 1,
+              sku: meta.sku || localMatch?.sku || l.sku || `SKU-${l.id.slice(0, 8).toUpperCase()}`,
+              description: meta.description || localMatch?.description || '',
               condition: l.condition || 'NEW',
               storeSlug: bs.slug,
               storeName: bs.businessName,
               isPopular: true,
               isFeatured: true,
-              rating: 5.0,
-              reviewsCount: 0,
-              reviews: [],
+              rating: localMatch?.rating || 5.0,
+              reviewsCount: localMatch?.reviewsCount || 0,
+              reviews: localMatch?.reviews || [],
+              sizes,
+              colors,
+              colorVariants,
             };
           });
 
-          // Merge products so custom builder products are preserved
+          // Merge products so custom builder products and their attributes are preserved
           const combinedProducts = [...dbProducts];
           if (existingLocal?.products && Array.isArray(existingLocal.products)) {
             existingLocal.products.forEach((lp) => {
-              if (!combinedProducts.some((p) => p.id === lp.id || p.title.toLowerCase() === lp.title.toLowerCase())) {
+              const matchIdx = combinedProducts.findIndex(
+                (p) => p.id === lp.id || p.title.toLowerCase() === lp.title.toLowerCase()
+              );
+              if (matchIdx === -1) {
                 combinedProducts.push(lp);
+              } else {
+                // Merge to preserve local sizes, colors, colorVariants
+                combinedProducts[matchIdx] = {
+                  ...lp,
+                  ...combinedProducts[matchIdx],
+                  sizes: lp.sizes && lp.sizes.length > 0 ? lp.sizes : combinedProducts[matchIdx].sizes,
+                  colors: lp.colors && lp.colors.length > 0 ? lp.colors : combinedProducts[matchIdx].colors,
+                  colorVariants: lp.colorVariants && lp.colorVariants.length > 0 ? lp.colorVariants : combinedProducts[matchIdx].colorVariants,
+                };
               }
             });
           }
@@ -220,29 +287,51 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       // 2. Fetch all public listings for marketplace feed
       const res = await api.getListings({ limit: 100 });
       if (res && res.success && Array.isArray(res.data)) {
+        // Collect all local products from all local stores to cross-reference sizes/colors
+        let localStoresSnapshot: MerchantStore[] = [];
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          if (s) localStoresSnapshot = JSON.parse(s);
+        } catch {}
+        const allLocalProds: StoreProduct[] = [];
+        localStoresSnapshot.forEach((st) => (st.products || []).forEach((p) => allLocalProds.push(p)));
+
         const mapped: StoreProduct[] = res.data.map((l: any) => {
+          const meta = parseProductMeta(l.description);
+          const localMatch = allLocalProds.find(
+            (p) => p.id === l.id || p.title.toLowerCase() === l.title.toLowerCase()
+          );
+
           const images = (l.media && l.media.length > 0)
             ? l.media.map((m: any) => m.url)
             : [l.mediaUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
+
+          const sizes = meta.sizes || localMatch?.sizes || (Array.isArray(l.sizes) ? l.sizes : undefined);
+          const colors = meta.colors || localMatch?.colors || (Array.isArray(l.colors) ? l.colors : undefined);
+          const colorVariants = meta.colorVariants || localMatch?.colorVariants || l.colorVariants;
+
           return {
             id: l.id,
             title: l.title,
             price: l.price,
-            compareAtPrice: Math.round(l.price * 1.15 * 100) / 100,
+            compareAtPrice: meta.compareAtPrice || localMatch?.compareAtPrice || Math.round(l.price * 1.15 * 100) / 100,
             discountPercent: 15,
             images,
-            category: l.category?.name || 'Guud',
-            stockQuantity: l.inventoryCount ?? 1,
-            sku: `SKU-${l.id.slice(0, 8).toUpperCase()}`,
-            description: l.description || '',
+            category: l.category?.name || localMatch?.category || 'Guud',
+            stockQuantity: l.inventoryCount ?? localMatch?.stockQuantity ?? 1,
+            sku: meta.sku || localMatch?.sku || l.sku || `SKU-${l.id.slice(0, 8).toUpperCase()}`,
+            description: meta.description || localMatch?.description || '',
             condition: l.condition || 'NEW',
-            storeSlug: l.business?.slug || 'admin-store',
-            storeName: l.business?.businessName || 'DukaamiOnline Official',
+            storeSlug: l.business?.slug || localMatch?.storeSlug || 'admin-store',
+            storeName: l.business?.businessName || localMatch?.storeName || 'DukaamiOnline Official',
             isPopular: true,
             isFeatured: true,
-            rating: 5.0,
-            reviewsCount: 0,
-            reviews: [],
+            rating: localMatch?.rating || 5.0,
+            reviewsCount: localMatch?.reviewsCount || 0,
+            reviews: localMatch?.reviews || [],
+            sizes,
+            colors,
+            colorVariants,
           };
         });
         setLiveProducts(mapped);
@@ -670,7 +759,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ],
       colors: colorList,
       colorVariants,
-      sizes: productData.sizes && productData.sizes.length > 0 ? productData.sizes : ['S', 'M', 'L', 'XL'],
+      sizes: productData.sizes && productData.sizes.length > 0 ? productData.sizes : [],
     };
 
     const updated = stores.map((s) => {
@@ -697,14 +786,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         import('../lib/api').then(({ api }) => {
           // Convert category display name to slug format for reliable backend lookup
-          // e.g. "Women Clothing" → "women-clothing", "Guud" → "guud"
           const categorySlug = (newProduct.category || 'products')
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '') || 'products';
 
-          const listingDescription = newProduct.description?.trim() ||
+          const cleanDesc = newProduct.description?.trim() ||
             `${newProduct.title} - Alaab tayo sare ah oo ka imaanaysa ${targetStore.businessName}.`;
+
+          const listingDescription = buildProductDescriptionWithMeta(cleanDesc, {
+            sizes: newProduct.sizes,
+            colors: newProduct.colors,
+            colorVariants: newProduct.colorVariants,
+            sku: newProduct.sku,
+            compareAtPrice: newProduct.compareAtPrice,
+          });
 
           api.createListing({
             title: newProduct.title,
@@ -743,6 +839,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateStoreProduct = (slug: string, productId: string, updates: Partial<StoreProduct>) => {
+    let updatedProductRef: StoreProduct | undefined;
     const updated = stores.map((s) => {
       if (s.slug === slug) {
         return {
@@ -755,6 +852,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                   ((merged.compareAtPrice - merged.price) / merged.compareAtPrice) * 100
                 );
               }
+              updatedProductRef = merged;
               return merged;
             }
             return p;
@@ -764,6 +862,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return s;
     });
     saveStores(updated);
+
+    // Sync updates to backend listing if token exists
+    if (typeof window !== 'undefined' && updatedProductRef && !productId.startsWith('prod-')) {
+      const token = localStorage.getItem('hudisoft_token');
+      if (token) {
+        import('../lib/api').then(({ api }) => {
+          const cleanDesc = updatedProductRef!.description?.trim() || updatedProductRef!.title;
+          const listingDescription = buildProductDescriptionWithMeta(cleanDesc, {
+            sizes: updatedProductRef!.sizes,
+            colors: updatedProductRef!.colors,
+            colorVariants: updatedProductRef!.colorVariants,
+            sku: updatedProductRef!.sku,
+            compareAtPrice: updatedProductRef!.compareAtPrice,
+          });
+
+          api.updateListing(
+            productId,
+            {
+              title: updatedProductRef!.title,
+              price: updatedProductRef!.price,
+              description: listingDescription,
+              inventoryCount: updatedProductRef!.stockQuantity,
+              mediaUrls: updatedProductRef!.images,
+            },
+            token
+          ).catch((e) => console.warn('Failed to sync updated listing to backend:', e));
+        });
+      }
+    }
   };
 
   const deleteStoreProduct = (slug: string, productId: string) => {

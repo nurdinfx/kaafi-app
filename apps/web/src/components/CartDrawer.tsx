@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CartDrawer() {
   const {
@@ -19,6 +20,8 @@ export default function CartDrawer() {
     generateWhatsAppOrderUrl,
     clearCart,
   } = useCart();
+
+  const { t, isRTL, dir } = useLanguage();
 
   const [promoInput, setPromoInput] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -44,14 +47,14 @@ export default function CartDrawer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden animate-fade-in">
+    <div dir={dir} className="fixed inset-0 z-50 overflow-hidden animate-fade-in">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
         onClick={() => setIsCartOpen(false)}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className={`fixed inset-y-0 ${isRTL ? 'left-0 pr-10' : 'right-0 pl-10'} max-w-full flex`}>
         <div className="w-screen max-w-md bg-white text-slate-800 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
           
           {/* Header */}
@@ -62,10 +65,10 @@ export default function CartDrawer() {
               </div>
               <div>
                 <h2 className="font-bold text-lg leading-tight font-display">
-                  Shantada Wax Iibsiga
+                  {t('cart_title')}
                 </h2>
                 <p className="text-xs text-orange-100">
-                  {items.length === 0 ? 'Shantadu way maran tahay' : `${items.reduce((s, i) => s + i.quantity, 0)} shay ayaa ku jira`}
+                  {items.length === 0 ? t('cart_empty_title') : `${items.reduce((s, i) => s + i.quantity, 0)} items`}
                 </p>
               </div>
             </div>
@@ -87,16 +90,16 @@ export default function CartDrawer() {
                   🛍️
                 </div>
                 <h3 className="text-lg font-bold text-slate-800 mb-1">
-                  Shantadaada waxba kuma jiraan
+                  {t('cart_empty_title')}
                 </h3>
                 <p className="text-sm text-slate-500 max-w-xs mb-6">
-                  Dhexdhufo alaabooyinka aad jeceshahay si aad ugu darto shantaada.
+                  {t('cart_empty_desc')}
                 </p>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-500 shadow-md hover:shadow-lg transition-transform hover:-translate-y-0.5"
+                  className="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-500 shadow-md hover:shadow-lg transition-transform hover:-translate-y-0.5 cursor-pointer"
                 >
-                  Bilow Dukaameysiga →
+                  {t('cart_empty_btn')} →
                 </button>
               </div>
             ) : (
@@ -118,7 +121,7 @@ export default function CartDrawer() {
                         </h4>
                         <button
                           onClick={() => removeFromCart(item.id)}
-                          className="text-slate-400 hover:text-rose-500 p-1 text-xs"
+                          className="text-slate-400 hover:text-rose-500 p-1 text-xs cursor-pointer"
                           title="Ka saar"
                         >
                           🗑️
@@ -131,37 +134,30 @@ export default function CartDrawer() {
                         </p>
                       )}
 
-                      {(item.selectedColor || item.selectedSize) && (
-                        <div className="flex gap-1.5 mt-1 text-[11px] text-slate-500">
-                          {item.selectedColor && (
-                            <span className="bg-slate-200 px-1.5 py-0.5 rounded">
-                              {item.selectedColor}
-                            </span>
-                          )}
-                          {item.selectedSize && (
-                            <span className="bg-slate-200 px-1.5 py-0.5 rounded">
-                              {item.selectedSize}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
-                      <div className="font-bold text-slate-900 text-sm">
-                        ${(item.price * item.quantity).toFixed(2)}
-                        {item.quantity > 1 && (
-                          <span className="text-[11px] font-normal text-slate-500 ml-1">
-                            (${item.price.toFixed(2)} / xabbo)
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                        {item.selectedColor && (
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                            {item.selectedColor}
+                          </span>
+                        )}
+                        {item.selectedSize && (
+                          <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200 font-semibold text-[11px] text-slate-700">
+                            {item.selectedSize}
                           </span>
                         )}
                       </div>
+                    </div>
 
-                      {/* Quantity Controller */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                      <span className="font-bold text-slate-900 text-sm">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </span>
+
+                      {/* Quantity controls */}
                       <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden shadow-xs">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold transition-colors"
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold transition-colors cursor-pointer"
                         >
                           -
                         </button>
@@ -170,7 +166,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold transition-colors"
+                          className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 font-bold transition-colors cursor-pointer"
                         >
                           +
                         </button>
@@ -189,16 +185,16 @@ export default function CartDrawer() {
               <form onSubmit={handleApplyPromo} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Koodh dhimis (e.g. FUDUDEEYE10)"
+                  placeholder={t('cart_promo_placeholder')}
                   value={promoInput}
                   onChange={(e) => setPromoInput(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-xl text-xs border border-slate-300 focus:outline-none focus:border-orange-500 bg-white"
                 />
                 <button
                   type="submit"
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-orange-700 bg-orange-100 hover:bg-orange-200 transition-colors"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-orange-700 bg-orange-100 hover:bg-orange-200 transition-colors cursor-pointer"
                 >
-                  Dhimis
+                  {t('cart_promo_apply')}
                 </button>
               </form>
 
@@ -211,21 +207,21 @@ export default function CartDrawer() {
               {/* Totals */}
               <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-200">
                 <div className="flex justify-between">
-                  <span>Wadarta Alaabta:</span>
+                  <span>{t('cart_subtotal')}</span>
                   <span className="font-semibold text-slate-800">${subtotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
-                    <span>Qiimo Dhimis ({discountCode}):</span>
+                    <span>{t('cart_discount')} ({discountCode}):</span>
                     <span>-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-bold text-slate-500 text-[11px]">
-                  <span>Gaarsiinta:</span>
-                  <span className="text-slate-400 italic">Admin ayaa go'aaminaya</span>
+                  <span>{t('cart_delivery')}</span>
+                  <span className="text-slate-400 italic">{t('cart_delivery_note')}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-slate-900 pt-2 border-t border-slate-200">
-                  <span>Wadarta Guud:</span>
+                  <span>{t('cart_total')}</span>
                   <span className="text-orange-600">
                     ${finalTotal.toFixed(2)}
                   </span>
@@ -236,7 +232,7 @@ export default function CartDrawer() {
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <input
                   type="text"
-                  placeholder="Magacaaga"
+                  placeholder={t('cart_customer_name')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-300 bg-white text-slate-800"
@@ -260,10 +256,10 @@ export default function CartDrawer() {
                 {/* Direct WhatsApp Order (quick – opens WA immediately) */}
                 <button
                   onClick={handleWhatsAppCheckout}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-transform hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer"
                 >
                   <span className="text-lg">💬</span>
-                  Ku Dalbo WhatsApp (Toos ah)
+                  {t('cart_btn_whatsapp_direct')}
                 </button>
 
                 {/* Full WhatsApp checkout form (address + details first) */}
@@ -273,16 +269,16 @@ export default function CartDrawer() {
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-md transition-transform hover:-translate-y-0.5"
                 >
                   <span>🛒</span>
-                  Xaqiiji Cinwaanka & Gudbi (Checkout)
+                  {t('cart_btn_checkout')}
                 </Link>
               </div>
 
               <div className="text-center pt-1">
                 <button
                   onClick={clearCart}
-                  className="text-[11px] text-slate-400 hover:text-rose-500 underline"
+                  className="text-[11px] text-slate-400 hover:text-rose-500 underline cursor-pointer"
                 >
-                  Faaruqi Shantada (Clear Cart)
+                  {t('cart_clear')}
                 </button>
               </div>
             </div>

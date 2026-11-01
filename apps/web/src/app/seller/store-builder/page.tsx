@@ -145,6 +145,7 @@ export default function StoreBuilderPage() {
 
   // Add product modal state (SHEIN style with multi-colors & sizes)
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [prodTitle, setProdTitle] = useState('');
   const [prodCategory, setProdCategory] = useState(currentStore?.categories[0] || 'Women Clothing');
   const [prodPrice, setProdPrice] = useState('');
@@ -433,6 +434,47 @@ export default function StoreBuilderPage() {
     showToast(`⏳ ${catName} — ${t('sb_cat_waiting_badge', 'WAIT / Sugitaan')}`);
   };
 
+  const openAddProductModal = () => {
+    setEditingProductId(null);
+    setProdTitle('');
+    setProdCategory(currentStore?.categories[0] || 'Guud');
+    setProdPrice('');
+    setProdComparePrice('');
+    setProdStock('50');
+    setProdSku(`SZ-${Date.now().toString().slice(-6)}`);
+    setProdImage('https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900');
+    setProdExtraList([
+      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900',
+      'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900',
+    ]);
+    setCustomExtraUrl('');
+    setShowUrlInputMain(false);
+    setShowUrlInputExtra(false);
+    setProdColors('White, Black');
+    setProdSizes('');
+    setProdDescription('');
+    setShowAddProductModal(true);
+  };
+
+  const openEditProductModal = (prod: StoreProduct) => {
+    setEditingProductId(prod.id);
+    setProdTitle(prod.title || '');
+    setProdCategory(prod.category || currentStore?.categories[0] || 'Guud');
+    setProdPrice(prod.price ? prod.price.toString() : '');
+    setProdComparePrice(prod.compareAtPrice ? prod.compareAtPrice.toString() : '');
+    setProdStock((prod.stockQuantity ?? 50).toString());
+    setProdSku(prod.sku || `SZ-${Date.now().toString().slice(-6)}`);
+    setProdImage(prod.images[0] || 'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900');
+    setProdExtraList(prod.images.slice(1));
+    setCustomExtraUrl('');
+    setShowUrlInputMain(false);
+    setShowUrlInputExtra(false);
+    setProdColors((prod.colors || []).join(', '));
+    setProdSizes((prod.sizes || []).join(', '));
+    setProdDescription(prod.description || '');
+    setShowAddProductModal(true);
+  };
+
   const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentStore || selectedStoreSlug === 'new') {
@@ -454,35 +496,63 @@ export default function StoreBuilderPage() {
 
     const allImages = [prodImage, ...prodExtraList].filter(Boolean);
     const colorsList = prodColors
-      .split(',')
+      .split(/[,;/|\n]+/)
       .map((c) => c.trim())
       .filter(Boolean);
+
+    // Flexible sizes parsing: split by commas, slashes, or whitespace if no delimiters
+    const sizeDelimiter = /[,;/|\n]/.test(prodSizes) ? /[,;/|\n]+/ : /\s+/;
     const sizesList = prodSizes
-      .split(',')
+      .split(sizeDelimiter)
       .map((s) => s.trim())
       .filter(Boolean);
 
-    addProductToStore(currentStore.slug, {
-      title: prodTitle.trim(),
-      category: prodCategory || 'Women Clothing',
-      price: priceNum,
-      compareAtPrice: compareNum,
-      stockQuantity: stockNum,
-      sku: prodSku || `SZ-${Date.now().toString().slice(-6)}`,
-      images: allImages.length > 0 ? allImages : ['https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'],
-      description: prodDescription || 'SHEIN style high-quality garment tailored for premium comfort and style.',
-      colors: colorsList.length > 0 ? colorsList : ['White', 'Black'],
-      colorVariants: colorsList.map((col, idx) => ({
-        name: col,
-        isHot: idx === 0,
-        image: allImages[idx] || allImages[0],
-      })),
-      sizes: sizesList.length > 0 ? sizesList : ['XS', 'S', 'M', 'L', 'XL'],
-      condition: 'NEW',
-      isPopular: true,
-    });
+    if (editingProductId) {
+      // EDIT EXISTING PRODUCT
+      updateStoreProduct(currentStore.slug, editingProductId, {
+        title: prodTitle.trim(),
+        category: prodCategory || 'Guud',
+        price: priceNum,
+        compareAtPrice: compareNum,
+        stockQuantity: stockNum,
+        sku: prodSku || `SZ-${Date.now().toString().slice(-6)}`,
+        images: allImages.length > 0 ? allImages : ['https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'],
+        description: prodDescription.trim(),
+        colors: colorsList.length > 0 ? colorsList : undefined,
+        colorVariants: colorsList.map((col, idx) => ({
+          name: col,
+          isHot: idx === 0,
+          image: allImages[idx] || allImages[0],
+        })),
+        sizes: sizesList.length > 0 ? sizesList : [],
+      });
+      showToast('✓ Alaabta si guul leh ayaa loo cusbooneysiiyay!');
+    } else {
+      // ADD NEW PRODUCT
+      addProductToStore(currentStore.slug, {
+        title: prodTitle.trim(),
+        category: prodCategory || 'Guud',
+        price: priceNum,
+        compareAtPrice: compareNum,
+        stockQuantity: stockNum,
+        sku: prodSku || `SZ-${Date.now().toString().slice(-6)}`,
+        images: allImages.length > 0 ? allImages : ['https://images.unsplash.com/photo-1598554747436-c9293d6a588f?w=900'],
+        description: prodDescription || 'High quality product tailored for comfort and style.',
+        colors: colorsList.length > 0 ? colorsList : ['White', 'Black'],
+        colorVariants: colorsList.map((col, idx) => ({
+          name: col,
+          isHot: idx === 0,
+          image: allImages[idx] || allImages[0],
+        })),
+        sizes: sizesList.length > 0 ? sizesList : [],
+        condition: 'NEW',
+        isPopular: true,
+      });
+      showToast(t('sb_toast_prod_added', '✓ Alaabta cusub si guul leh ayaa loogu daray Stock-gaaga!'));
+    }
 
     setShowAddProductModal(false);
+    setEditingProductId(null);
     // Reset form
     setProdTitle('');
     setProdPrice('');
@@ -497,7 +567,9 @@ export default function StoreBuilderPage() {
     setCustomExtraUrl('');
     setShowUrlInputMain(false);
     setShowUrlInputExtra(false);
-    showToast(t('sb_toast_prod_added', '✓ Alaabta cusub si guul leh ayaa loogu daray Stock-gaaga!'));
+    setProdColors('White, Black');
+    setProdSizes('');
+    setProdDescription('');
   };
 
   const logoPresets = [
@@ -1488,7 +1560,7 @@ export default function StoreBuilderPage() {
                 </div>
 
                 <button
-                  onClick={() => setShowAddProductModal(true)}
+                  onClick={openAddProductModal}
                   className="px-6 py-3 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
                 >
                   <span>+</span>
@@ -1526,9 +1598,14 @@ export default function StoreBuilderPage() {
                               <div className="text-[11px] text-slate-500 font-mono">
                                 SKU: {prod.sku}
                               </div>
-                              {prod.colors && (
+                              {prod.sizes && prod.sizes.length > 0 && (
+                                <div className="text-[10px] text-emerald-400 font-mono">
+                                  Sizes: {prod.sizes.join(', ')}
+                                </div>
+                              )}
+                              {prod.colors && prod.colors.length > 0 && (
                                 <div className="text-[10px] text-orange-400">
-                                  {prod.colors.slice(0, 3).join(', ')}
+                                  Colors: {prod.colors.slice(0, 3).join(', ')}
                                 </div>
                               )}
                             </div>
@@ -1600,13 +1677,24 @@ export default function StoreBuilderPage() {
                         </td>
 
                         <td className="p-3.5 text-right">
-                          <button
-                            onClick={() => deleteStoreProduct(currentStore.slug, prod.id)}
-                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer font-bold"
-                            title="Delete product"
-                          >
-                            🗑️
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditProductModal(prod)}
+                              className="px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                              title="Wax ka beddel alaabta (Edit Product)"
+                            >
+                              <span>✏️</span>
+                              <span>Wax ka beddel</span>
+                            </button>
+                            <button
+                              onClick={() => deleteStoreProduct(currentStore.slug, prod.id)}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer font-bold"
+                              title="Delete product"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1628,7 +1716,7 @@ export default function StoreBuilderPage() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
               <div>
                 <h3 className="font-bold text-xl text-white font-display">
-                  {t('sb_modal_title')}
+                  {editingProductId ? '✏️ Wax ka beddel Alaabta (Edit Product)' : t('sb_modal_title')}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {t('sb_modal_store_label')} <strong className="text-orange-400">{currentStore.businessName}</strong>
@@ -1975,21 +2063,56 @@ export default function StoreBuilderPage() {
                 </span>
               </div>
 
-              {/* SHEIN Sizes */}
+              {/* Sizes (Custom or Presets) */}
               <div>
-                <label className="block font-bold text-slate-300 mb-1.5">
-                  {t('sb_modal_sizes')}
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-slate-300">
+                    {t('sb_modal_sizes')}
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Geli cabbir kasta (tusaale: lambarada kabaha ama xarfaha)
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={prodSizes}
                   onChange={(e) => setProdSizes(e.target.value)}
-                  placeholder={t('sb_modal_sizes_hint')}
+                  placeholder="e.g. 38, 39, 40, 41 ama S, M, L, XL"
                   className="w-full px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 text-sm text-white focus:outline-none focus:border-orange-500"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  {t('sb_modal_sizes_hint')}
-                </span>
+                
+                {/* Quick Size Presets */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] text-slate-400 font-semibold mr-1">Dooro Si Degdeg ah:</span>
+                  <button
+                    type="button"
+                    onClick={() => setProdSizes('38, 39, 40, 41, 42, 43, 44')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    👞 Kabo: 38, 39, 40, 41, 42, 43, 44
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProdSizes('S, M, L, XL, XXL')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    👕 Dhar: S, M, L, XL, XXL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProdSizes('4 (XXS), 6 (XS), 8 (S), 10 (M), 12/14 (L), 16 (XL)')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    👗 UK Sizes: 4, 6, 8, 10, 12, 14
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProdSizes('')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    🚫 Bilaa Cabbir (None)
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -2017,7 +2140,7 @@ export default function StoreBuilderPage() {
                   type="submit"
                   className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-xl shadow-orange-500/20 transition-all hover:-translate-y-0.5 cursor-pointer"
                 >
-                  {t('sb_modal_submit')}
+                  {editingProductId ? '✓ Keydi Isbedelka (Save Changes)' : t('sb_modal_submit')}
                 </button>
               </div>
             </form>
